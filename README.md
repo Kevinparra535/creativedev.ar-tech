@@ -78,36 +78,66 @@ npm start
 
 ```
 creativedev.ar-tech/
-├── app/
-│   ├── (tabs)/
-│   │   ├── index.tsx          # Home screen
-│   │   ├── explore.tsx        # Explore screen
-│   │   ├── ar-view.tsx        # 🔥 AR Experience (POC principal)
-│   │   └── _layout.tsx        # Tab navigation layout
-│   └── _layout.tsx            # Root layout
-├── components/                 # Reusable components
-├── constants/                  # Theme and constants
-├── hooks/                      # Custom hooks
-├── assets/                     # Images and assets
-├── app.json                    # 🔧 Expo configuration (permisos AR)
-└── package.json               # Dependencies
+├── src/                       # Código fuente (clean architecture)
+│   ├── ui/                    # Capa de presentación
+│   │   ├── screens/           # Pantallas de la app
+│   │   ├── components/        # Componentes reutilizables
+│   │   ├── navigation/        # Configuración de React Navigation
+│   │   └── theme/             # Colores, fuentes y estilos
+│   ├── domain/                # Capa de lógica de negocio
+│   │   ├── entities/          # Entidades de negocio
+│   │   └── usecases/          # Casos de uso
+│   ├── data/                  # Capa de acceso a datos
+│   │   ├── repositories/      # Implementaciones de repositorios
+│   │   └── datasources/       # Fuentes de datos
+│   └── core/                  # Capa compartida
+│       ├── hooks/             # Custom hooks
+│       ├── utils/             # Funciones utilitarias
+│       └── constants/         # Constantes
+├── assets/                    # Imágenes y assets
+├── App.tsx                    # Componente raíz
+├── index.js                   # Entry point
+├── app.json                   # Configuración de Expo
+├── tsconfig.json              # Configuración de TypeScript
+├── babel.config.js            # Configuración de Babel
+├── package.json               # Dependencias
+└── README.md                  # Este archivo
 ```
 
 ## 🔑 Archivos Clave
 
-### [app/(tabs)/ar-view.tsx](app/(tabs)/ar-view.tsx)
-Pantalla principal del POC que contiene:
-- Configuración de Three.js scene
-- Creación de geometrías arquitectónicas (habitación, muebles)
-- Sistema de materiales intercambiables
-- Renderizado en GLView
-- UI de controles
+### `src/ui/navigation/`
+- `AppNavigator.tsx` - Navegador raíz con stack de pantallas
+- `TabNavigator.tsx` - Navegación por pestañas
+- `types.ts` - Tipos type-safe para navegación
 
-### [app.json](app.json)
-Configuración de permisos:
-- `NSCameraUsageDescription` (iOS)
-- `CAMERA` permission (Android)
-- Plugin `expo-camera` configurado
+### `src/ui/screens/`
+- `HomeScreen.tsx` - Pantalla principal
+- Otras pantallas específicas de la app
+
+### `src/ui/theme/`
+- `colors.ts` - Definiciones de colores para modo claro y oscuro
+- `fonts.ts` - Familias de fuentes
+
+## 📍 Importaciones con Alias
+
+El proyecto usa alias `@/` para importaciones absolutas desde `src/`:
+
+```typescript
+// ✅ Correcto - Usando alias
+import { ThemedText } from '@/ui/components/ThemedText';
+import { Colors } from '@/ui/theme/colors';
+import { useColorScheme } from '@/core/hooks/use-color-scheme';
+
+// ❌ Evitar - Rutas relativas complejas
+import { ThemedText } from '../../../ui/components/ThemedText';
+```
+
+**Alias disponibles:**
+- `@/ui/*` - UI components, screens, navigation, theme
+- `@/domain/*` - Business entities and use cases
+- `@/data/*` - Repositories and data sources
+- `@/core/*` - Shared hooks, utils, constants
 
 ## 🎨 Materiales Disponibles
 
@@ -146,44 +176,34 @@ Asegúrate de configurar `eas.json` antes de compilar.
 ## 📊 Diferenciador vs Competencia
 
 A diferencia de herramientas como Fologram o ARki, este POC demuestra:
+
 - **Zero backend inicial**: Todo el render se genera en cliente
 - **Cambio de materiales instantáneo**: No requiere recargar modelos
 - **UI minimalista**: Enfocada en la experiencia, no en herramientas complejas
 - **Escalabilidad**: Preparado para conectar con CMS de contenido arquitectónico
 
-## 🏗️ Arquitectura del Proyecto
+## 🏗️ Arquitectura del Código
 
-Este proyecto sigue **clean architecture** con clara separación de responsabilidades:
+Este proyecto implementa **clean architecture** con clara separación de responsabilidades en la carpeta `src/`:
 
-```
-src/
-├── ui/                 # Capa de UI
-│   ├── screens/        # Pantallas de la app
-│   ├── components/     # Componentes reutilizables
-│   ├── navigation/     # Configuración de navegación (React Navigation)
-│   └── theme/          # Tema y estilos
-├── domain/             # Capa de lógica de negocio
-│   ├── entities/       # Entidades de negocio
-│   └── usecases/       # Casos de uso
-├── data/               # Capa de datos
-│   ├── repositories/   # Implementaciones de repositorios
-│   └── datasources/    # Fuentes de datos (API, local, etc.)
-└── core/               # Capa compartida
-    ├── hooks/          # React hooks compartidos
-    ├── utils/          # Funciones utilitarias
-    └── constants/      # Constantes de la app
-```
+### Capas
+
+- **UI Layer** (`src/ui/`) - Componentes visuales, pantallas, navegación
+- **Domain Layer** (`src/domain/`) - Lógica de negocio, entidades
+- **Data Layer** (`src/data/`) - Acceso a datos, repositorios
+- **Core Layer** (`src/core/`) - Hooks compartidos, utilidades
 
 ### Navegación
 
-- Usa **React Navigation 7** con type-safe routing
+- **React Navigation 7** con type-safe routing
 - `AppNavigator.tsx` - Navegador raíz
 - `TabNavigator.tsx` - Navegación por pestañas
-- Definiciones de tipos en `navigation/types.ts`
+- Tipos en `navigation/types.ts`
 
 ### Sistema de Temas
 
 Los componentes se adaptan automáticamente a modo claro/oscuro:
+
 - Colores: `src/ui/theme/colors.ts`
 - Fuentes: `src/ui/theme/fonts.ts`
 - Componentes temáticos: `ThemedText`, `ThemedView`

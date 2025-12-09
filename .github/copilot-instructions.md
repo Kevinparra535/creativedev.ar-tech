@@ -55,12 +55,19 @@ Central theme management with automatic light/dark mode support:
 - **Platform-specific files**: Use `.ios.tsx`, `.web.ts` suffixes for platform overrides
 
 ### Import Paths
-Use `@/` alias for absolute imports (configured in `tsconfig.json`):
+Use `@/` alias for absolute imports (configured in `tsconfig.json` and `babel.config.js`):
 ```tsx
 import { ThemedText } from '@/ui/components/ThemedText';
 import { Colors } from '@/ui/theme/colors';
 import { HomeScreen } from '@/ui/screens/HomeScreen';
+import { useColorScheme } from '@/core/hooks/use-color-scheme';
 ```
+
+**Alias Mapping:**
+- `@/ui/*` - All UI components, screens, navigation, and theme
+- `@/domain/*` - Business logic and entities
+- `@/data/*` - Repositories and data sources
+- `@/core/*` - Shared hooks, utilities, and constants
 
 ## Development Workflow
 
@@ -70,6 +77,12 @@ import { HomeScreen } from '@/ui/screens/HomeScreen';
 - `npm run android` - Launch Android emulator  
 - `npm run web` - Start web server
 - Dev tools: `cmd+d` (iOS), `cmd+m` (Android), `F12` (web)
+
+### Restarting Metro Bundler
+After changing `babel.config.js`, always restart with cache clear:
+```bash
+npm start -- --clear
+```
 
 ### Code Quality
 - ESLint flat config (v9) with `eslint-config-expo`
@@ -100,10 +113,35 @@ If migrating from Expo Router template:
 - Platform detection: `Platform.select({ ios, android, web })`
 
 ## Key Dependencies
-- **Navigation**: @react-navigation/native, @react-navigation/bottom-tabs, @react-navigation/elements
+- **Navigation**: @react-navigation/native, @react-navigation/bottom-tabs, @react-navigation/native-stack, @react-navigation/elements
 - **UI**: expo-symbols, @expo/vector-icons, expo-image (optimized Image component)
 - **Animations**: react-native-reanimated, react-native-gesture-handler
+- **Module Resolution**: babel-plugin-module-resolver (for alias support)
 - **Utilities**: expo-haptics, expo-linking, expo-web-browser
+
+## Configuration Files
+
+### `babel.config.js`
+Configures module resolution and Babel plugins:
+```javascript
+module.exports = {
+  plugins: [
+    ['module-resolver', { alias: { '@': './src' } }],
+    'react-native-reanimated/plugin',
+  ],
+};
+```
+
+### `tsconfig.json`
+Configures TypeScript path aliases and compiler options:
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  }
+}
+```
 
 ## Experimental Features
 - `experiments.reactCompiler: true` - Automatic optimization (React 19)
