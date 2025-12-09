@@ -9,6 +9,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { useRoomPlan, ExportResult } from '@/hooks/useRoomPlan';
+import { RoomPlanView } from '@/components/RoomPlanView';
 
 export const RoomPlanTestScreen: React.FC = () => {
   const { isScanning, roomData, error, isExporting, startScanning, stopScanning, exportScan } =
@@ -25,6 +26,24 @@ export const RoomPlanTestScreen: React.FC = () => {
       }
     });
   };
+
+  // Mostrar vista AR durante escaneo
+  if (isScanning) {
+    return (
+      <View style={styles.containerScanning}>
+        <RoomPlanView style={styles.captureView} />
+
+        <View style={styles.scanningOverlay}>
+          <Text style={styles.scanningTitle}>Escaneando...</Text>
+          <Text style={styles.scanningSubtitle}>Mueve lentamente alrededor de la habitación</Text>
+
+          <TouchableOpacity style={styles.stopButton} onPress={stopScanning}>
+            <Text style={styles.stopButtonText}>Detener Escaneo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -139,6 +158,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5'
+  },
+  containerScanning: {
+    flex: 1,
+    backgroundColor: '#000'
+  },
+  captureView: {
+    flex: 1
+  },
+  scanningOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 20,
+    alignItems: 'center'
+  },
+  scanningTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8
+  },
+  scanningSubtitle: {
+    fontSize: 14,
+    color: '#bdc3c7',
+    marginBottom: 20,
+    textAlign: 'center'
+  },
+  stopButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center'
+  },
+  stopButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold'
   },
   header: {
     paddingHorizontal: 20,
