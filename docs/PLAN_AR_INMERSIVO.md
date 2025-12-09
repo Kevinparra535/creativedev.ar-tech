@@ -359,32 +359,35 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 
 ---
 
-## 🎬 Próximos Pasos
+## ✅ Decisiones Finales (Confirmadas 2025-12-08)
 
-Para avanzar necesito tu confirmación en:
+### 1. Rendering Engine: **SceneKit** ✅
 
-### 1. ¿SceneKit o Three.js?
+- Reescribir lógica 3D actual de Three.js a SceneKit nativo
+- Mejor performance e integración con ARKit
+- Menor complejidad de bridge
 
-- **SceneKit** = mejor performance, hay que reescribir rendering
-- **Three.js** = reutilizar código, más complejidad de bridge
+### 2. Hardware Disponible: **iPhone 14 Pro Max** ✅
 
-### 2. ¿Tienes dispositivo con LiDAR para testing?
+- Dispositivo con LiDAR confirmado
+- Compatible con RoomPlan API
+- iOS 16+ soportado
 
-- Si no, necesitas conseguir uno (iPhone 12 Pro o superior)
+### 3. Nivel de Experiencia: **Swift Básico** ✅
 
-### 3. ¿Nivel de experiencia con Swift/iOS?
+- Fase 0 estimada en 1.5-2 semanas
+- Recursos de aprendizaje complementarios necesarios
+- Tutoriales de Apple recomendados
 
-- **Nulo:** Fase 0 tomará más tiempo
-- **Básico:** Podemos arrancar
-- **Avanzado:** Aceleramos desarrollo
+### 4. Estado: **FASE 0 EN PROGRESO** 🚀
 
-### 4. ¿Empezamos con FASE 0 (Setup)?
+**Próximo paso:** Migrar a Expo Bare Workflow y configurar Xcode
 
-- Migrar a Bare Workflow
-- Configurar módulo nativo básico
-- Validar RoomPlan funciona
+---
 
-**Responde estas 4 preguntas y arrancamos con la implementación.**
+## 🎬 Comenzando FASE 0
+
+Ver [FASE_0_SETUP.md](./FASE_0_SETUP.md) para pasos detallados de implementación.
 
 ---
 
