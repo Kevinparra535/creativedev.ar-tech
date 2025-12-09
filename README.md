@@ -1,67 +1,136 @@
-# AR Immersive Experience Platform - POC
+# AR Immersive Experience Platform
 
-Plataforma de experiencias inmersivas en AR para transformar información estática en espacios tridimensionales interactivos.
+**Versión:** 1.0 POC  
+**Fecha:** Diciembre 2025  
+**Estado:** En desarrollo - Arquitectura UI-First
 
-## 🎯 Objetivo del POC
+Plataforma de experiencias inmersivas en AR que permite a arquitectos presentar renders 3D en escala real usando tecnología AR nativa móvil.
 
-Este POC demuestra una **app nativa en Expo** para el caso de uso de **arquitectura**, permitiendo a los clientes explorar renders arquitectónicos en 3D con toggle de materiales en tiempo real.
+---
 
-## ✨ Características Implementadas
+## 🎯 Concepto del Proyecto
 
-- ✅ **Render 3D de habitación arquitectónica** con paredes, piso, ventana y mobiliario
-- ✅ **Toggle de materiales en tiempo real**: Default, Madera, Concreto
-- ✅ **Rotación automática de cámara** para explorar el espacio
-- ✅ **UI overlay minimalista** con controles táctiles
-- ✅ **Permisos de cámara** configurados para iOS y Android
-- ✅ **Iluminación realista** con luces ambientales y direccionales
+### Caso de Uso Principal: Arquitectura
+
+**Escenario:** Un arquitecto está remodelando un apartamento/casa
+
+1. **Arquitecto** sube modelo 3D a escala real del diseño final
+2. **Cliente** visualiza el render 3D con AR en el espacio físico
+3. **Cliente** explora diferentes materiales y acabados en tiempo real
+4. **Cliente** camina dentro del diseño y experimenta el espacio inmersivamente
+
+### Diferenciador Clave
+
+A diferencia de apps como IKEA Place (colocar objetos), esta plataforma permite **sumergirse en el diseño completo** del espacio arquitectónico.
+
+---
+
+## 📊 Estado Actual del Proyecto
+
+### ✅ Infraestructura Base Completada
+
+- React Native 0.81.5 + Expo SDK 54 configurado
+- React Navigation 7 con navegación tipo-safe
+- TypeScript estricto + alias `@/` para imports absolutos
+- Sistema de temas (modo claro/oscuro)
+- Permisos de cámara configurados para iOS y Android
+- Dependencias 3D instaladas (Three.js 0.166.0, expo-three, expo-gl)
+
+### 🚧 En Implementación
+
+La estructura actual sigue un enfoque **UI-First** donde toda la lógica AR/3D vive dentro de `src/ui/ar/`:
+
+```
+src/ui/
+├── ar/                        # Feature AR completa
+│   ├── components/            # ARCanvas, ARControls, MaterialPicker
+│   ├── hooks/                 # use3DScene, useARSession, useMaterialToggle
+│   └── utils/                 # SceneManager, geometries, materials
+├── screens/                   # HomeScreen, ARScreen
+├── navigation/                # AppNavigator, TabNavigator
+└── theme/                     # colors, fonts
+```
+
+### 📝 Código 3D Anterior (Recuperable)
+
+El commit `a1bea4b` contenía una implementación funcional de sala 3D (363 líneas) que fue refactorizada. Incluía:
+
+- Sala arquitectónica completa con paredes, piso, ventana, mesa
+- Sistema de materiales intercambiables (Default, Wood, Concrete)
+- Iluminación realista y rotación de cámara
+
+Ver [docs/CODIGO_3D_ANTERIOR.md](./docs/CODIGO_3D_ANTERIOR.md) para análisis completo.
 
 ## 🛠 Stack Tecnológico
 
-- **Framework**: React Native + Expo SDK 54
-- **3D Engine**: Three.js (v0.166.0)
-- **Expo Modules**:
-  - `expo-gl` - WebGL support
-  - `expo-three` - Three.js integration
-  - `expo-camera` - Camera permissions
-  - `expo-sensors` - Device sensors (future use)
-- **Navigation**: Expo Router
-- **Language**: TypeScript
+### Core Framework
+
+- **React Native** 0.81.5 + **Expo SDK** 54
+- **React** 19 con React Compiler experimental
+- **TypeScript** 5.9.2 (strict mode)
+- **New Architecture** de React Native habilitada
+
+### 3D & AR
+
+- **Three.js** 0.166.0 - Motor 3D
+- **React Three Fiber** 8.17.10 - Integración React/Three.js
+- **expo-gl** ~16.0.8 - OpenGL context
+- **expo-three** 8.0.0 - Renderer para Expo
+- **expo-camera** ~17.0.10 - Acceso a cámara
+- **expo-sensors** ~15.0.0 - Giroscopio y acelerómetro
+
+### Navigation & UI
+
+- **React Navigation** 7 con type-safe routing
+- **expo-symbols** - SF Symbols (iOS)
+- **expo-haptics** - Feedback háptico
+- **react-native-reanimated** - Animaciones
+- **react-native-gesture-handler** - Gestos táctiles
 
 ## 🚀 Instalación y Ejecución
 
 ### Pre-requisitos
 
-- Node.js 18+ instalado
-- npm o yarn
-- Expo CLI
-- Dispositivo físico o emulador iOS/Android
+- **Node.js** 18+
+- **npm** o yarn
+- **Expo CLI** (se instala automáticamente)
+- **Dispositivo físico** (recomendado para AR) o simulador/emulador
 
-### Pasos
-
-1. **Clonar o navegar al proyecto**
+### Instalación
 
 ```bash
+# Navegar al proyecto
 cd creativedev.ar-tech
-```
 
-2. **Instalar dependencias**
-
-```bash
+# Instalar dependencias
 npm install
-```
 
-3. **Iniciar el servidor de desarrollo**
-
-```bash
+# Iniciar servidor de desarrollo
 npm start
 ```
 
-4. **Ejecutar en dispositivo**
+### Ejecutar en Plataforma
 
-- **iOS**: Presiona `i` en la terminal o escanea el QR con la app Expo Go
-- **Android**: Presiona `a` en la terminal o escanea el QR con la app Expo Go
+```bash
+# iOS Simulator
+npm run ios
 
-> **Nota**: Para funcionalidad AR completa (tracking de planos), se requiere compilar una build nativa con Expo EAS.
+# Android Emulator
+npm run android
+
+# Web (preview)
+npm run web
+```
+
+### Reiniciar Metro Bundler
+
+Después de cambiar `babel.config.js`, siempre reinicia con caché limpia:
+
+```bash
+npm start -- --clear
+```
+
+> **⚠️ Nota AR:** Para funcionalidad AR avanzada (ARKit/ARCore), se requiere compilar build nativa. El POC actual usa tracking básico con sensores.
 
 ## 📱 Uso de la App
 
@@ -76,48 +145,99 @@ npm start
 
 ## 📂 Estructura del Proyecto
 
-```
+### Arquitectura UI-First
+
+El proyecto sigue un enfoque **UI-First** donde toda la lógica relacionada con AR y 3D está organizada dentro de `src/ui/ar/`:
+
+```text
 creativedev.ar-tech/
-├── src/                       # Código fuente (clean architecture)
-│   ├── ui/                    # Capa de presentación
-│   │   ├── screens/           # Pantallas de la app
-│   │   ├── components/        # Componentes reutilizables
-│   │   ├── navigation/        # Configuración de React Navigation
-│   │   └── theme/             # Colores, fuentes y estilos
-│   ├── domain/                # Capa de lógica de negocio
-│   │   ├── entities/          # Entidades de negocio
-│   │   └── usecases/          # Casos de uso
-│   ├── data/                  # Capa de acceso a datos
-│   │   ├── repositories/      # Implementaciones de repositorios
-│   │   └── datasources/       # Fuentes de datos
-│   └── core/                  # Capa compartida
-│       ├── hooks/             # Custom hooks
-│       ├── utils/             # Funciones utilitarias
-│       └── constants/         # Constantes
-├── assets/                    # Imágenes y assets
-├── App.tsx                    # Componente raíz
-├── index.js                   # Entry point
-├── app.json                   # Configuración de Expo
-├── tsconfig.json              # Configuración de TypeScript
-├── babel.config.js            # Configuración de Babel
-├── package.json               # Dependencias
-└── README.md                  # Este archivo
+├── src/ui/                           # Todo el código de la app
+│   ├── ar/                           # Feature AR/3D completa
+│   │   ├── components/               # Componentes específicos AR
+│   │   │   ├── ARCanvas.tsx          # Canvas 3D con GLView
+│   │   │   ├── ARControls.tsx        # Botones de control
+│   │   │   ├── MaterialPicker.tsx    # Selector de materiales
+│   │   │   └── ARPermissionPrompt.tsx
+│   │   ├── hooks/                    # Hooks específicos AR/3D
+│   │   │   ├── use3DScene.ts         # Lógica Three.js
+│   │   │   ├── useARSession.ts       # Gestión sesión AR
+│   │   │   ├── useMaterialToggle.ts  # Cambio materiales
+│   │   │   └── useDeviceOrientation.ts
+│   │   └── utils/                    # Utilidades AR/3D
+│   │       ├── SceneManager.ts       # Gestor escena Three.js
+│   │       ├── LightingSetup.ts      # Configuración luces
+│   │       ├── geometries.ts         # Crear geometrías
+│   │       └── materials.ts          # Definiciones materiales
+│   ├── screens/                      # Pantallas principales
+│   │   ├── HomeScreen.tsx
+│   │   └── ARScreen.tsx              # Pantalla AR principal
+│   ├── navigation/                   # React Navigation
+│   │   ├── AppNavigator.tsx          # Stack navigator
+│   │   ├── TabNavigator.tsx          # Bottom tabs
+│   │   └── types.ts                  # Type-safe routing
+│   └── theme/                        # Sistema de temas
+│       ├── colors.ts                 # Paleta claro/oscuro
+│       └── fonts.ts                  # Tipografías
+├── docs/                             # Documentación técnica
+│   ├── README.md                     # Índice documentación
+│   ├── ARQUITECTURA_POC.md           # Arquitectura completa
+│   ├── ARQUITECTURA_SIMPLIFICADA.md  # UI-First approach
+│   ├── PLAN_IMPLEMENTACION.md        # Roadmap 15 días
+│   ├── PLAN_AR_INMERSIVO.md          # Plan AR avanzado
+│   └── CODIGO_3D_ANTERIOR.md         # Análisis código previo
+├── assets/images/                    # Assets estáticos
+├── App.tsx                           # Componente raíz
+├── index.js                          # Entry point
+├── app.json                          # Config Expo
+├── babel.config.js                   # Module resolver + alias
+├── tsconfig.json                     # TypeScript + paths
+├── eslint.config.js                  # ESLint flat config
+├── .prettierrc                       # Code formatting
+└── package.json                      # Dependencias
 ```
 
 ## 🔑 Archivos Clave
 
-### `src/ui/navigation/`
-- `AppNavigator.tsx` - Navegador raíz con stack de pantallas
-- `TabNavigator.tsx` - Navegación por pestañas
-- `types.ts` - Tipos type-safe para navegación
+### AR/3D Feature (`src/ui/ar/`)
 
-### `src/ui/screens/`
-- `HomeScreen.tsx` - Pantalla principal
-- Otras pantallas específicas de la app
+**Components:**
 
-### `src/ui/theme/`
-- `colors.ts` - Definiciones de colores para modo claro y oscuro
-- `fonts.ts` - Familias de fuentes
+- `ARCanvas.tsx` - Renderiza escena 3D con GLView + expo-three
+- `ARControls.tsx` - Botones para iniciar/detener AR
+- `MaterialPicker.tsx` - Selector de materiales (Default/Wood/Concrete)
+- `ARPermissionPrompt.tsx` - Manejo de permisos de cámara
+
+**Hooks:**
+
+- `use3DScene.ts` - Encapsula lógica Three.js (scene, camera, renderer)
+- `useARSession.ts` - Gestiona ciclo de vida AR (start/stop)
+- `useMaterialToggle.ts` - Estado y cambio de materiales
+- `useDeviceOrientation.ts` - Tracking con expo-sensors
+
+**Utils:**
+
+- `SceneManager.ts` - Clase principal para gestionar THREE.Scene
+- `LightingSetup.ts` - Configuración de luces (ambient, directional)
+- `geometries.ts` - Funciones para crear paredes, piso, muebles
+- `materials.ts` - Definiciones de materiales PBR
+
+### Navigation (`src/ui/navigation/`)
+
+- `AppNavigator.tsx` - Root stack navigator
+- `TabNavigator.tsx` - Bottom tabs (Home, AR)
+- `types.ts` - Type-safe navigation params
+
+### Theme (`src/ui/theme/`)
+
+- `colors.ts` - Paleta de colores con soporte dark mode
+- `fonts.ts` - Sistema de tipografías
+
+### Config Files
+
+- `babel.config.js` - Module resolver para alias `@/`
+- `tsconfig.json` - Paths mapping para imports absolutos
+- `eslint.config.js` - ESLint v9 flat config + Prettier
+- `.prettierrc` - Reglas de formato de código
 
 ## 📍 Importaciones con Alias
 
@@ -134,70 +254,221 @@ import { ThemedText } from '../../../ui/components/ThemedText';
 ```
 
 **Alias disponibles:**
+
 - `@/ui/*` - UI components, screens, navigation, theme
 - `@/domain/*` - Business entities and use cases
 - `@/data/*` - Repositories and data sources
 - `@/core/*` - Shared hooks, utils, constants
 
-## 🎨 Materiales Disponibles
+## 🎨 Sistema de Materiales
 
-| Material | Características |
-|----------|----------------|
-| **Default** | Paredes blancas (#F5F5F5), piso gris (#CCCCCC), estilo minimalista |
-| **Madera** | Paredes tonos cálidos (#D4A574), piso marrón oscuro (#8B4513), textura rústica |
-| **Concreto** | Paredes gris medio (#808080), piso gris oscuro (#606060), estilo industrial |
+Los materiales usan `THREE.MeshStandardMaterial` con propiedades PBR (Physically Based Rendering):
 
-## 🧪 Próximos Pasos (Roadmap)
+| Material | Paredes | Piso | Características |
+|----------|---------|------|----------------|
+| **Default** | #F5F5F5 | #CCCCCC | Blanco hueso, estilo minimalista |
+| **Wood** | #D4A574 | #8B4513 | Tonos cálidos, acabado rústico |
+| **Concrete** | #808080 | #606060 | Gris industrial, textura áspera |
 
-- [ ] Integración de giroscopio para controlar cámara con movimiento del dispositivo
-- [ ] Gestos táctiles (pinch to zoom, pan, rotate)
-- [ ] Soporte para cargar modelos GLTF/GLB externos desde backend
-- [ ] Tracking de planos AR real usando ARKit/ARCore
-- [ ] Anclaje de objetos en el mundo real
-- [ ] Mediciones en escala real
-- [ ] Captura de screenshots del render
-- [ ] Modo de comparación (side-by-side materials)
-- [ ] Backend para gestión de proyectos arquitectónicos
+**Propiedades:**
 
-## 🏗 Build para Producción
+- `roughness`: 0.7-0.95 (controla reflectividad)
+- `metalness`: 0-0.2 (aspecto metálico)
+- Iluminación realista con luces ambient + directional
 
-Para compilar una build nativa con ARKit/ARCore:
+## 🗺 Roadmap de Implementación
+
+### Fase 1: Foundation (Días 1-3)
+
+- ✅ Estructura base Expo + React Navigation
+- 🔄 Recuperar código 3D anterior (commit a1bea4b)
+- 🔄 Refactorizar en arquitectura modular UI-First
+- 🔄 Implementar ARScreen con renderizado 3D básico
+- **Output:** Sala 3D renderizando con toggle de materiales
+
+### Fase 2: AR Integration (Días 4-7)
+
+- ⏳ Integrar expo-camera como fondo AR
+- ⏳ Implementar tracking básico con expo-sensors
+- ⏳ Agregar controles AR (start/stop)
+- ⏳ Gestos táctiles (pinch, rotate, pan)
+- **Output:** AR activo con anclaje básico de escena
+
+### Fase 3: Features Profesionales (Días 8-12)
+
+- ⏳ Sistema de mediciones (tap dos puntos)
+- ⏳ Modo día/noche (cambio de iluminación)
+- ⏳ Capturas de pantalla
+- ⏳ Variantes de diseño (comparar versiones)
+- **Output:** Herramientas premium funcionales
+
+### Fase 4: Polish + Testing (Días 13-15)
+
+- ⏳ Onboarding UX (tutorial de gestos)
+- ⏳ Optimización de performance (lazy loading, caché)
+- ⏳ Testing en dispositivos reales (iOS + Android)
+- ⏳ Demo content (2-3 proyectos de ejemplo)
+- **Output:** POC demo-ready
+
+**Leyenda:** ✅ Completado | 🔄 En progreso | ⏳ Pendiente
+
+### AR Avanzado (Futuro)
+
+Para experiencia AR inmersiva completa (reemplazo de realidad):
+
+- Migrar a Expo Bare Workflow
+- Implementar ARKit (iOS) o ARCore (Android)
+- Room scanning con RoomPlan API (iOS 16+)
+- Spatial alignment y occlusion rendering
+- Ver [docs/PLAN_AR_INMERSIVO.md](./docs/PLAN_AR_INMERSIVO.md)
+
+## 🔧 Comandos Útiles
+
+### Development
 
 ```bash
-# iOS
+# Iniciar dev server
+npm start
+
+# Limpiar caché Metro
+npm start -- --clear
+
+# Ejecutar en plataformas específicas
+npm run ios
+npm run android
+npm run web
+```
+
+### Code Quality
+
+```bash
+# Ejecutar linter
+npm run lint
+
+# Auto-fix problemas
+npm run lint -- --fix
+
+# Formatear código (Prettier automático en ESLint)
+```
+
+### Git - Recuperar Código Anterior
+
+```bash
+# Ver código 3D anterior (commit a1bea4b)
+git show a1bea4b:app/\(tabs\)/ar-view.tsx
+
+# Recuperar en archivo temporal
+git show a1bea4b:app/\(tabs\)/ar-view.tsx > temp-ar-view.tsx
+
+# Ver cambios del refactor
+git show dc5e662 --stat
+```
+
+### Build Nativo (Producción)
+
+Para AR avanzado con ARKit/ARCore:
+
+```bash
+# Configurar EAS
+eas login
+eas build:configure
+
+# Build iOS
 eas build --platform ios
 
-# Android
+# Build Android
 eas build --platform android
 ```
 
-Asegúrate de configurar `eas.json` antes de compilar.
+> **Nota:** Se requiere cuenta Expo y configuración de `eas.json`
 
-## 📊 Diferenciador vs Competencia
+## 🎯 Diferenciadores Clave
 
-A diferencia de herramientas como Fologram o ARki, este POC demuestra:
+### vs IKEA Place / ARki / Fologram
 
-- **Zero backend inicial**: Todo el render se genera en cliente
-- **Cambio de materiales instantáneo**: No requiere recargar modelos
-- **UI minimalista**: Enfocada en la experiencia, no en herramientas complejas
-- **Escalabilidad**: Preparado para conectar con CMS de contenido arquitectónico
+**Esta plataforma se diferencia por:**
 
-## 🏗️ Arquitectura del Código
+1. **Experiencia inmersiva completa**
+   - No solo "colocar objetos"
+   - Sumergirse en el diseño arquitectónico completo
+   - Reemplazo de la realidad con el render 3D
 
-Este proyecto implementa **clean architecture** con clara separación de responsabilidades en la carpeta `src/`:
+2. **Cambio de materiales instantáneo**
+   - Sin recargar modelos
+   - Toggle en tiempo real
+   - Comparación visual inmediata
 
-### Capas
+3. **Arquitectura modular y escalable**
+   - Código organizado en capas
+   - Fácil agregar nuevos materiales/geometrías
+   - Preparado para backend futuro
 
-- **UI Layer** (`src/ui/`) - Componentes visuales, pantallas, navegación
-- **Domain Layer** (`src/domain/`) - Lógica de negocio, entidades
-- **Data Layer** (`src/data/`) - Acceso a datos, repositorios
-- **Core Layer** (`src/core/`) - Hooks compartidos, utilidades
+4. **Zero backend inicial**
+   - Todo el render en cliente
+   - Ideal para POC y demos
+   - Migrable a CMS arquitectónico
 
-### Navegación
+5. **UI minimalista**
+   - Enfocada en la experiencia, no en herramientas complejas
+   - Gestos intuitivos
+   - Perfecto para presentaciones a clientes
 
-- **React Navigation 7** con type-safe routing
-- `AppNavigator.tsx` - Navegador raíz
-- `TabNavigator.tsx` - Navegación por pestañas
+---
+
+## 📄 Licencia
+
+Este es un proyecto POC privado. Todos los derechos reservados.
+
+---
+
+**Última actualización:** Diciembre 2025  
+**Versión:** 1.0 POC
+
+## 📚 Documentación Técnica
+
+La carpeta `docs/` contiene documentación completa del proyecto:
+
+### Documentos Principales
+
+1. **[docs/README.md](./docs/README.md)** - Índice de toda la documentación
+2. **[docs/ARQUITECTURA_POC.md](./docs/ARQUITECTURA_POC.md)** - Arquitectura técnica completa
+   - Stack tecnológico detallado
+   - Estructura de carpetas propuesta
+   - Flujo de datos
+   - Roadmap de features
+   - Métricas de éxito
+
+3. **[docs/ARQUITECTURA_SIMPLIFICADA.md](./docs/ARQUITECTURA_SIMPLIFICADA.md)** - UI-First Approach
+   - Decisión arquitectónica actual
+   - Separación de responsabilidades
+   - Ejemplos de código por capa
+
+4. **[docs/PLAN_IMPLEMENTACION.md](./docs/PLAN_IMPLEMENTACION.md)** - Guía paso a paso
+   - 4 fases de 15 días
+   - Tareas diarias detalladas
+   - Código de ejemplo
+   - Checklists de verificación
+
+5. **[docs/PLAN_AR_INMERSIVO.md](./docs/PLAN_AR_INMERSIVO.md)** - AR Avanzado
+   - Room scanning
+   - Spatial alignment
+   - Occlusion rendering
+   - Análisis técnico ARKit/ARCore
+
+6. **[docs/CODIGO_3D_ANTERIOR.md](./docs/CODIGO_3D_ANTERIOR.md)** - Código 3D Previo
+   - Análisis del commit a1bea4b (363 líneas)
+   - Especificaciones de geometrías
+   - Sistema de materiales original
+   - Guía de refactorización
+
+### Cómo Usar la Documentación
+
+**Desarrolladores:** Sigue [PLAN_IMPLEMENTACION.md](./docs/PLAN_IMPLEMENTACION.md) paso a paso
+
+**Arquitectos:** Revisa [ARQUITECTURA_POC.md](./docs/ARQUITECTURA_POC.md) para decisiones técnicas
+
+**Product Owners:** Lee roadmap y métricas de éxito en los docs principales
+
 - Tipos en `navigation/types.ts`
 
 ### Sistema de Temas
