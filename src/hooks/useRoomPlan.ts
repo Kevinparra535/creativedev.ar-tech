@@ -1,19 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 
 const { RoomPlanModule } = NativeModules;
 
-interface RoomPlanEvents {
-  onScanStart?: () => void;
-  onScanProgress?: (progress: number) => void;
-  onScanComplete?: () => void;
-  onScanError?: (error: string) => void;
+export interface RoomData {
+  surfaces: number;
+  walls: number;
+  doors: number;
+  windows: number;
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+  };
 }
 
-export const useRoomPlan = (events?: RoomPlanEvents) => {
+export interface ExportResult {
+  success: boolean;
+  path?: string;
+  fileName?: string;
+  fileSize?: number;
+  surfaces?: number;
+  error?: string;
+}
+
+export const useRoomPlan = () => {
   const [isScanning, setIsScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
+  const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const subsRef = useRef<any[]>([]);
   const emitterRef = useRef<NativeEventEmitter | null>(null);
 
   useEffect(() => {
@@ -26,79 +42,97 @@ export const useRoomPlan = (events?: RoomPlanEvents) => {
 
     // Event: onScanStart
     const startSub = emitter.addListener('onScanStart', () => {
+      console.log('[RoomPlan] Scan started');
       setIsScanning(true);
       setError(null);
-      events?.onScanStart?.();
+      setRoomData(null);
     });
 
     // Event: onScanProgress
     const progressSub = emitter.addListener('onScanProgress', (event: any) => {
-      const progress = event?.progress ?? 0;
-      setScanProgress(progress);
-      events?.onScanProgress?.(progress);
+      console.log('[RoomPlan] Progress:', event);
     });
 
     // Event: onScanComplete
-    const completeSub = emitter.addListener('onScanComplete', () => {
+    const completeSub = emitter.addListener('onScanComplete', (event: any) => {
+      console.log('[RoomPlan] Scan complete:', event);
       setIsScanning(false);
-      setScanProgress(100);
-      events?.onScanComplete?.();
+      setRoomData(event as RoomData);
+      setError(null);
     });
 
     // Event: onScanError
     const errorSub = emitter.addListener('onScanError', (event: any) => {
-      const errorMsg = event?.error ?? 'Unknown error';
+      console.log('[RoomPlan] Error:', event);
       setIsScanning(false);
-      setError(errorMsg);
-      events?.onScanError?.(errorMsg);
+      setError(event?.error || 'Unknown error');
     });
 
-    return () => {
-      startSub.remove();
-      progressSub.remove();
-      completeSub.remove();
-      errorSub.remove();
-    };
-  }, [events]);
+    subsRef.current = [startSub, progressSub, completeSub, errorSub];
 
-  const startScanning = () => {
+    return () => {
+      subsRef.current.forEach((sub) => sub.remove());
+    };
+  }, []);
+
+  const startScanning = useCallback(() => {
     try {
+      console.log('[RoomPlan] Starting scan...');
       RoomPlanModule.startScanning();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to start scanning';
       setError(errorMsg);
+      console.error('[RoomPlan] Error:', err);
     }
-  };
+  }, []);
 
-  const stopScanning = () => {
+  const stopScanning = useCallback(() => {
     try {
+      console.log('[RoomPlan] Stopping scan...');
       RoomPlanModule.stopScanning();
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to stop scanning';
       setError(errorMsg);
+      console.error('[RoomPlan] Error:', err);
     }
-  };
+  }, []);
 
-  const exportScan = (callback: (success: boolean, path?: string) => void) => {
+  const exportScan = useCallback((onComplete?: (result: ExportResult) => void) => {
     try {
-      RoomPlanModule.exportScan((result: any) => {
-        if (result?.success) {
-          callback(true, result.path);
-        } else {
-          callback(false);
+      setIsExporting(true);
+      console.log('[RoomPlan] Exporting scan...');
+
+      RoomPlanModule.exportScan((result: ExportResult[]) => {
+        setIsExporting(false);
+
+        if (result && result[0]) {
+          const exportResult = result[0];
+          if (exportResult.success) {
+            console.log('[RoomPlan] Export successful:', exportResult);
+            setError(null);
+          } else {
+            console.error('[RoomPlan] Export failed:', exportResult.error);
+            setError(exportResult.error || 'Export failed');
+          }
+          onComplete?.(exportResult);
         }
       });
     } catch (err) {
-      callback(false);
+      setIsExporting(false);
+      const errorMsg = err instanceof Error ? err.message : 'Failed to export scan';
+      setError(errorMsg);
+      console.error('[RoomPlan] Error:', err);
     }
-  };
+  }, []);
 
   return {
     isScanning,
-    scanProgress,
+    roomData,
     error,
+    isExporting,
     startScanning,
     stopScanning,
     exportScan
   };
 };
+
