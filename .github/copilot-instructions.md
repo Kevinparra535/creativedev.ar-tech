@@ -8,11 +8,11 @@
 
 ### Current Progress Snapshot
 
-- ✅ **Phase 1 Complete:** UI-First AR with Three.js + material system (walls, floor, furniture, 3 material presets)
-- 🚀 **Phase 0 At 88%:** Bare Workflow setup, RoomPlan API scaffolding, ViewManager integration complete
-  - ✅ Steps 1-7: Bare migration, Xcode config, native modules, RoomPlanView working
+- ✅ **Phase 1 (Removed):** Three.js AR was removed in favor of native iOS approach
+- 🚀 **Phase 0 At 88%:** Bare Workflow setup, RoomPlan API complete, ViewManager integration complete
+  - ✅ Steps 1-7: Bare migration, Xcode config, native modules, RoomPlanView working, Worklets version fixed (0.7.1)
   - ⏳ Steps 8-9: USDZ export validation, file management UI (next focus)
-- ⏳ **Phases 2-4:** AR camera integration, spatial alignment, occlusion rendering
+- ⏳ **Phases 1-4 (Forward):** Model loading, AR visualization, professional features, polish
 
 ### Core Mission
 
@@ -628,23 +628,37 @@ Renderer transparency toggled: `setClearColor(0x000000, isARMode ? 0 : 1)` for c
 
 ### Available Documentation (`docs/`)
 
-1. **[docs/README.md](../docs/README.md)** - Documentation index
-2. **[docs/ARQUITECTURA_POC.md](../docs/ARQUITECTURA_POC.md)** - Complete architecture (tech stack, proposed structure, roadmap)
-3. **[docs/ARQUITECTURA_SIMPLIFICADA.md](../docs/ARQUITECTURA_SIMPLIFICADA.md)** - UI-First approach (current decision, layer separation, examples)
-4. **[docs/PLAN_IMPLEMENTACION.md](../docs/PLAN_IMPLEMENTACION.md)** - 4-phase implementation plan (15 days, daily tasks, examples)
-5. **[docs/PLAN_AR_INMERSIVO.md](../docs/PLAN_AR_INMERSIVO.md)** - Advanced AR plan (RoomPlan API, spatial alignment, rendering engines)
-6. **[docs/FASE_0_SETUP.md](../docs/FASE_0_SETUP.md)** - Bare Workflow migration guide (step-by-step setup, Xcode, native modules)
-7. **[docs/CODIGO_3D_ANTERIOR.md](../docs/CODIGO_3D_ANTERIOR.md)** - Analysis of recovered 3D code (commit a1bea4b, geometries, materials)
-8. **[docs/PASO_7_ROOMPLAN_VIEW_COMPLETE.md](../docs/PASO_7_ROOMPLAN_VIEW_COMPLETE.md)** - Current progress on ViewManager integration (Phase 0 - 88%)
-9. **[docs/FASE_0_RESUMEN_FINAL.md](../docs/FASE_0_RESUMEN_FINAL.md)** - Phase 0 summary with all steps completed
+**For quick orientation:** Start with [docs/00_START_HERE.md](../docs/00_START_HERE.md)
+**For complete index:** See [docs/INDEX.md](../docs/INDEX.md)
+
+### Active Documentation (10 files, ~4100 lines)
+
+1. **[00_START_HERE.md](../docs/00_START_HERE.md)** - Entry point by role (5 min read)
+2. **[INDEX.md](../docs/INDEX.md)** - Complete index + navigation by role
+3. **[README.md](../docs/README.md)** - Project overview and stack
+4. **[BUILD_AND_RUN.md](../docs/BUILD_AND_RUN.md)** - How to compile and execute (practical guide)
+5. **[FASE_0_RESUMEN_FINAL.md](../docs/FASE_0_RESUMEN_FINAL.md)** - Current status (88% complete, all commits)
+6. **[PLAN_AR_INMERSIVO.md](../docs/PLAN_AR_INMERSIVO.md)** - Complete technical vision and roadmap
+7. **[NEXT_STEPS.md](../docs/NEXT_STEPS.md)** - Steps 8-9 of Phase 0 + Phases 1-4
+8. **[FASE_0_SETUP.md](../docs/FASE_0_SETUP.md)** - Detailed setup guide (Pasos 1-7)
+9. **[PASO_6_ROOMPLAN_API.md](../docs/PASO_6_ROOMPLAN_API.md)** - RoomPlan API implementation details
+10. **[PASO_7_ROOMPLAN_VIEW_COMPLETE.md](../docs/PASO_7_ROOMPLAN_VIEW_COMPLETE.md)** - ViewManager integration guide
+
+### Obsolete Documentation (Removed)
+Deleted 11 files that contained Three.js references or were superseded:
+- ARQUITECTURA_POC.md, ARQUITECTURA_SIMPLIFICADA.md, CODIGO_3D_ANTERIOR.md
+- EAS_BUILD_GUIDE.md, PRE_MIGRATION_STATE.md, DOCUMENTATION_UPDATE_SUMMARY.md
+- PASO_2_3_BUILD_VERIFICATION.md, PASO_3_XCODE_CONFIG.md, PASO_4_NATIVE_MODULE.md
+- PASO_7_ROOMPLAN_VIEW.md (duplicate), PLAN_IMPLEMENTACION.md
 
 ### When to Reference Documentation
 
-- **Current Native Module Status:** Check `PASO_7_ROOMPLAN_VIEW_COMPLETE.md` (latest Phase 0 progress)
-- **Bare Workflow migration:** See `FASE_0_SETUP.md` (detailed step-by-step)
-- **Understanding Three.js AR:** Reference `CODIGO_3D_ANTERIOR.md` (material specs, geometry definitions)
-- **Building new features:** See `PLAN_IMPLEMENTACION.md` (Phases 2-4 patterns)
-- **Architecture decisions:** Review `ARQUITECTURA_SIMPLIFICADA.md` (UI-First rationale)
+- **Developer onboarding:** [00_START_HERE.md](../docs/00_START_HERE.md) → [BUILD_AND_RUN.md](../docs/BUILD_AND_RUN.md) → [FASE_0_RESUMEN_FINAL.md](../docs/FASE_0_RESUMEN_FINAL.md)
+- **Understand architecture:** [PLAN_AR_INMERSIVO.md](../docs/PLAN_AR_INMERSIVO.md) (full technical vision)
+- **Current status:** [FASE_0_RESUMEN_FINAL.md](../docs/FASE_0_RESUMEN_FINAL.md) (Phase 0 at 88%)
+- **Next work:** [NEXT_STEPS.md](../docs/NEXT_STEPS.md) (Steps 8-9 and Phase 1)
+- **RoomPlan details:** [PASO_6_ROOMPLAN_API.md](../docs/PASO_6_ROOMPLAN_API.md) + [PASO_7_ROOMPLAN_VIEW_COMPLETE.md](../docs/PASO_7_ROOMPLAN_VIEW_COMPLETE.md)
+- **Setup help:** [FASE_0_SETUP.md](../docs/FASE_0_SETUP.md) (step-by-step configuration)
 
 ---
 
