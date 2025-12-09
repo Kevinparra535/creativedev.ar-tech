@@ -1,50 +1,160 @@
-# Welcome to your Expo app 👋
+# AR Immersive Experience Platform - POC
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Plataforma de experiencias inmersivas en AR para transformar información estática en espacios tridimensionales interactivos.
 
-## Get started
+## 🎯 Objetivo del POC
 
-1. Install dependencies
+Este POC demuestra una **app nativa en Expo** para el caso de uso de **arquitectura**, permitiendo a los clientes explorar renders arquitectónicos en 3D con toggle de materiales en tiempo real.
 
-   ```bash
-   npm install
-   ```
+## ✨ Características Implementadas
 
-2. Start the app
+- ✅ **Render 3D de habitación arquitectónica** con paredes, piso, ventana y mobiliario
+- ✅ **Toggle de materiales en tiempo real**: Default, Madera, Concreto
+- ✅ **Rotación automática de cámara** para explorar el espacio
+- ✅ **UI overlay minimalista** con controles táctiles
+- ✅ **Permisos de cámara** configurados para iOS y Android
+- ✅ **Iluminación realista** con luces ambientales y direccionales
 
-   ```bash
-   npx expo start
-   ```
+## 🛠 Stack Tecnológico
 
-In the output, you'll find options to open the app in a
+- **Framework**: React Native + Expo SDK 54
+- **3D Engine**: Three.js (v0.166.0)
+- **Expo Modules**:
+  - `expo-gl` - WebGL support
+  - `expo-three` - Three.js integration
+  - `expo-camera` - Camera permissions
+  - `expo-sensors` - Device sensors (future use)
+- **Navigation**: Expo Router
+- **Language**: TypeScript
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🚀 Instalación y Ejecución
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Pre-requisitos
 
-## Get a fresh project
+- Node.js 18+ instalado
+- npm o yarn
+- Expo CLI
+- Dispositivo físico o emulador iOS/Android
 
-When you're ready, run:
+### Pasos
+
+1. **Clonar o navegar al proyecto**
 
 ```bash
-npm run reset-project
+cd creativedev.ar-tech
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. **Instalar dependencias**
 
-## Learn more
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. **Iniciar el servidor de desarrollo**
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm start
+```
 
-## Join the community
+4. **Ejecutar en dispositivo**
 
-Join our community of developers creating universal apps.
+- **iOS**: Presiona `i` en la terminal o escanea el QR con la app Expo Go
+- **Android**: Presiona `a` en la terminal o escanea el QR con la app Expo Go
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+> **Nota**: Para funcionalidad AR completa (tracking de planos), se requiere compilar una build nativa con Expo EAS.
+
+## 📱 Uso de la App
+
+1. Al abrir la app, navega a la tab **"AR"** en el bottom navigation
+2. Acepta los permisos de cámara cuando se soliciten
+3. Observa la habitación arquitectónica renderizada en 3D
+4. **Cambia materiales** usando los botones en la parte inferior:
+   - **Default**: Paredes blancas, piso gris claro
+   - **Madera**: Acabado en madera cálida
+   - **Concreto**: Estilo industrial con concreto
+5. La cámara rotará automáticamente para mostrar diferentes ángulos de la habitación
+
+## 📂 Estructura del Proyecto
+
+```
+creativedev.ar-tech/
+├── app/
+│   ├── (tabs)/
+│   │   ├── index.tsx          # Home screen
+│   │   ├── explore.tsx        # Explore screen
+│   │   ├── ar-view.tsx        # 🔥 AR Experience (POC principal)
+│   │   └── _layout.tsx        # Tab navigation layout
+│   └── _layout.tsx            # Root layout
+├── components/                 # Reusable components
+├── constants/                  # Theme and constants
+├── hooks/                      # Custom hooks
+├── assets/                     # Images and assets
+├── app.json                    # 🔧 Expo configuration (permisos AR)
+└── package.json               # Dependencies
+```
+
+## 🔑 Archivos Clave
+
+### [app/(tabs)/ar-view.tsx](app/(tabs)/ar-view.tsx)
+Pantalla principal del POC que contiene:
+- Configuración de Three.js scene
+- Creación de geometrías arquitectónicas (habitación, muebles)
+- Sistema de materiales intercambiables
+- Renderizado en GLView
+- UI de controles
+
+### [app.json](app.json)
+Configuración de permisos:
+- `NSCameraUsageDescription` (iOS)
+- `CAMERA` permission (Android)
+- Plugin `expo-camera` configurado
+
+## 🎨 Materiales Disponibles
+
+| Material | Características |
+|----------|----------------|
+| **Default** | Paredes blancas (#F5F5F5), piso gris (#CCCCCC), estilo minimalista |
+| **Madera** | Paredes tonos cálidos (#D4A574), piso marrón oscuro (#8B4513), textura rústica |
+| **Concreto** | Paredes gris medio (#808080), piso gris oscuro (#606060), estilo industrial |
+
+## 🧪 Próximos Pasos (Roadmap)
+
+- [ ] Integración de giroscopio para controlar cámara con movimiento del dispositivo
+- [ ] Gestos táctiles (pinch to zoom, pan, rotate)
+- [ ] Soporte para cargar modelos GLTF/GLB externos desde backend
+- [ ] Tracking de planos AR real usando ARKit/ARCore
+- [ ] Anclaje de objetos en el mundo real
+- [ ] Mediciones en escala real
+- [ ] Captura de screenshots del render
+- [ ] Modo de comparación (side-by-side materials)
+- [ ] Backend para gestión de proyectos arquitectónicos
+
+## 🏗 Build para Producción
+
+Para compilar una build nativa con ARKit/ARCore:
+
+```bash
+# iOS
+eas build --platform ios
+
+# Android
+eas build --platform android
+```
+
+Asegúrate de configurar `eas.json` antes de compilar.
+
+## 📊 Diferenciador vs Competencia
+
+A diferencia de herramientas como Fologram o ARki, este POC demuestra:
+- **Zero backend inicial**: Todo el render se genera en cliente
+- **Cambio de materiales instantáneo**: No requiere recargar modelos
+- **UI minimalista**: Enfocada en la experiencia, no en herramientas complejas
+- **Escalabilidad**: Preparado para conectar con CMS de contenido arquitectónico
+
+## 📄 Licencia
+
+Proyecto POC privado - CreativeDev.ar
+
+---
+
+**Desarrollado con** ❤️ **usando Expo + Three.js**
