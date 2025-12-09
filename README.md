@@ -151,10 +151,47 @@ A diferencia de herramientas como Fologram o ARki, este POC demuestra:
 - **UI minimalista**: Enfocada en la experiencia, no en herramientas complejas
 - **Escalabilidad**: Preparado para conectar con CMS de contenido arquitectónico
 
+## 🏗️ Arquitectura del Proyecto
+
+Este proyecto sigue **clean architecture** con clara separación de responsabilidades:
+
+```
+src/
+├── ui/                 # Capa de UI
+│   ├── screens/        # Pantallas de la app
+│   ├── components/     # Componentes reutilizables
+│   ├── navigation/     # Configuración de navegación (React Navigation)
+│   └── theme/          # Tema y estilos
+├── domain/             # Capa de lógica de negocio
+│   ├── entities/       # Entidades de negocio
+│   └── usecases/       # Casos de uso
+├── data/               # Capa de datos
+│   ├── repositories/   # Implementaciones de repositorios
+│   └── datasources/    # Fuentes de datos (API, local, etc.)
+└── core/               # Capa compartida
+    ├── hooks/          # React hooks compartidos
+    ├── utils/          # Funciones utilitarias
+    └── constants/      # Constantes de la app
+```
+
+### Navegación
+
+- Usa **React Navigation 7** con type-safe routing
+- `AppNavigator.tsx` - Navegador raíz
+- `TabNavigator.tsx` - Navegación por pestañas
+- Definiciones de tipos en `navigation/types.ts`
+
+### Sistema de Temas
+
+Los componentes se adaptan automáticamente a modo claro/oscuro:
+- Colores: `src/ui/theme/colors.ts`
+- Fuentes: `src/ui/theme/fonts.ts`
+- Componentes temáticos: `ThemedText`, `ThemedView`
+
 ## 📄 Licencia
 
 Proyecto POC privado - CreativeDev.ar
 
 ---
 
-**Desarrollado con** ❤️ **usando Expo + Three.js**
+**Desarrollado con** ❤️ **usando Expo + Three.js + React Navigation**
