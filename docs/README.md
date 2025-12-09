@@ -232,11 +232,9 @@ git show dc5e662 --stat
 
 ## Referencias Externas
 
+
 ### Documentación Técnica
-- [Three.js Docs](https://threejs.org/docs/)
-- [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
 - [Expo GL](https://docs.expo.dev/versions/latest/sdk/gl-view/)
-- [Expo Three](https://github.com/expo/expo-three)
 
 ### Inspiración
 - **IKEA Place App** (AR para muebles)

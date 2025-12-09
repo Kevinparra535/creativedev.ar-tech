@@ -6,15 +6,10 @@ const simpleImportSort = require('eslint-plugin-simple-import-sort');
 const js = require('@eslint/js');
 
 const importSortGroups = [
-  ['^react', '^@?\\w'],
-  ['^@/ui/', '^@/domain/', '^@/data/', '^@/core/'],
-  ['^@/ui/screens/', '^@/ui/navigation/'],
-  ['^@/ui/components/'],
-  ['^@/ui/theme/'],
-  ['^@/core/hooks/', '^@/core/utils/'],
-  ['^assets/', '^@/assets/'],
+  ['^react', '^react-native'],
+  ['^@?\\w'],
+  ['^@/'],
   ['^\\./'],
-  ['^\\.\\./', '^@/'],
 ];
 
 const baseRules = {
@@ -73,17 +68,14 @@ module.exports = defineConfig([
         'error',
         {
           groups: [
-            ['^react', '^@?\\w', '^react-native'],
-            ['^@/ui/screens/', '^@/ui/navigation/'],
-            ['^@/ui/components/'],
-            ['^@/ui/theme/', '^@/ui/'],
-            ['^@/core/hooks/', '^@/core/utils/', '^@/core/'],
-            ['^@/domain/', '^@/data/'],
-            ['^assets/', '^@/assets/'],
-            ['^\\./', '^\\.\\./', '^@/'],
+            ['^react', '^react-native'],
+            ['^@?\\w'],
+            ['^@/'],
+            ['^\\./'],
           ],
         },
       ],
+      'prettier/prettier': 'off',
     },
   },
 ]);
