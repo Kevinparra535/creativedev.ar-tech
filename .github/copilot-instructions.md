@@ -2,94 +2,130 @@
 
 ## Project Overview
 
-**AR Immersive Experience Platform** - React Native app for architectural AR visualization built with Expo SDK 54, React 19, TypeScript (strict mode), and Three.js. Enables architects to present 3D renders at real scale using native mobile AR.
+**AR Immersive Experience Platform** - React Native app for architectural AR visualization. Currently on **`feature/bare-workflow-migration`** branch migrating from Expo Managed → Bare Workflow to enable native iOS AR (RoomPlan API, ARKit integration).
 
-**Version:** 1.0 POC  
-**Status:** In Development - UI-First Architecture
+**Version:** 1.0 POC | **Status:** Bare Workflow Migration (Phase 0) | **Branch:** `feature/bare-workflow-migration`
 
-### Core Concept
+### Current State & Roadmap
 
-This platform allows architects to showcase interior designs immersively:
-1. Architect uploads real-scale 3D model
-2. Client visualizes the 3D render with AR overlay
-3. Client explores different materials/finishes in real-time
-4. Client walks through the design experiencing the space immersively
+- ✅ **Phase 1 (Foundation):** UI-First AR with Three.js rendering + material system working
+- 🚀 **Phase 0 (In Progress):** Expo Bare Workflow migration, native iOS module scaffolding
+- ⏳ **Phases 2-4:** Advanced AR (RoomPlan scanning, spatial alignment, occlusion)
 
-### Key Differentiator
+### Core Vision
 
-Unlike "tap-to-place" AR apps (IKEA Place), this provides **full spatial immersion** - replacing reality with complete architectural design.
+AR visualization tool allowing architects to showcase interior designs at 1:1 scale:
+- Scan real spaces with LiDAR (iOS 16+ with RoomPlan API)
+- Overlay/replace with architectural 3D models
+- Walk through immersively exploring materials in real-time
 
 ---
 
 ## Architecture
 
-### UI-First Structure
+### Current Structure (Phase 1 - Complete)
 
-**Current Decision:** All AR/3D logic lives within `src/ui/ar/` for simplified POC development.
+**UI-First Design:** All AR/3D logic colocated in `src/ui/ar/` for POC simplicity. Future refactoring into `src/core/`, `src/data/` layers after POC validation.
 
 ```
 src/ui/
-├── ar/                        # Complete AR/3D feature
-│   ├── components/            # AR-specific UI components
-│   │   ├── ARCanvas.tsx       # 3D canvas with GLView
-│   │   ├── ARControls.tsx     # Start/stop AR controls
-│   │   ├── MaterialPicker.tsx # Material selector
+├── ar/
+│   ├── components/
+│   │   ├── ARCanvas.tsx       # GLView + Three.js rendering with device orientation tracking
+│   │   ├── ARControls.tsx     # Start/stop AR buttons
+│   │   ├── MaterialPicker.tsx # Material selector (Default/Wood/Concrete)
 │   │   └── ARPermissionPrompt.tsx
-│   ├── hooks/                 # AR/3D business logic hooks
-│   │   ├── use3DScene.ts      # Three.js scene management
-│   │   ├── useARSession.ts    # AR session lifecycle
-│   │   ├── useMaterialToggle.ts # Material switching
-│   │   └── useDeviceOrientation.ts
-│   └── utils/                 # AR/3D utilities
-│       ├── SceneManager.ts    # Three.js Scene manager
-│       ├── LightingSetup.ts   # Lighting configuration
-│       ├── geometries.ts      # Geometry creation functions
-│       └── materials.ts       # Material definitions (PBR)
-├── screens/                   # Main screens
+│   ├── hooks/
+│   │   ├── use3DScene.ts      # SceneManager lifecycle + Three.js initialization
+│   │   ├── useARSession.ts    # AR start/stop lifecycle
+│   │   ├── useMaterialToggle.ts # Material state & change logic
+│   │   └── useDeviceOrientation.ts # Gyroscope/accelerometer tracking (expo-sensors)
+│   └── utils/
+│       ├── SceneManager.ts    # THREE.Scene, camera, renderer lifecycle
+│       ├── LightingSetup.ts   # 3-point lighting (ambient + 2x directional)
+│       ├── geometries.ts      # createRoom(), createWalls(), createTable() etc
+│       └── materials.ts       # PBR material presets (Default/Wood/Concrete)
+├── screens/
 │   ├── HomeScreen.tsx
-│   └── ARScreen.tsx          # Main AR screen
-├── navigation/                # React Navigation
+│   └── ARScreen.tsx          # Orchestrates AR components + hooks
+├── navigation/
 │   ├── AppNavigator.tsx
-│   ├── TabNavigator.tsx
-│   └── types.ts
+│   ├── TabNavigator.tsx      # Bottom tabs: Home, AR
+│   └── types.ts              # Navigation type definitions
 └── theme/
     ├── colors.ts
     └── fonts.ts
 ```
 
-**Principles:**
-- **Separation of Concerns**: Components (UI) → Hooks (logic) → Utils (helpers)
-- **Feature-based**: AR/3D is self-contained feature in `ui/ar/`
-- **Shared vs Specific**: Global components in `ui/components/`, AR-specific in `ui/ar/components/`
+**Key Files to Know:**
+- `src/ui/screens/ARScreen.tsx` - Entry point; orchestrates `use3DScene` + `useARSession` + components
+- `src/ui/ar/utils/SceneManager.ts` - Core Three.js Scene/Camera/Renderer management
+- `src/ui/ar/utils/geometries.ts` - Architectural geometry definitions (8x8 room, walls, table, window)
+- `src/ui/ar/utils/materials.ts` - 3 material presets with PBR properties (roughness/metalness)
+
+### Three.js Rendering Details
+
+**Scene Setup (`SceneManager` constructor):**
+- Camera: `PerspectiveCamera(70 FOV, 0.01-100 near-far, positioned at [0, 1.5, 3])`
+- Background: Transparent (black with alpha=0) in AR mode for camera blending
+- Lighting: Ambient (0.6 intensity) + directional primary (0.8) + directional fill (0.4)
+
+**Material System:**
+- **Default:** Gray (`#F5F5F5` walls, `#CCCCCC` floor), roughness 0.7-0.8, metalness 0
+- **Wood:** Warm beige (`#D4A574` walls, `#8B4513` floor), roughness 0.8-0.9, metalness 0.1
+- **Concrete:** Gray (`#808080` walls, `#606060` floor), roughness 0.9-0.95, metalness 0.2
+
+**Room Geometry:**
+- Floor: `PlaneGeometry(8, 8)` rotated -90° at Y=-2
+- Walls: 3x `BoxGeometry(8, 4, 0.1)` (back, left, right)
+- Window: `PlaneGeometry(2, 1.5)` transparent with metalness 0.9 (simulates glass)
+- Table: `BoxGeometry(2, 0.1, 1)` + 4x leg `BoxGeometry(0.1, 0.8, 0.1)`
+
+### Device Orientation Tracking
+
+`ARCanvas` uses `useDeviceOrientation(isARMode)` hook to apply device gyro/accel data:
+```typescript
+// Camera rotation updated from device orientation (beta/gamma/alpha)
+camera.rotation.x = orientation.beta * 0.5;
+camera.rotation.y = orientation.gamma * 0.5;
+camera.rotation.z = orientation.alpha * 0.5;
+```
+
+Renderer transparency toggled: `setClearColor(0x000000, isARMode ? 0 : 1)` for camera overlay.
 
 ### Navigation (@react-navigation v7)
 
 Type-safe navigation with React Navigation:
-- `src/ui/navigation/AppNavigator.tsx` - Root stack navigator
-- `src/ui/navigation/TabNavigator.tsx` - Bottom tabs (Home, AR)
-- `src/ui/navigation/types.ts` - TypeScript param lists
+- Root: `AppNavigator.tsx` (stack navigator)
+- Main: `TabNavigator.tsx` (bottom tabs with Home, AR screens)
+- Types: `navigation/types.ts` (RootStackParamList, TabParamList)
 
-**Navigation Pattern:**
-```tsx
-// Type definitions in types.ts
-export type RootStackParamList = {
-  Tabs: undefined;
-  ARView: { projectId?: string };
-};
+### Workflow: Adding Features to AR
 
-export type TabParamList = {
-  Home: undefined;
-  AR: undefined;
-};
+**Pattern for new AR component/feature:**
 
-// Usage with hooks
-import { useNavigation } from '@react-navigation/native';
-import type { NavigationProp } from '@react-navigation/native';
-import type { RootStackParamList } from '@/ui/navigation/types';
+1. **If stateless UI:** Create in `src/ui/ar/components/`
+   ```tsx
+   interface ComponentProps { prop1: string; onPress: () => void; }
+   export const MyComponent: React.FC<ComponentProps> = ({ prop1, onPress }) => (...)
+   ```
 
-const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-navigation.navigate('ARView', { projectId: '123' });
-```
+2. **If has state/logic:** Create hook in `src/ui/ar/hooks/`
+   ```tsx
+   export const useMyFeature = () => {
+     const [state, setState] = useState(...);
+     return { state, updateState };
+   };
+   ```
+
+3. **If utility function:** Add to `src/ui/ar/utils/`
+   ```tsx
+   export const helperFunction = (input: Type): Result => (...)
+   ```
+
+4. **Import and use in `ARScreen.tsx`** - it orchestrates all components
+
+**Never:** Create state in components if logic needs testing or sharing. Always lift to hooks.
 
 ### Theming System
 
@@ -181,133 +217,148 @@ import type { RootStackParamList } from '@/ui/navigation/types';
 ### Running the App
 
 ```bash
-# Start Expo dev server
+# Start Expo dev server (Managed Workflow)
 npm start
 
-# Clear Metro cache (after babel.config.js changes)
+# iOS Simulator
+npm run ios
+
+# Android Emulator
+npm run android
+
+# Clear Metro bundler cache (after native changes)
 npm start -- --clear
-
-# Platform-specific
-npm run ios       # iOS Simulator
-npm run android   # Android Emulator
-npm run web       # Web preview
 ```
 
-**Dev Tools:**
-- iOS: `cmd+d` to open developer menu
-- Android: `cmd+m` to open developer menu
-- Web: `F12` for browser DevTools
+**For Bare Workflow (after Phase 0 migration):**
+```bash
+# iOS device/simulator
+npx expo run:ios --device
+npx expo run:ios  # uses simulator
 
-### Code Quality
+# Android device/emulator
+npx expo run:android --device
+```
+
+### Build & Native Development
+
+**Current:** Expo Managed Workflow
+- Edit `app.json` for Expo configuration (plugins, permissions, icons)
+- No `ios/` or `android/` native directories yet
+
+**Post-Migration (Phase 0):** Bare Workflow
+- Native iOS: `ios/creativedevartech/` (Swift source, Info.plist, assets)
+- Native Android: `android/` (Java/Kotlin, gradle configs)
+- Native modules bridge via React Native native modules API
+- Xcode: `ios/creativedevartech.xcworkspace` (NOT .xcodeproj)
+
+### Code Quality & Linting
 
 ```bash
-# Run linter
-npm run lint
-
-# Auto-fix issues
+# Lint with auto-fix
 npm run lint -- --fix
+
+# Check only
+npm run lint
 ```
 
-- ESLint flat config (v9) with `eslint-config-expo`
-- Prettier integrated (auto-formats on lint)
-- `simple-import-sort` for automatic import organization
-- TypeScript strict mode enabled
-
-### Import Sorting (simple-import-sort)
-
-Imports are automatically organized:
-1. React and external dependencies
-2. Internal UI components (AR, screens, navigation)
-3. Theme and styling
-4. Custom hooks and utilities
-5. Assets and types
-6. Relative imports
-
-### Recovering Previous 3D Code
-
-The commit `a1bea4b` contained functional 3D room code (363 lines):
-
-```bash
-# View previous AR implementation
-git show a1bea4b:app/\(tabs\)/ar-view.tsx
-
-# Recover to temp file
-git show a1bea4b:app/\(tabs\)/ar-view.tsx > temp-ar-view.tsx
-```
-
-See `docs/CODIGO_3D_ANTERIOR.md` for detailed analysis.
+**ESLint config:** `eslint.config.js` (flat config v9)
+- `eslint-config-expo` base
+- `simple-import-sort` auto-organizes imports
+- Prettier integrated for formatting
+- TypeScript strict mode enforced
 
 ## Platform-Specific Considerations
 
-### iOS
-- **ARKit Integration (Future)**: For advanced AR, requires Expo Bare Workflow
-- **SF Symbols**: Use `expo-symbols` for native icons (iOS 13+)
-- **Haptic Feedback**: `expo-haptics` with `HapticTab` wrapper
-- **Permissions**: Camera permissions configured in `app.json`
-- **Performance**: ARKit provides superior tracking vs Android
+### iOS (Primary Focus)
+- **Current:** Expo Managed Workflow with basic AR via expo-sensors
+- **Phase 0 (In Progress):** Migrate to Bare Workflow for RoomPlan API + ARKit access
+- **Future:** Native Swift modules for:
+  - RoomPlan API (room scanning with LiDAR, iOS 16+)
+  - ARKit World Tracking (6DOF + spatial anchors)
+  - Scene Reconstruction (depth buffer for occlusion)
+- **Permissions:** Camera + LiDAR (in Info.plist & app.json)
+- **Min iOS Version:** 16.0 (required for RoomPlan)
 
 ### Android
-- **ARCore Integration (Future)**: Requires Expo Bare Workflow
-- **Material Icons**: Fallback for SF Symbols
-- **Adaptive Icons**: Configured with foreground/background/monochrome
-- **Edge-to-edge**: Enabled, predictive back gesture disabled
-- **Permissions**: Camera runtime permissions handled
+- **Status:** Lower priority; current focus on iOS POC
+- **Future consideration:** ARCore integration via Bare Workflow
+- **Not required for Phase 0**
 
-### Web
-- **WebGL**: Three.js works via `expo-gl` and WebGL context
-- **Limited AR**: No native AR APIs (WebXR is future consideration)
-- **Static Output**: `web.output: "static"` configured
-- **react-native-web**: Enables cross-platform components
+### Web (Not Supported)
+- AR features are mobile-only
+- Three.js rendering works via WebGL but no native AR APIs
+- `web` target configured but AR disabled on this platform
 
-### Current AR Approach
+### AR Tracking Architecture
 
-**POC Phase (Expo Managed Workflow):**
-- Camera background: `expo-camera`
-- Basic tracking: `expo-sensors` (gyroscope, accelerometer)
-- 3D rendering: Three.js with `expo-three`
-- **Limitation**: No plane detection, spatial mapping, or occlusion
+**Expo Managed (Current):**
+```
+expo-camera (video feed)
+    ↓
+GLView (WebGL context)
+    ↓
+Three.js renderer (device orientation applied)
+expo-sensors (gyro/accel) → camera rotation
+```
 
-**Future Advanced AR (Requires Migration):**
-- Move to Expo Bare Workflow or React Native CLI
-- Integrate ARKit (iOS) / ARCore (Android) native modules
-- Room scanning with RoomPlan API (iOS 16+)
-- Spatial anchors and occlusion rendering
-- See `docs/PLAN_AR_INMERSIVO.md` for details
+**Bare Workflow (Phase 0+):**
+```
+Native ARKit Session (world tracking)
+    ↓
+Custom native module (Swift)
+    ↓
+React Native Bridge
+    ↓
+Three.js OR SceneKit renderer
+```
+
+**RoomPlan Integration (Future):**
+```
+RoomCaptureSession (LiDAR scanning)
+    ↓
+Export USDZ mesh
+    ↓
+Load + align with architectural model
+    ↓
+Replace reality with 3D render
+```
 
 ## Key Dependencies
 
 ### Core Framework
 - **react-native** 0.81.5
-- **expo** ~54.0.27
-- **react** 19 (with experimental React Compiler)
-- **typescript** 5.9.2
+- **expo** ~54.0.27 (Managed Workflow during Phase 1, migrating to Bare in Phase 0)
+- **react** 19.1.0 (with experimental React Compiler)
+- **typescript** 5.9.2 (strict mode)
 
 ### 3D & AR Stack
 - **three** ^0.166.0 - 3D engine
-- **@react-three/fiber** ^8.17.10 - React integration for Three.js
 - **expo-gl** ~16.0.8 - OpenGL ES context
-- **expo-three** ^8.0.0 - Three.js renderer for Expo
-- **expo-camera** ~17.0.10 - Camera access and permissions
-- **expo-sensors** ~15.0.0 - Gyroscope, accelerometer
+- **expo-three** ^8.0.0 - Three.js renderer bridge
+- **expo-camera** ~17.0.10 - Camera feed + permissions
+- **expo-sensors** ~15.0.0 - Gyroscope, accelerometer (device orientation)
+
+**Future (Phase 0+):**
+- **RoomPlan API** (native Swift, wraps iOS 16+ framework)
+- **ARKit** (native, via custom React Native bridge)
 
 ### Navigation & UI
-- **@react-navigation/native** 7.x - Navigation framework
-- **@react-navigation/bottom-tabs** - Bottom tab navigator
-- **@react-navigation/native-stack** - Stack navigator
-- **@react-navigation/elements** - Navigation UI primitives
-- **expo-symbols** - SF Symbols (iOS)
+- **@react-navigation/native** ^7.1.8
+- **@react-navigation/native-stack** ^7.8.6
+- **@react-navigation/bottom-tabs** ^7.4.0
+- **expo-symbols** - SF Symbols (iOS 13+)
 - **@expo/vector-icons** - Icon library
-- **expo-haptics** - Haptic feedback
 
 ### Animations & Gestures
 - **react-native-reanimated** ~4.1.1
 - **react-native-gesture-handler** ~2.28.0
 
 ### Development Tools
-- **babel-plugin-module-resolver** - Import alias support
-- **eslint-plugin-prettier** - Code formatting
-- **eslint-plugin-simple-import-sort** - Auto-organize imports
-- **prettier** - Code formatter
+- **babel-plugin-module-resolver** - `@/` import alias
+- **eslint** ~9.0.0 with flat config
+- **prettier** - Code formatting
+- **simple-import-sort** - Auto-organize imports
 
 ## Configuration Files
 
@@ -327,6 +378,7 @@ Configures TypeScript path aliases and compiler options:
 ```json
 {
   "compilerOptions": {
+    "strict": true,
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   }
@@ -335,10 +387,10 @@ Configures TypeScript path aliases and compiler options:
 
 ### `eslint.config.js`
 ESLint configuration with Prettier and simple-import-sort:
+- Flat config v9
 - Integrates Prettier for code formatting
 - Organizes imports automatically
 - Extends expo config with React best practices
-- Disables conflicting rules for TypeScript projects
 
 ### `.prettierrc`
 Prettier configuration:
@@ -353,18 +405,11 @@ Prettier configuration:
 }
 ```
 
-## Experimental Features & Configuration
-
-### React 19 Features
-- `experiments.reactCompiler: true` - Automatic optimization enabled
-- New Architecture for better performance
-- Forward compatibility with React 19 patterns
-
-### Asset Management
-- Images: `assets/images/` - Use `require('@/assets/images/...')` or `expo-image`
-- 3D Models: Future support for GLB/GLTF files
-- Icons: Adaptive icons configured in `app.json` for iOS/Android
-- Splash screen: Configured via Expo plugins
+### `app.json`
+Expo configuration:
+- Plugins configured (iOS/Android permissions, splash screen, icons)
+- Camera permissions: `expo-camera`
+- Sensors permissions: `expo-sensors`
 
 ---
 
@@ -413,38 +458,20 @@ Prettier configuration:
 ### Available Documentation (`docs/`)
 
 1. **[docs/README.md](../docs/README.md)** - Documentation index
-2. **[docs/ARQUITECTURA_POC.md](../docs/ARQUITECTURA_POC.md)** - Complete architecture
-   - Tech stack details
-   - Proposed folder structure
-   - Data flow diagrams
-   - Feature roadmap
-   - Success metrics
-3. **[docs/ARQUITECTURA_SIMPLIFICADA.md](../docs/ARQUITECTURA_SIMPLIFICADA.md)** - UI-First approach
-   - Current architectural decision
-   - Separation of responsibilities
-   - Code examples per layer
-4. **[docs/PLAN_IMPLEMENTACION.md](../docs/PLAN_IMPLEMENTACION.md)** - Step-by-step guide
-   - 4 phases over 15 days
-   - Daily task breakdown
-   - Code examples
-   - Verification checklists
-5. **[docs/PLAN_AR_INMERSIVO.md](../docs/PLAN_AR_INMERSIVO.md)** - Advanced AR plan
-   - Room scanning requirements
-   - Spatial alignment techniques
-   - Occlusion rendering
-   - ARKit/ARCore technical analysis
-6. **[docs/CODIGO_3D_ANTERIOR.md](../docs/CODIGO_3D_ANTERIOR.md)** - Previous 3D code
-   - Analysis of commit a1bea4b (363 lines)
-   - Geometry specifications
-   - Original material system
-   - Refactoring guide
+2. **[docs/ARQUITECTURA_POC.md](../docs/ARQUITECTURA_POC.md)** - Complete architecture (tech stack, proposed structure, roadmap)
+3. **[docs/ARQUITECTURA_SIMPLIFICADA.md](../docs/ARQUITECTURA_SIMPLIFICADA.md)** - UI-First approach (current decision, layer separation, examples)
+4. **[docs/PLAN_IMPLEMENTACION.md](../docs/PLAN_IMPLEMENTACION.md)** - 4-phase implementation plan (15 days, daily tasks, examples)
+5. **[docs/PLAN_AR_INMERSIVO.md](../docs/PLAN_AR_INMERSIVO.md)** - Advanced AR plan (RoomPlan API, spatial alignment, rendering engines)
+6. **[docs/FASE_0_SETUP.md](../docs/FASE_0_SETUP.md)** - Bare Workflow migration guide (step-by-step setup, Xcode, native modules)
+7. **[docs/CODIGO_3D_ANTERIOR.md](../docs/CODIGO_3D_ANTERIOR.md)** - Analysis of recovered 3D code (commit a1bea4b, geometries, materials)
 
 ### When to Reference Documentation
 
-- **Implementing AR features**: Check PLAN_IMPLEMENTACION.md
-- **Architecture decisions**: Review ARQUITECTURA_SIMPLIFICADA.md
-- **Advanced AR roadmap**: See PLAN_AR_INMERSIVO.md
-- **Material/geometry specs**: Reference CODIGO_3D_ANTERIOR.md
+- **Bare Workflow migration:** Check `FASE_0_SETUP.md` (Phase 0 in progress)
+- **Adding AR features:** See `PLAN_IMPLEMENTACION.md` (Phases 2-4 roadmap)
+- **Understanding 3D system:** Reference `CODIGO_3D_ANTERIOR.md` (material specs, geometry definitions)
+- **Advanced AR (RoomPlan):** See `PLAN_AR_INMERSIVO.md` (post-Phase 0 planning)
+- **Architecture decisions:** Review `ARQUITECTURA_SIMPLIFICADA.md` (UI-First rationale)
 
 ---
 
@@ -452,10 +479,17 @@ Prettier configuration:
 
 ### Phase 1: Foundation (Days 1-3)
 - ✅ Base Expo + React Navigation structure
-- 🔄 Recover previous 3D code (commit a1bea4b)
-- 🔄 Refactor into modular UI-First architecture
-- 🔄 Implement ARScreen with basic 3D rendering
-- **Output**: Room rendering with material toggle
+- ✅ Recover previous 3D code (commit a1bea4b)
+- ✅ Refactor into modular UI-First architecture
+- ✅ Implement ARScreen with basic 3D rendering
+- **Output**: Room rendering with material toggle (COMPLETE)
+
+### Phase 0: Bare Workflow Migration (2 weeks, IN PROGRESS)
+- 🚀 Migrate to Expo Bare Workflow (`expo prebuild`)
+- 🚀 Setup Xcode project + Swift configuration
+- 🚀 Create native module bridge for RoomPlan API
+- 🚀 Validate RoomPlan API on device with LiDAR
+- **Output**: App can scan rooms with RoomPlan
 
 ### Phase 2: AR Integration (Days 4-7)
 - ⏳ Integrate expo-camera as AR background
@@ -478,4 +512,4 @@ Prettier configuration:
 - ⏳ Demo content (2-3 example projects)
 - **Output**: Demo-ready POC
 
-**Status Legend:** ✅ Complete | 🔄 In Progress | ⏳ Pending
+**Status Legend:** ✅ Complete | 🚀 In Progress | ⏳ Pending

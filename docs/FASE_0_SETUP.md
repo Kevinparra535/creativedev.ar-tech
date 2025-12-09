@@ -118,10 +118,10 @@ xcode-select --install
 ```
 
 **Checklist:**
-- [x] Comando ejecutado sin errores ✅ (npx expo prebuild completado)
-- [x] Carpeta `ios/` creada ✅ (con .xcworkspace)
-- [x] Carpeta `android/` creada ✅ (con gradle)
-- [x] Pods instalados ✅ (ver `ios/Pods/`, Podfile.lock presente)
+- [ ] Comando ejecutado sin errores
+- [ ] Carpeta `ios/` creada
+- [ ] Carpeta `android/` creada
+- [ ] Pods instalados (ver `ios/Pods/`)
 
 ---
 
@@ -154,8 +154,8 @@ ios/
 ```
 
 **Checklist:**
-- [x] Estructura iOS verificada ✅ (AppDelegate.swift, Info.plist, Pods/)
-- [x] `.xcworkspace` existe ✅ (creativedevartech.xcworkspace presente)
+- [ ] Estructura iOS verificada
+- [ ] `.xcworkspace` existe (NO `.xcodeproj`)
 
 ---
 
@@ -186,8 +186,8 @@ npx expo run:ios --device
 **Tiempo esperado:** 3-5 minutos primera build, 30-60s builds subsecuentes
 
 **Checklist:**
-- [x] Build exitoso ✅ (Xcode workspace abierto)
-- [ ] App corre en device/simulator (verificar en Xcode)
+- [ ] Build exitoso
+- [ ] App corre en device/simulator
 - [ ] UI se ve igual que antes
 - [ ] Navegación funciona
 
