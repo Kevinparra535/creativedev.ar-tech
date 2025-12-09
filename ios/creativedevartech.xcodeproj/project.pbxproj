@@ -10,6 +10,8 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		6356DD4EFF6802F9C538A6F4 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2A3152015BCF2C8E025192C6 /* PrivacyInfo.xcprivacy */; };
+		8D528BED2EE8AD5200E5480C /* RoomPlanModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D528BEC2EE8AD5200E5480C /* RoomPlanModule.swift */; };
+		8D528BEE2EE8AD5300E5480C /* RoomPlanBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8D528BED2EE8AD5300E5480C /* RoomPlanBridge.m */; };
 		8D528BEE2EE8AD5500E5480C /* RoomPlanViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D528BED2EE8AD5500E5480C /* RoomPlanViewManager.swift */; };
 		8D528BEF2EE8AD5500E5480C /* RoomPlanViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 8D528BEC2EE8AD5500E5480C /* RoomPlanViewManager.m */; };
 		8FABD84A17BD54C6D7F49F1B /* libPods-creativedevartech.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 25B91E294A5AA09144ECBBD9 /* libPods-creativedevartech.a */; };
@@ -25,6 +27,8 @@
 		25B91E294A5AA09144ECBBD9 /* libPods-creativedevartech.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-creativedevartech.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A3152015BCF2C8E025192C6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = creativedevartech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		66747C39D20CED8ADFA84250 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-creativedevartech/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		8D528BEC2EE8AD5200E5480C /* RoomPlanModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanModule.swift; sourceTree = "<group>"; };
+		8D528BED2EE8AD5300E5480C /* RoomPlanBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RoomPlanBridge.m; sourceTree = "<group>"; };
 		8D528BEC2EE8AD5500E5480C /* RoomPlanViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RoomPlanViewManager.m; sourceTree = "<group>"; };
 		8D528BED2EE8AD5500E5480C /* RoomPlanViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomPlanViewManager.swift; sourceTree = "<group>"; };
 		A533EB5ED5A4AC112B3E2310 /* Pods-creativedevartech.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-creativedevartech.debug.xcconfig"; path = "Target Support Files/Pods-creativedevartech/Pods-creativedevartech.debug.xcconfig"; sourceTree = "<group>"; };
@@ -51,6 +55,8 @@
 		13B07FAE1A68108700A75B9A /* creativedevartech */ = {
 			isa = PBXGroup;
 			children = (
+				8D528BEC2EE8AD5200E5480C /* RoomPlanModule.swift */,
+				8D528BED2EE8AD5300E5480C /* RoomPlanBridge.m */,
 				8D528BEC2EE8AD5500E5480C /* RoomPlanViewManager.m */,
 				8D528BED2EE8AD5500E5480C /* RoomPlanViewManager.swift */,
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
