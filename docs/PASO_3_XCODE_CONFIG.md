@@ -13,10 +13,12 @@
 **Archivo:** `ios/creativedevartech.xcodeproj/project.pbxproj`
 
 **Cambios:**
+
 - Debug configuration: Agregó `DEVELOPMENT_TEAM = 5R89574S2X;`
 - Release configuration: Agregó `DEVELOPMENT_TEAM = 5R89574S2X;`
 
 **Resultado:**
+
 ```bash
 $ grep "DEVELOPMENT_TEAM" ios/creativedevartech.xcodeproj/project.pbxproj
                                 DEVELOPMENT_TEAM = 5R89574S2X;
@@ -32,6 +34,7 @@ $ grep "DEVELOPMENT_TEAM" ios/creativedevartech.xcodeproj/project.pbxproj
 **Archivo:** `ios/creativedevartech/Info.plist`
 
 **Cambios:**
+
 ```xml
 <key>UIRequiredDeviceCapabilities</key>
 <array>
@@ -41,6 +44,7 @@ $ grep "DEVELOPMENT_TEAM" ios/creativedevartech.xcodeproj/project.pbxproj
 ```
 
 **Resultado:**
+
 ```bash
 $ grep -A 3 "UIRequiredDeviceCapabilities" ios/creativedevartech/Info.plist
     <key>UIRequiredDeviceCapabilities</key>
@@ -70,6 +74,7 @@ $ grep -A 3 "UIRequiredDeviceCapabilities" ios/creativedevartech/Info.plist
 ## Próximos Pasos
 
 ### Paso 4: Create Native Module RoomPlan
+
 - Crear `ios/RoomPlanModule/` directory
 - Crear `RoomPlanBridge.m` (Objective-C bridge)
 - Crear `RoomPlanModule.swift` (implementación Swift)
@@ -82,20 +87,24 @@ $ grep -A 3 "UIRequiredDeviceCapabilities" ios/creativedevartech/Info.plist
 ## Notas Importantes
 
 ### Archivo generado vs versionado
+
 - **ios/** folder: Generada por `expo prebuild`, NO versionada (.gitignore)
 - **Cambios realizados:** Modificados archivos dentro de ios/
 - **Cómo sincronizar en otro equipo:**
+
   ```bash
   npx expo prebuild --clean  # Regenera ios/ y android/
   # Luego los cambios a Info.plist y project.pbxproj se aplican
   ```
 
 ### Team ID 5R89574S2X
-- Corresponde a: Apple Development: kevinparra535@gmail.com
+
+- Corresponde a: Apple Development: <kevinparra535@gmail.com>
 - Válido para: Signing automático, provisioning profiles automáticos
 - Verificado con: `security find-identity -v -p codesigning`
 
 ### ARKit Requirement
+
 - iOS 11+ requerido (mínimo)
 - Deployment target actual: 12.0
 - Dispositivos soportados: A9 chip o superior
