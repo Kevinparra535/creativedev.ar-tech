@@ -4,13 +4,17 @@
 
 **AR Immersive Experience Platform** - React Native app for architectural AR visualization. Currently on **`feature/bare-workflow-migration`** branch migrating from Expo Managed → Bare Workflow to enable native iOS AR (RoomPlan API, ARKit integration).
 
-**Version:** 1.0 POC | **Status:** Bare Workflow Migration (Phase 0) | **Branch:** `feature/bare-workflow-migration`
+**Version:** 1.0 POC | **Status:** Bare Workflow Migration (Phase 0 - 77% Complete) | **Branch:** `feature/bare-workflow-migration`
 
 ### Current State & Roadmap
 
 - ✅ **Phase 1 (Foundation):** UI-First AR with Three.js rendering + material system working
-- 🚀 **Phase 0 (In Progress):** Expo Bare Workflow migration, native iOS module scaffolding
+- 🚀 **Phase 0 (In Progress - 77%):** Expo Bare Workflow migration, native iOS module scaffolding (7/9 steps)
 - ⏳ **Phases 2-4:** Advanced AR (RoomPlan scanning, spatial alignment, occlusion)
+
+### Critical Current Blocker
+
+**ViewManager files need Xcode integration** - Files exist but aren't added to Xcode target. See `docs/NEXT_STEPS.md` for resolution steps.
 
 ### Core Vision
 
@@ -18,6 +22,103 @@ AR visualization tool allowing architects to showcase interior designs at 1:1 sc
 - Scan real spaces with LiDAR (iOS 16+ with RoomPlan API)
 - Overlay/replace with architectural 3D models
 - Walk through immersively exploring materials in real-time
+
+**Key Differentiator:** Not "tap to place" objects - full room scanning and replacement with architectural render.
+
+---
+
+## Critical Developer Workflows
+
+### Native Module Development Pattern (React Native ↔ Swift Bridge)
+
+This project uses **React Native native modules** to expose iOS RoomPlan API to JavaScript:
+
+**Swift Module Structure:**
+```swift
+// ios/RoomPlanModule/RoomPlanModule.swift
+@objc(RoomPlanModule)
+class RoomPlanModule: RCTEventEmitter {
+  override func supportedEvents() -> [String]! {
+    return ["onScanStart", "onScanProgress", "onScanComplete", "onScanError"]
+  }
+  
+  @objc func startScanning() { /* native implementation */ }
+}
+```
+
+**Objective-C Bridge (required for RN):**
+```objective-c
+// ios/RoomPlanModule/RoomPlanBridge.m
+@interface RCT_EXTERN_MODULE(RoomPlanModule, RCTEventEmitter)
+RCT_EXTERN_METHOD(startScanning)
+@end
+```
+
+**JavaScript Hook:**
+```typescript
+// src/hooks/useRoomPlan.ts
+import { NativeModules, NativeEventEmitter } from 'react-native';
+const { RoomPlanModule } = NativeModules;
+const emitter = new NativeEventEmitter(RoomPlanModule);
+```
+
+**CRITICAL:** When adding Swift files to native modules:
+1. Create `.swift` file + `.m` bridge file
+2. Add BOTH to Xcode target via Xcode UI (right-click → "Add Files to...")
+3. Verify in Build Phases → Compile Sources
+4. Clean build folder (Cmd+Shift+K) before rebuild
+
+### Build & Run Workflow (Post-Bare Migration)
+
+```bash
+# Always use Expo CLI (handles signing/provisioning automatically)
+npx expo run:ios --device           # Build & install on connected iPhone
+npx expo run:ios                    # Use simulator
+npx expo run:ios --configuration Release  # Production build
+
+# NEVER use xcodebuild directly - complex provisioning requirements
+# Use Expo's wrapper which auto-manages certificates
+
+# After native code changes (Swift/Objective-C):
+npm start -- --clear                # Clear Metro cache first
+npx expo run:ios --device          # Full rebuild required
+```
+
+**Common Build Errors:**
+- "Module not found": Files exist but not added to Xcode target (see above)
+- "Signing failed": Let Expo handle it, don't configure manually
+- "Pods not found": Run `cd ios && pod install && cd ..`
+
+### Testing Native Modules
+
+```bash
+# 1. Start Metro bundler
+npm start -- --clear
+
+# 2. In another terminal, build on device
+npx expo run:ios --device
+
+# 3. Check logs in THREE places:
+# - Metro terminal (JavaScript errors)
+# - Xcode console (Swift/native errors) 
+# - Device system logs (crashes)
+
+# Xcode console access:
+# Window → Devices and Simulators → Select device → Open Console
+```
+
+### Debugging AR Features
+
+**AR features require PHYSICAL device with LiDAR:**
+- iPhone 12 Pro or later
+- iPad Pro 2020 or later
+- iOS 16.0+ for RoomPlan API
+
+**Simulator limitations:**
+- expo-camera: ✅ Works (mock feed)
+- expo-sensors: ✅ Works (simulated data)
+- RoomPlan API: ❌ Requires real hardware + LiDAR
+- ARKit depth: ❌ Requires real hardware
 
 ---
 
@@ -27,41 +128,64 @@ AR visualization tool allowing architects to showcase interior designs at 1:1 sc
 
 **UI-First Design:** All AR/3D logic colocated in `src/ui/ar/` for POC simplicity. Future refactoring into `src/core/`, `src/data/` layers after POC validation.
 
+**Key Architectural Decision:** Keeping business logic in `src/ui/` initially to iterate fast. When stable, extract to:
+- `src/core/` - Business logic, managers, AR engine
+- `src/data/` - Models, constants, asset loading
+- `src/ui/` - Pure presentation components
+
 ```
 src/ui/
-├── ar/
-│   ├── components/
-│   │   ├── ARCanvas.tsx       # GLView + Three.js rendering with device orientation tracking
+├── ar/                         # AR feature (all logic colocated)
+│   ├── components/             # UI-only components
+│   │   ├── ARCanvas.tsx       # GLView + Three.js rendering
 │   │   ├── ARControls.tsx     # Start/stop AR buttons
-│   │   ├── MaterialPicker.tsx # Material selector (Default/Wood/Concrete)
+│   │   ├── MaterialPicker.tsx # Material selector UI
 │   │   └── ARPermissionPrompt.tsx
-│   ├── hooks/
-│   │   ├── use3DScene.ts      # SceneManager lifecycle + Three.js initialization
+│   ├── hooks/                  # Business logic with state
+│   │   ├── use3DScene.ts      # SceneManager lifecycle
 │   │   ├── useARSession.ts    # AR start/stop lifecycle
-│   │   ├── useMaterialToggle.ts # Material state & change logic
-│   │   └── useDeviceOrientation.ts # Gyroscope/accelerometer tracking (expo-sensors)
-│   └── utils/
-│       ├── SceneManager.ts    # THREE.Scene, camera, renderer lifecycle
-│       ├── LightingSetup.ts   # 3-point lighting (ambient + 2x directional)
-│       ├── geometries.ts      # createRoom(), createWalls(), createTable() etc
-│       └── materials.ts       # PBR material presets (Default/Wood/Concrete)
+│   │   ├── useMaterialToggle.ts # Material change logic
+│   │   └── useDeviceOrientation.ts # Gyroscope tracking
+│   └── utils/                  # Pure functions/helpers
+│       ├── SceneManager.ts    # THREE.Scene lifecycle
+│       ├── LightingSetup.ts   # 3-point lighting setup
+│       ├── geometries.ts      # createRoom(), createWalls(), etc
+│       └── materials.ts       # PBR material presets
 ├── screens/
 │   ├── HomeScreen.tsx
 │   └── ARScreen.tsx          # Orchestrates AR components + hooks
 ├── navigation/
 │   ├── AppNavigator.tsx
-│   ├── TabNavigator.tsx      # Bottom tabs: Home, AR
-│   └── types.ts              # Navigation type definitions
+│   ├── TabNavigator.tsx      # Bottom tabs: Home, AR, RoomPlanTest
+│   └── types.ts
 └── theme/
     ├── colors.ts
     └── fonts.ts
+
+# Native modules (iOS-specific)
+ios/RoomPlanModule/
+├── RoomPlanBridge.m           # Objective-C bridge (required)
+├── RoomPlanModule.swift       # RoomPlan scanning implementation
+├── RoomPlanViewManager.m      # View bridge
+└── RoomPlanViewManager.swift  # Native view component
+
+# React Native hooks for native modules
+src/hooks/
+├── useRoomPlan.ts             # Bridge to RoomPlanModule.swift
+src/components/
+└── RoomPlanView.tsx           # Bridge to RoomPlanViewManager.swift
+src/screens/
+└── RoomPlanTestScreen.tsx     # Testing UI for RoomPlan
 ```
 
-**Key Files to Know:**
-- `src/ui/screens/ARScreen.tsx` - Entry point; orchestrates `use3DScene` + `useARSession` + components
-- `src/ui/ar/utils/SceneManager.ts` - Core Three.js Scene/Camera/Renderer management
-- `src/ui/ar/utils/geometries.ts` - Architectural geometry definitions (8x8 room, walls, table, window)
-- `src/ui/ar/utils/materials.ts` - 3 material presets with PBR properties (roughness/metalness)
+**Navigation Flow:**
+```
+AppNavigator (Stack)
+  └─ TabNavigator (Tabs)
+      ├─ Home
+      ├─ AR (Three.js rendering)
+      └─ RoomPlanTest (Native RoomPlan scanning)
+```
 
 ### Three.js Rendering Details
 
@@ -410,6 +534,109 @@ Expo configuration:
 - Plugins configured (iOS/Android permissions, splash screen, icons)
 - Camera permissions: `expo-camera`
 - Sensors permissions: `expo-sensors`
+
+---
+
+## AR/3D Technical Details
+
+### Three.js Scene Structure
+
+**Materials System (PBR):**
+- `THREE.MeshStandardMaterial` with `roughness` and `metalness`
+- Material presets: Default, Wood, Concrete
+- Defined in `src/ui/ar/utils/materials.ts`
+
+**Geometries:**
+- Architectural room components (walls, floor, ceiling)
+- Furniture primitives (tables, chairs, windows)
+- Created via helper functions in `src/ui/ar/utils/geometries.ts`
+
+**Lighting:**
+- Ambient light for general illumination
+- Directional lights for realistic shadows
+- Configured in `src/ui/ar/utils/LightingSetup.ts`
+
+**Scene Management:**
+- `SceneManager` class handles THREE.Scene lifecycle
+- Camera setup: PerspectiveCamera with 75° FOV
+- Renderer: `expo-three` Renderer with GLView context
+
+### Material Properties
+
+**Default Material:**
+- Walls: `#F5F5F5` (white), roughness: 0.7, metalness: 0
+- Floor: `#CCCCCC` (light gray), roughness: 0.8, metalness: 0
+
+**Wood Material:**
+- Walls: `#D4A574` (warm beige), roughness: 0.8, metalness: 0.1
+- Floor: `#8B4513` (dark brown), roughness: 0.9, metalness: 0
+
+**Concrete Material:**
+- Walls: `#808080` (medium gray), roughness: 0.9, metalness: 0.2
+- Floor: `#606060` (dark gray), roughness: 0.95, metalness: 0.1
+
+---
+
+## Documentation Structure
+
+### Available Documentation (`docs/`)
+
+1. **[docs/README.md](../docs/README.md)** - Documentation index
+2. **[docs/ARQUITECTURA_POC.md](../docs/ARQUITECTURA_POC.md)** - Complete architecture (tech stack, proposed structure, roadmap)
+3. **[docs/ARQUITECTURA_SIMPLIFICADA.md](../docs/ARQUITECTURA_SIMPLIFICADA.md)** - UI-First approach (current decision, layer separation, examples)
+4. **[docs/PLAN_IMPLEMENTACION.md](../docs/PLAN_IMPLEMENTACION.md)** - 4-phase implementation plan (15 days, daily tasks, examples)
+5. **[docs/PLAN_AR_INMERSIVO.md](../docs/PLAN_AR_INMERSIVO.md)** - Advanced AR plan (RoomPlan API, spatial alignment, rendering engines)
+6. **[docs/FASE_0_SETUP.md](../docs/FASE_0_SETUP.md)** - Bare Workflow migration guide (step-by-step setup, Xcode, native modules)
+7. **[docs/CODIGO_3D_ANTERIOR.md](../docs/CODIGO_3D_ANTERIOR.md)** - Analysis of recovered 3D code (commit a1bea4b, geometries, materials)
+
+### When to Reference Documentation
+
+- **Bare Workflow migration:** Check `FASE_0_SETUP.md` (Phase 0 in progress)
+- **Adding AR features:** See `PLAN_IMPLEMENTACION.md` (Phases 2-4 roadmap)
+- **Understanding 3D system:** Reference `CODIGO_3D_ANTERIOR.md` (material specs, geometry definitions)
+- **Advanced AR (RoomPlan):** See `PLAN_AR_INMERSIVO.md` (post-Phase 0 planning)
+- **Architecture decisions:** Review `ARQUITECTURA_SIMPLIFICADA.md` (UI-First rationale)
+
+---
+
+## Implementation Roadmap
+
+### Phase 1: Foundation (Days 1-3)
+- ✅ Base Expo + React Navigation structure
+- ✅ Recover previous 3D code (commit a1bea4b)
+- ✅ Refactor into modular UI-First architecture
+- ✅ Implement ARScreen with basic 3D rendering
+- **Output**: Room rendering with material toggle (COMPLETE)
+
+### Phase 0: Bare Workflow Migration (2 weeks, IN PROGRESS)
+- 🚀 Migrate to Expo Bare Workflow (`expo prebuild`)
+- 🚀 Setup Xcode project + Swift configuration
+- 🚀 Create native module bridge for RoomPlan API
+- 🚀 Validate RoomPlan API on device with LiDAR
+- **Output**: App can scan rooms with RoomPlan
+
+### Phase 2: AR Integration (Days 4-7)
+- ⏳ Integrate expo-camera as AR background
+- ⏳ Basic tracking with expo-sensors
+- ⏳ AR controls (start/stop)
+- ⏳ Touch gestures (pinch, rotate, pan)
+- **Output**: Active AR with basic scene anchoring
+
+### Phase 3: Professional Features (Days 8-12)
+- ⏳ Measurement system (tap two points)
+- ⏳ Day/night mode (lighting changes)
+- ⏳ Screenshot capture
+- ⏳ Design variants (compare versions)
+- **Output**: Premium tools functional
+
+### Phase 4: Polish + Testing (Days 13-15)
+- ⏳ Onboarding UX (gesture tutorial)
+- ⏳ Performance optimization (lazy loading, cache)
+- ⏳ Real device testing (iOS + Android)
+- ⏳ Demo content (2-3 example projects)
+- **Output**: Demo-ready POC
+
+**Status Legend:** ✅ Complete | 🚀 In Progress | ⏳ Pending
 
 ---
 
