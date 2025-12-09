@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ARControlsProps {
   isActive: boolean;
@@ -14,7 +14,7 @@ export const ARControls: React.FC<ARControlsProps> = ({ isActive, onStart, onSto
       style={[styles.button, isActive && styles.activeButton]}
       onPress={isActive ? onStop : onStart}
     >
-      <Ionicons name={isActive ? 'camera' : 'camera-outline'} size={20} color="#fff" />
+      <Ionicons name={isActive ? 'camera' : 'camera-outline'} size={20} color='#fff' />
       <Text style={styles.buttonText}>{isActive ? 'AR Mode ON' : 'Enable AR'}</Text>
     </TouchableOpacity>
   </View>

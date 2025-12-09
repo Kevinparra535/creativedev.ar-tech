@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  ActivityIndicator
+  View
 } from 'react-native';
-import { useRoomPlan, ExportResult } from '@/hooks/useRoomPlan';
-import { RoomPlanView } from '@/components/RoomPlanView';
+
+import { RoomPlanView } from '@/ui/ar/components/RoomPlanView';
+import { ExportResult, useRoomPlan } from '@/ui/ar/hooks/useRoomPlan';
 
 export const RoomPlanTestScreen: React.FC = () => {
   const { isScanning, roomData, error, isExporting, startScanning, stopScanning, exportScan } =
@@ -68,17 +69,23 @@ export const RoomPlanTestScreen: React.FC = () => {
           onPress={isScanning ? stopScanning : startScanning}
           disabled={isExporting}
         >
-          <Text style={styles.buttonText}>{isScanning ? 'Detener Escaneo' : 'Iniciar Escaneo'}</Text>
+          <Text style={styles.buttonText}>
+            {isScanning ? 'Detener Escaneo' : 'Iniciar Escaneo'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.exportButton, (!roomData || isExporting) && styles.buttonDisabled]}
+          style={[
+            styles.button,
+            styles.exportButton,
+            (!roomData || isExporting) && styles.buttonDisabled
+          ]}
           onPress={handleExport}
           disabled={!roomData || isExporting}
         >
           {isExporting ? (
             <>
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color='#fff' size='small' />
               <Text style={styles.buttonText}> Exportando...</Text>
             </>
           ) : (
@@ -117,8 +124,8 @@ export const RoomPlanTestScreen: React.FC = () => {
               <View style={styles.divider} />
               <Text style={styles.dataLabel}>Dimensiones</Text>
               <Text style={styles.dimensionText}>
-                {Math.round(roomData.dimensions.length)}m × {Math.round(roomData.dimensions.width)}m
-                × {Math.round(roomData.dimensions.height)}m
+                {Math.round(roomData.dimensions.length)}m × {Math.round(roomData.dimensions.width)}
+                m × {Math.round(roomData.dimensions.height)}m
               </Text>
             </>
           )}

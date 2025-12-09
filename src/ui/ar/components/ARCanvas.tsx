@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from 'react';
+import { CameraView } from 'expo-camera';
 import { GLView } from 'expo-gl';
 import { Renderer } from 'expo-three';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { CameraView } from 'expo-camera';
 import * as THREE from 'three';
 
-import { SceneManager } from '../utils/SceneManager';
 import { useDeviceOrientation } from '../hooks/useDeviceOrientation';
+import { SceneManager } from '../utils/SceneManager';
 
 interface ARCanvasProps {
   sceneManager: SceneManager | null;
@@ -15,7 +15,7 @@ interface ARCanvasProps {
 }
 
 export const ARCanvas: React.FC<ARCanvasProps> = ({ sceneManager, isReady, isARMode }) => {
-  const rafIdRef = useRef<number>();
+  const rafIdRef = useRef<number | undefined>(undefined);
   const rendererRef = useRef<any>(null);
 
   // Tracking de orientación del dispositivo
@@ -97,7 +97,7 @@ export const ARCanvas: React.FC<ARCanvasProps> = ({ sceneManager, isReady, isARM
 
   return (
     <View style={styles.container}>
-      {isARMode && <CameraView style={StyleSheet.absoluteFill} facing="back" />}
+      {isARMode && <CameraView style={StyleSheet.absoluteFill} facing='back' />}
       <GLView style={styles.canvas} onContextCreate={onContextCreate} />
     </View>
   );
