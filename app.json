@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "creativedev.ar-tech",
-    "slug": "creativedev.ar-tech",
+    "slug": "artech",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Esta app necesita acceso a la cámara para experiencias AR inmersivas.",
-        "NSMicrophoneUsageDescription": "Esta app puede usar el micrófono para funciones interactivas."
+        "NSMicrophoneUsageDescription": "Esta app puede usar el micrófono para funciones interactivas.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.ensayo.creativedev.artech"
     },
@@ -62,6 +63,11 @@
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b0a42bfc-cb0b-45a3-8181-e9399bb7ca80"
+      }
     }
   }
 }
