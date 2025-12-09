@@ -159,37 +159,50 @@ ios/
 
 ---
 
-### 2.3 Primera build iOS
+### 2.3 Primera build iOS (Alternativa Recomendada)
+
+**⚠️ NOTA IMPORTANTE:** xcodebuild manual requiere provisioning profiles complejos. Se recomienda usar `npx expo run:ios` que maneja firma automáticamente.
+
+Ver [PASO_2_3_BUILD_VERIFICATION.md](./PASO_2_3_BUILD_VERIFICATION.md) para análisis técnico completo.
+
+#### Build con Expo (RECOMENDADO)
 
 ```bash
-# Build desde terminal
-npx expo run:ios
+# Build desde terminal (maneja firma automáticamente)
+npx expo run:ios --configuration=Debug
 
-# O especificar device
-npx expo run:ios --device
+# O en simulador específico
+npx expo run:ios --simulator "iPhone 14 Pro Max"
 ```
 
 **Esto va a:**
-1. Abrir Xcode (si no está abierto)
-2. Compilar app nativa
+1. Compilar app nativa
+2. Generar provisioning profiles automáticamente
 3. Instalar en simulador o device
 4. Lanzar Metro bundler
+5. Manejar firma de código automáticamente
 
 **Posibles errores:**
 
 **Error: "Signing requires a development team"**
-- Solución: Abrir Xcode, seleccionar target, ir a Signing & Capabilities, agregar tu Apple ID
+- Solución: Expo lo manejará automáticamente si Xcode tiene tu Apple ID configurado
 
 **Error: "No devices found"**
-- Solución: Abrir Xcode > Window > Devices and Simulators, agregar device
+- Solución: Abrir Xcode > Window > Devices and Simulators, agregar device, retry
 
-**Tiempo esperado:** 3-5 minutos primera build, 30-60s builds subsecuentes
+**Tiempo esperado:** 
+- Primera build: 3-5 minutos (compilación completa)
+- Builds subsecuentes: 30-60s (incrementales)
 
 **Checklist:**
 - [ ] Build exitoso
 - [ ] App corre en device/simulator
 - [ ] UI se ve igual que antes
 - [ ] Navegación funciona
+- [ ] Logs de Metro en terminal
+
+**Si deseas xcodebuild manual (avanzado):**
+Ver [PASO_2_3_BUILD_VERIFICATION.md](./PASO_2_3_BUILD_VERIFICATION.md) sección "Opción 1: Configurar cuenta Xcode CLI"
 
 ---
 
