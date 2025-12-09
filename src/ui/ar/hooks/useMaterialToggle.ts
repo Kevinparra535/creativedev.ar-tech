@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { MaterialType } from '../utils/materials';
 
 export const useMaterialToggle = (
@@ -24,6 +25,6 @@ export const useMaterialToggle = (
     currentMaterial,
     materials,
     changeMaterial,
-    nextMaterial,
+    nextMaterial
   };
 };

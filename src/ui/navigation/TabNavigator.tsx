@@ -1,11 +1,11 @@
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import React from "react";
-import { Ionicons } from "@expo/vector-icons";
+import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import { TabParamList } from "./types";
+import { ARScreen } from '@/ui/screens/ARScreen';
+import { HomeScreen } from '@/ui/screens/HomeScreen';
 
-import { HomeScreen } from "@/ui/screens/HomeScreen";
-import { ARScreen } from "@/ui/screens/ARScreen";
+import { TabParamList } from './types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
@@ -13,27 +13,27 @@ export function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false,
+        headerShown: false
       }}
     >
       <Tab.Screen
-        name="Home"
+        name='Home'
         component={HomeScreen}
         options={{
-          title: "Home",
+          title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+            <Ionicons name='home-outline' size={size} color={color} />
+          )
         }}
       />
       <Tab.Screen
-        name="AR"
+        name='AR'
         component={ARScreen}
         options={{
-          title: "AR View",
+          title: 'AR View',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cube-outline" size={size} color={color} />
-          ),
+            <Ionicons name='cube-outline' size={size} color={color} />
+          )
         }}
       />
     </Tab.Navigator>

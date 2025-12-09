@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+
 import { setupLighting } from './LightingSetup';
 
 export class SceneManager {
@@ -10,8 +11,14 @@ export class SceneManager {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000);
 
-    this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-    this.camera.position.set(0, 0, 8);
+    // Configuración de cámara optimizada para AR
+    // FOV más amplio para mejor visualización en AR
+    this.camera = new THREE.PerspectiveCamera(70, 1, 0.01, 100);
+
+    // Posición de cámara ajustada para vista de maqueta en AR
+    // Más cerca y ligeramente elevada
+    this.camera.position.set(0, 1.5, 3);
+    this.camera.lookAt(0, 0, 0);
 
     // Setup de luces
     setupLighting(this.scene);
@@ -41,7 +48,7 @@ export class SceneManager {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose();
         if (Array.isArray(obj.material)) {
-          obj.material.forEach(mat => mat.dispose());
+          obj.material.forEach((mat) => mat.dispose());
         } else {
           obj.material.dispose();
         }

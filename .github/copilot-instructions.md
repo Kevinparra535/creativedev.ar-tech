@@ -86,8 +86,20 @@ npm start -- --clear
 
 ### Code Quality
 - ESLint flat config (v9) with `eslint-config-expo`
+- Prettier for automatic code formatting
+- `simple-import-sort` for automatic import organization
 - TypeScript strict mode enabled
-- Lint: `npm run lint`
+- Lint: `npm run lint` or `npm run lint -- --fix` to auto-fix
+
+### Import Sorting
+Imports are automatically sorted with `simple-import-sort`:
+1. React and external dependencies
+2. Internal UI components
+3. Theme and styling
+4. Custom hooks and utilities
+5. Domain and data layers
+6. Assets
+7. Relative imports
 
 ### Project Structure Migration
 If migrating from Expo Router template:
@@ -117,6 +129,7 @@ If migrating from Expo Router template:
 - **UI**: expo-symbols, @expo/vector-icons, expo-image (optimized Image component)
 - **Animations**: react-native-reanimated, react-native-gesture-handler
 - **Module Resolution**: babel-plugin-module-resolver (for alias support)
+- **Linting & Formatting**: eslint-plugin-prettier, eslint-plugin-simple-import-sort, prettier
 - **Utilities**: expo-haptics, expo-linking, expo-web-browser
 
 ## Configuration Files
@@ -140,6 +153,26 @@ Configures TypeScript path aliases and compiler options:
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   }
+}
+```
+
+### `eslint.config.js`
+ESLint configuration with Prettier and simple-import-sort:
+- Integrates Prettier for code formatting
+- Organizes imports automatically
+- Extends expo config with React best practices
+- Disables conflicting rules for TypeScript projects
+
+### `.prettierrc`
+Prettier configuration:
+```json
+{
+  "printWidth": 99,
+  "singleQuote": true,
+  "trailingComma": "none",
+  "tabWidth": 2,
+  "semi": true,
+  "useTabs": false
 }
 ```
 

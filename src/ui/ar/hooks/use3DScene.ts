@@ -1,8 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { SceneManager } from '../utils/SceneManager';
+
 import { createArchitecturalRoom } from '../utils/geometries';
-import { MaterialType, getMaterialConfig, createMaterial } from '../utils/materials';
+import { createMaterial, getMaterialConfig, MaterialType } from '../utils/materials';
+import { SceneManager } from '../utils/SceneManager';
 
 export const use3DScene = () => {
   const sceneManagerRef = useRef<SceneManager | null>(null);
@@ -40,8 +41,10 @@ export const use3DScene = () => {
 
         if (isFloor) {
           child.material = createMaterial(materialConfig.floor);
-        } else if (child.geometry instanceof THREE.PlaneGeometry ||
-                   child.geometry instanceof THREE.BoxGeometry) {
+        } else if (
+          child.geometry instanceof THREE.PlaneGeometry ||
+          child.geometry instanceof THREE.BoxGeometry
+        ) {
           // Es pared
           child.material = createMaterial(materialConfig.wall);
         }
@@ -57,6 +60,6 @@ export const use3DScene = () => {
     sceneManager: sceneManagerRef.current,
     isReady,
     currentMaterial,
-    changeMaterial,
+    changeMaterial
   };
 };

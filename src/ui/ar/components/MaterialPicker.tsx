@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 import { MaterialType } from '../utils/materials';
 
 interface MaterialPickerProps {
@@ -9,12 +10,12 @@ interface MaterialPickerProps {
 
 export const MaterialPicker: React.FC<MaterialPickerProps> = ({
   currentMaterial,
-  onMaterialChange,
+  onMaterialChange
 }) => {
-  const materials: Array<{ type: MaterialType; label: string }> = [
+  const materials: { type: MaterialType; label: string }[] = [
     { type: 'default', label: 'Default' },
     { type: 'wood', label: 'Wood' },
-    { type: 'concrete', label: 'Concrete' },
+    { type: 'concrete', label: 'Concrete' }
   ];
 
   return (
@@ -22,16 +23,13 @@ export const MaterialPicker: React.FC<MaterialPickerProps> = ({
       {materials.map((material) => (
         <TouchableOpacity
           key={material.type}
-          style={[
-            styles.button,
-            currentMaterial === material.type && styles.activeButton,
-          ]}
+          style={[styles.button, currentMaterial === material.type && styles.activeButton]}
           onPress={() => onMaterialChange(material.type)}
         >
           <Text
             style={[
               styles.buttonText,
-              currentMaterial === material.type && styles.activeButtonText,
+              currentMaterial === material.type && styles.activeButtonText
             ]}
           >
             {material.label}
@@ -50,7 +48,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 16,
+    gap: 16
   },
   button: {
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -58,18 +56,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: 'transparent'
   },
   activeButton: {
     borderColor: '#fff',
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.3)'
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   activeButtonText: {
-    fontWeight: '700',
-  },
+    fontWeight: '700'
+  }
 });

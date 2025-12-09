@@ -17,6 +17,6 @@ export const useARSession = () => {
     hasPermission,
     startAR,
     stopAR,
-    setHasPermission,
+    setHasPermission
   };
 };

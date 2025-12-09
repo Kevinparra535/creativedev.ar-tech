@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 
+/**
+ * Crea una habitación arquitectónica a escala.
+ * Escala: 1 unidad = 1 metro en el mundo real
+ * La escala del grupo se reduce a 0.3 para AR (maqueta)
+ */
 export const createArchitecturalRoom = (): THREE.Group => {
   const room = new THREE.Group();
 
@@ -9,7 +14,7 @@ export const createArchitecturalRoom = (): THREE.Group => {
 
   // Paredes
   const walls = createWalls();
-  walls.forEach(wall => room.add(wall));
+  walls.forEach((wall) => room.add(wall));
 
   // Ventana
   const window = createWindow();
@@ -18,6 +23,13 @@ export const createArchitecturalRoom = (): THREE.Group => {
   // Mesa
   const table = createTable();
   room.add(table);
+
+  // Escala reducida para AR (30% del tamaño real = maqueta arquitectónica)
+  // Esto hace que una habitación de 8x8m se vea como 2.4x2.4m
+  room.scale.set(0.3, 0.3, 0.3);
+
+  // Posicionar la habitación más cerca del suelo para AR
+  room.position.y = -0.5;
 
   return room;
 };
@@ -59,7 +71,7 @@ const createWalls = (): THREE.Mesh[] => {
 const createWindow = (): THREE.Mesh => {
   const geometry = new THREE.PlaneGeometry(2, 1.5);
   const material = new THREE.MeshStandardMaterial({
-    color: 0x87CEEB,
+    color: 0x87ceeb,
     transparent: true,
     opacity: 0.3,
     metalness: 0.9,
@@ -75,10 +87,7 @@ const createTable = (): THREE.Group => {
   const material = new THREE.MeshStandardMaterial({ color: 0x654321 });
 
   // Superficie
-  const tableTop = new THREE.Mesh(
-    new THREE.BoxGeometry(2, 0.1, 1),
-    material
-  );
+  const tableTop = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 1), material);
   tableTop.position.y = -1;
   tableTop.castShadow = true;
   tableTop.receiveShadow = true;
@@ -93,7 +102,7 @@ const createTable = (): THREE.Group => {
     [0.9, -1.5, 0.4]
   ];
 
-  positions.forEach(pos => {
+  positions.forEach((pos) => {
     const leg = new THREE.Mesh(legGeometry, material);
     leg.position.set(pos[0], pos[1], pos[2]);
     leg.castShadow = true;

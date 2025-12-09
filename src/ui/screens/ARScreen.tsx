@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { use3DScene } from '@/ui/ar/hooks/use3DScene';
-import { useARSession } from '@/ui/ar/hooks/useARSession';
+import { StyleSheet, View } from 'react-native';
+
 import { ARCanvas } from '@/ui/ar/components/ARCanvas';
-import { MaterialPicker } from '@/ui/ar/components/MaterialPicker';
 import { ARControls } from '@/ui/ar/components/ARControls';
 import { ARPermissionPrompt } from '@/ui/ar/components/ARPermissionPrompt';
+import { MaterialPicker } from '@/ui/ar/components/MaterialPicker';
+import { use3DScene } from '@/ui/ar/hooks/use3DScene';
+import { useARSession } from '@/ui/ar/hooks/useARSession';
 
 export const ARScreen: React.FC = () => {
   const [permissionGranted, setPermissionGranted] = useState(false);
@@ -13,25 +14,14 @@ export const ARScreen: React.FC = () => {
   const { sceneManager, isReady, currentMaterial, changeMaterial } = use3DScene();
 
   if (!permissionGranted) {
-    return (
-      <ARPermissionPrompt
-        onPermissionGranted={() => setPermissionGranted(true)}
-      />
-    );
+    return <ARPermissionPrompt onPermissionGranted={() => setPermissionGranted(true)} />;
   }
 
   return (
     <View style={styles.container}>
-      <ARCanvas sceneManager={sceneManager} isReady={isReady} />
-      <ARControls
-        isActive={isARActive}
-        onStart={startAR}
-        onStop={stopAR}
-      />
-      <MaterialPicker
-        currentMaterial={currentMaterial}
-        onMaterialChange={changeMaterial}
-      />
+      <ARCanvas sceneManager={sceneManager} isReady={isReady} isARMode={isARActive} />
+      <ARControls isActive={isARActive} onStart={startAR} onStop={stopAR} />
+      <MaterialPicker currentMaterial={currentMaterial} onMaterialChange={changeMaterial} />
     </View>
   );
 };
@@ -39,6 +29,6 @@ export const ARScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-  },
+    backgroundColor: '#000'
+  }
 });
