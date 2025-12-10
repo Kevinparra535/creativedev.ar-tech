@@ -59,7 +59,8 @@
           "microphonePermission": "Permite acceso al micrófono para funciones interactivas.",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-roomplan"
     ],
     "experiments": {
       "reactCompiler": true

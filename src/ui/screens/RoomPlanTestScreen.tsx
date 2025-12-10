@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -9,126 +8,73 @@ import {
   View
 } from 'react-native';
 
-import { RoomPlanView } from '@/ui/ar/components/RoomPlanView';
-import { ExportResult, useRoomPlan } from '@/ui/ar/hooks/useRoomPlan';
+import { useRoomPlan } from '@/ui/ar/hooks/useRoomPlan';
 
 export const RoomPlanTestScreen: React.FC = () => {
-  const { isScanning, roomData, error, isExporting, startScanning, stopScanning, exportScan } =
-    useRoomPlan();
-  const [lastExport, setLastExport] = useState<string | null>(null);
+  const { startScanning } = useRoomPlan();
+  const [isScanning, setIsScanning] = useState(false);
+  const [lastScan, setLastScan] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleExport = () => {
-    exportScan((result: ExportResult) => {
-      if (result.success && result.fileName) {
-        setLastExport(result.fileName);
-        Alert.alert('✅ Éxito', `Archivo guardado: ${result.fileName}`);
-      } else {
-        Alert.alert('❌ Error', result.error || 'No se pudo exportar');
-      }
-    });
+  const handleStartScan = async () => {
+    try {
+      setIsScanning(true);
+      setError(null);
+      const scanName = `Room_${new Date().getTime()}`;
+      console.log('[RoomPlanTest] Starting scan with name:', scanName);
+
+      const result = await startScanning(scanName);
+      console.log('[RoomPlanTest] Scan completed:', result);
+
+      setLastScan(scanName);
+      setIsScanning(false);
+      Alert.alert('✅ Éxito', `Escaneo completado: ${scanName}`);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error('[RoomPlanTest] Error:', err);
+      setError(errorMsg);
+      setIsScanning(false);
+      Alert.alert('❌ Error', errorMsg);
+    }
   };
-
-  // Mostrar vista AR durante escaneo
-  if (isScanning) {
-    return (
-      <View style={styles.containerScanning}>
-        <RoomPlanView style={styles.captureView} />
-
-        <View style={styles.scanningOverlay}>
-          <Text style={styles.scanningTitle}>Escaneando...</Text>
-          <Text style={styles.scanningSubtitle}>Mueve lentamente alrededor de la habitación</Text>
-
-          <TouchableOpacity style={styles.stopButton} onPress={stopScanning}>
-            <Text style={styles.stopButtonText}>Detener Escaneo</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>RoomPlan Scanner</Text>
-        <Text style={styles.subtitle}>Escanea espacios con LiDAR</Text>
+        <Text style={styles.subtitle}>Escanea espacios con LiDAR y exporta USDZ</Text>
       </View>
 
       {/* Status Card */}
       <View style={styles.statusCard}>
         <Text style={styles.statusLabel}>Estado</Text>
         <Text style={[styles.statusValue, isScanning && styles.statusScanning]}>
-          {isScanning ? '🔴 Escaneando...' : roomData ? '✅ Completado' : '⏸ Inactivo'}
+          {isScanning ? '🔴 Escaneando...' : '⏸ Listo'}
         </Text>
       </View>
 
       {/* Controls */}
       <View style={styles.controlsSection}>
         <TouchableOpacity
-          style={[styles.button, isScanning && styles.buttonDisabled]}
-          onPress={isScanning ? stopScanning : startScanning}
-          disabled={isExporting}
+          style={[styles.button, styles.primaryButton]}
+          onPress={handleStartScan}
+          disabled={isScanning}
         >
           <Text style={styles.buttonText}>
-            {isScanning ? 'Detener Escaneo' : 'Iniciar Escaneo'}
+            {isScanning ? 'Escaneando...' : '📱 Iniciar Escaneo'}
           </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            styles.exportButton,
-            (!roomData || isExporting) && styles.buttonDisabled
-          ]}
-          onPress={handleExport}
-          disabled={!roomData || isExporting}
-        >
-          {isExporting ? (
-            <>
-              <ActivityIndicator color='#fff' size='small' />
-              <Text style={styles.buttonText}> Exportando...</Text>
-            </>
-          ) : (
-            <Text style={styles.buttonText}>📤 Exportar USDZ</Text>
-          )}
         </TouchableOpacity>
       </View>
 
-      {/* Room Data Display */}
-      {roomData && (
-        <View style={styles.dataCard}>
-          <Text style={styles.dataTitle}>Datos del Escaneo</Text>
-
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Superficies</Text>
-            <Text style={styles.dataValue}>{roomData.surfaces}</Text>
-          </View>
-
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Paredes</Text>
-            <Text style={styles.dataValue}>{roomData.walls}</Text>
-          </View>
-
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Puertas</Text>
-            <Text style={styles.dataValue}>{roomData.doors}</Text>
-          </View>
-
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Ventanas</Text>
-            <Text style={styles.dataValue}>{roomData.windows}</Text>
-          </View>
-
-          {roomData.dimensions && (
-            <>
-              <View style={styles.divider} />
-              <Text style={styles.dataLabel}>Dimensiones</Text>
-              <Text style={styles.dimensionText}>
-                {Math.round(roomData.dimensions.length)}m × {Math.round(roomData.dimensions.width)}
-                m × {Math.round(roomData.dimensions.height)}m
-              </Text>
-            </>
-          )}
+      {/* Last Scan Info */}
+      {lastScan && (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>✅ Último Escaneo</Text>
+          <Text style={styles.infoText}>{lastScan}</Text>
+          <Text style={styles.infoSubtext}>
+            El archivo USDZ fue exportado automáticamente
+          </Text>
         </View>
       )}
 
@@ -140,22 +86,26 @@ export const RoomPlanTestScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Last Export */}
-      {lastExport && (
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>📁 Último Archivo</Text>
-          <Text style={styles.infoText}>{lastExport}</Text>
-        </View>
-      )}
-
       {/* Help */}
       <View style={styles.helpCard}>
         <Text style={styles.helpTitle}>💡 Cómo usar</Text>
         <Text style={styles.helpText}>1. Tap en "Iniciar Escaneo"</Text>
-        <Text style={styles.helpText}>2. Apunta el dispositivo alrededor de la habitación</Text>
-        <Text style={styles.helpText}>3. Mueve lentamente para cubrir toda el área</Text>
-        <Text style={styles.helpText}>4. Tap en "Detener Escaneo" cuando termines</Text>
-        <Text style={styles.helpText}>5. Tap en "Exportar USDZ" para guardar</Text>
+        <Text style={styles.helpText}>2. Se abrirá la interfaz de Apple RoomPlan</Text>
+        <Text style={styles.helpText}>3. Sigue las instrucciones en pantalla</Text>
+        <Text style={styles.helpText}>4. Apunta alrededor de la habitación</Text>
+        <Text style={styles.helpText}>5. Mueve lentamente para cubrir toda el área</Text>
+        <Text style={styles.helpText}>6. Completa el escaneo y revisa la vista previa</Text>
+        <Text style={styles.helpText}>7. El archivo USDZ se exportará automáticamente</Text>
+      </View>
+
+      {/* Info Card */}
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>ℹ️ Información</Text>
+        <Text style={styles.infoSubtext}>
+          Esta app usa expo-roomplan para integrar Apple's RoomPlan SDK.{'\n\n'}
+          Compatible con iOS 17.0 o superior.{'\n'}
+          Requiere dispositivo con LiDAR (iPhone 12 Pro+, iPad Pro 2020+)
+        </Text>
       </View>
     </ScrollView>
   );
@@ -165,47 +115,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5'
-  },
-  containerScanning: {
-    flex: 1,
-    backgroundColor: '#000'
-  },
-  captureView: {
-    flex: 1
-  },
-  scanningOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 20,
-    alignItems: 'center'
-  },
-  scanningTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8
-  },
-  scanningSubtitle: {
-    fontSize: 14,
-    color: '#bdc3c7',
-    marginBottom: 20,
-    textAlign: 'center'
-  },
-  stopButton: {
-    backgroundColor: '#e74c3c',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    width: '100%',
-    alignItems: 'center'
-  },
-  stopButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold'
   },
   header: {
     paddingHorizontal: 20,
@@ -254,66 +163,18 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: '#3498db',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row'
   },
-  exportButton: {
-    backgroundColor: '#27ae60'
-  },
-  buttonDisabled: {
-    backgroundColor: '#bdc3c7',
-    opacity: 0.6
+  primaryButton: {
+    backgroundColor: '#3498db'
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600'
-  },
-  dataCard: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4
-  },
-  dataTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 12
-  },
-  dataRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1'
-  },
-  dataLabel: {
-    fontSize: 14,
-    color: '#7f8c8d'
-  },
-  dataValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#2c3e50'
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#ecf0f1',
-    marginVertical: 12
-  },
-  dimensionText: {
-    fontSize: 14,
-    color: '#2c3e50',
-    marginTop: 8,
-    fontWeight: '500'
   },
   errorCard: {
     margin: 16,
@@ -349,7 +210,14 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#186a3b'
+    color: '#186a3b',
+    fontWeight: '500'
+  },
+  infoSubtext: {
+    fontSize: 12,
+    color: '#186a3b',
+    marginTop: 8,
+    lineHeight: 18
   },
   helpCard: {
     margin: 16,
