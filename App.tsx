@@ -1,9 +1,12 @@
+import React, { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
-import 'react-native-reanimated';
 
 import { AppNavigator } from '@/ui/navigation/AppNavigator';
+
+import 'react-native-reanimated';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -15,9 +18,9 @@ export default function App() {
   }, []);
 
   return (
-    <>
+    <SafeAreaProvider>
       <AppNavigator />
-      <StatusBar style="auto" />
-    </>
+      <StatusBar style='auto' />
+    </SafeAreaProvider>
   );
 }

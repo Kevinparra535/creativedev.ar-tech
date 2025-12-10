@@ -8,14 +8,17 @@ import { RoomPlanTestScreen } from '@/ui/screens/RoomPlanTestScreen';
 
 import { RootStackParamList } from './types';
 
+import HomeScreen from '../screens/HomeScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="ARTest">
+      <Stack.Navigator initialRouteName='Home'>
+        <Stack.Screen name='Home' component={HomeScreen} options={{ title: 'Home' }} />
         <Stack.Screen name='ARTest' component={ARTestScreen} options={{ title: 'ARKit Test' }} />
-        <Stack.Screen name='Home' component={RoomPlanTestScreen} options={{ headerShown: false }} />
+        <Stack.Screen name='RoomPlanTestScreen' component={RoomPlanTestScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
