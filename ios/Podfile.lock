@@ -202,6 +202,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - ExpoARKit (1.0.0):
+    - ExpoModulesCore
   - ExpoAsset (12.0.11):
     - ExpoModulesCore
   - ExpoCamera (17.0.10):
@@ -2237,6 +2239,7 @@ DEPENDENCIES:
   - expo-dev-launcher (from `../node_modules/expo-dev-launcher`)
   - expo-dev-menu (from `../node_modules/expo-dev-menu`)
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
+  - ExpoARKit (from `../modules/expo-arkit/ios`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoCamera (from `../node_modules/expo-camera/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
@@ -2361,6 +2364,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-dev-menu"
   expo-dev-menu-interface:
     :path: "../node_modules/expo-dev-menu-interface/ios"
+  ExpoARKit:
+    :path: "../modules/expo-arkit/ios"
   ExpoAsset:
     :path: "../node_modules/expo-asset/ios"
   ExpoCamera:
@@ -2555,6 +2560,7 @@ SPEC CHECKSUMS:
   expo-dev-launcher: a4f4cdef064ab1fb8621e5b8c7c457cd6e9568c3
   expo-dev-menu: 05b18812110c175814c6af0d09dd658abcc5e00d
   expo-dev-menu-interface: 600df12ea01efecdd822daaf13cc0ac091775533
+  ExpoARKit: 63e26f493a5882499c4dd4646ac3f86bf72cdae7
   ExpoAsset: 23a958e97d3d340919fe6774db35d563241e6c03
   ExpoCamera: 6a326deb45ba840749652e4c15198317aa78497e
   ExpoFileSystem: 3592defb5faa3c5866a2900eae87ceec8cc0489f
