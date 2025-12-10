@@ -48,6 +48,10 @@
    - Fase 0 completada (100%)
    - Próximas fases
 
+3. **Roadmap:** [FASE_1_MODEL_LOADING.md](./FASE_1_MODEL_LOADING.md) (15 min)
+   - Tareas de Fase 1 desglosadas
+   - Estimación: 2-3 semanas
+
 ---
 
 ## 📄 Descripción de Documentos
@@ -57,9 +61,10 @@
 | **00_START_HERE.md** | 2KB | Entry point | Necesitas orientación rápida |
 | **README.md** | 4KB | Overview | Necesitas visión general |
 | **BUILD_AND_RUN.md** | 15KB | Operacional | Quieres compilar/ejecutar |
-| **FASE_0_RESUMEN_FINAL.md** | 6KB | Status actual | Quieres saber qué está hecho |
+| **FASE_0_RESUMEN_FINAL.md** | 6KB | Status Fase 0 | Quieres saber qué está hecho |
+| **FASE_1_MODEL_LOADING.md** | 16KB | Roadmap Fase 1 | Quieres saber próximas tareas |
 | **PLAN_AR_INMERSIVO.md** | 16KB | Arquitectura | Quieres entender la visión técnica |
-| **EXPO_ROOMPLAN_MIGRATION.md** | 12KB | Migración expo-roomplan | Entender nuevo approach simplificado |
+| **EXPO_ROOMPLAN_MIGRATION.md** | 12KB | Implementación | Entender approach expo-roomplan |
 
 ---
 
@@ -94,11 +99,12 @@ Los siguientes archivos fueron eliminados por estar obsoletos o redundantes:
 
 ## 📊 Estadísticas
 
-- **Total de documentos activos:** 5
-- **Total de líneas de documentación:** ~800 líneas
+- **Total de documentos activos:** 6
+- **Total de líneas de documentación:** ~1300 líneas
 - **Documentos operacionales:** 1 (BUILD_AND_RUN)
 - **Documentos de arquitectura:** 1 (PLAN_AR_INMERSIVO)
 - **Documentos de status:** 1 (FASE_0_RESUMEN_FINAL)
+- **Documentos de roadmap:** 1 (FASE_1_MODEL_LOADING)
 - **Documentos de guía:** 1 (EXPO_ROOMPLAN_MIGRATION)
 - **Documentos de overview:** 2 (00_START_HERE, README)
 

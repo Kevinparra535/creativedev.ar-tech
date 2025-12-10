@@ -55,12 +55,15 @@ React Native App
 - ✅ TypeScript strict mode sin errores
 - ✅ ESLint clean
 
-### 🚀 Próximo (Fase 1)
+### 🚀 Próximo (Fase 1) - Documentado
 
 - Cargar modelos 3D del arquitecto (USDZ/glTF)
+- Visualizar modelos en preview interactivo
 - Alinear modelo 3D con escaneo de RoomPlan
-- Renderizar modelo en AR con occlusion
-- UI para gestionar múltiples escaneos guardados
+- Ajustar transformaciones (escala, rotación, posición)
+- UI para gestionar proyectos (modelo + escaneo + alineación)
+
+**Documentación:** Ver [FASE_1_MODEL_LOADING.md](./FASE_1_MODEL_LOADING.md) para tareas detalladas.
 
 ---
 
@@ -71,8 +74,9 @@ Ver [00_START_HERE.md](./00_START_HERE.md) para guía rápida según tu rol.
 ### Documentación Activa
 
 - **[BUILD_AND_RUN.md](./BUILD_AND_RUN.md)** - Cómo compilar y ejecutar
-- **[FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)** - Resumen completo Fase 0
-- **[PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)** - Visión técnica y roadmap
+- **[FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)** - Resumen completo Fase 0 (completada)
+- **[FASE_1_MODEL_LOADING.md](./FASE_1_MODEL_LOADING.md)** - Tareas de Fase 1 (próxima)
+- **[PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)** - Visión técnica y roadmap completo
 - **[EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md)** - Implementación actual con expo-roomplan
 
 

@@ -71,6 +71,12 @@
 - API simplificada sin código nativo manual
 - Modal UI nativa de Apple integrada automáticamente
 
+**[FASE_1_MODEL_LOADING.md](./FASE_1_MODEL_LOADING.md)** - PRÓXIMA FASE
+
+- Tareas Fase 1 completas (2-3 semanas)
+- Model loading, alignment, transformaciones
+- Decisiones técnicas y estructura de archivos
+
 **[README.md](./README.md)** - ÍNDICE Y VISIÓN
 
 - Concepto del POC
