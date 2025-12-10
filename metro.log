@@ -1,0 +1,11 @@
+
+> creativedev.ar-tech@1.0.0 start
+> expo start --clear
+
+Starting project at /Users/kevinparra/Documents/personal_projects/creativedev.ar-tech
+› Port 8081 is running this app in another window
+  /Users/kevinparra/Documents/personal_projects/creativedev.ar-tech (pid 25700)
+Input is required, but 'npx expo' is in non-interactive mode.
+Required input:
+> Use port 8082 instead?
+› Skipping dev server

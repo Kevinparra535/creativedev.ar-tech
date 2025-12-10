@@ -27,18 +27,21 @@ A diferencia de apps como IKEA Place (colocar objetos), esta plataforma permite 
 
 ## 📊 Estado Actual del Proyecto
 
-### ✅ Infraestructura Base Completada
+### ✅ Phase 0 (Bare Workflow Migration) - COMPLETADO
 
-- React Native 0.81.5 + Expo SDK 54 configurado
-- React Navigation 7 con navegación tipo-safe
-- TypeScript estricto + alias `@/` para imports absolutos
-- Sistema de temas (modo claro/oscuro)
-- Permisos de cámara configurados para iOS y Android
-- Dependencias 3D instaladas (Three.js 0.166.0, expo-three, expo-gl)
+**RoomPlan Integration con expo-roomplan ✅**
+- ✅ Migración a Expo Bare Workflow completada
+- ✅ Integración de `expo-roomplan@1.2.1` (módulo oficial Expo)
+- ✅ Hook `useRoomPlan` implementado con API simplificada
+- ✅ RoomPlanTestScreen funcional con UI modal nativa
+- ✅ Export USDZ automático integrado
+- ✅ Sin necesidad de módulos nativos manuales (Swift/Objective-C)
 
-### 🚧 En Implementación
-
-La estructura actual sigue un enfoque **UI-First** donde toda la lógica AR/3D vive dentro de `src/ui/ar/`:
+**Implementación Actual:**
+- Usa librería oficial `expo-roomplan` en lugar de bridge nativo manual
+- Modal UI nativa de Apple RoomPlan integrada automáticamente
+- Export parametric USDZ con un solo hook
+- Código JavaScript/TypeScript únicamente
 
 ```
 src/ui/
@@ -70,14 +73,18 @@ Ver [docs/CODIGO_3D_ANTERIOR.md](./docs/CODIGO_3D_ANTERIOR.md) para análisis co
 - **TypeScript** 5.9.2 (strict mode)
 - **New Architecture** de React Native habilitada
 
-### 3D & AR
+### AR & Room Scanning
 
-- **Three.js** 0.166.0 - Motor 3D
+- **expo-roomplan** 1.2.1 - RoomPlan API oficial de Apple (iOS 16+)
+- **expo-camera** ~17.0.10 - Acceso a cámara
+- **expo-sensors** ~15.0.0 - Giroscopio y acelerómetro
+
+### 3D Rendering (Futuro - Phase 1+)
+
+- **Three.js** 0.166.0 - Motor 3D (para visualización AR posterior)
 - **React Three Fiber** 8.17.10 - Integración React/Three.js
 - **expo-gl** ~16.0.8 - OpenGL context
 - **expo-three** 8.0.0 - Renderer para Expo
-- **expo-camera** ~17.0.10 - Acceso a cámara
-- **expo-sensors** ~15.0.0 - Giroscopio y acelerómetro
 
 ### Navigation & UI
 
