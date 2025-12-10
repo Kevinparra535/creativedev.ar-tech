@@ -10,3 +10,4 @@
 
 export { RoomPlanView } from 'expo-roomplan';
 export type { RoomPlanViewProps } from 'expo-roomplan';
+

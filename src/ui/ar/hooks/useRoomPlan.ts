@@ -1,4 +1,4 @@
-import { useRoomPlan as useExpoRoomPlanLib, ExportType } from 'expo-roomplan';
+import { ExportType, useRoomPlan as useExpoRoomPlanLib } from 'expo-roomplan';
 
 /**
  * Hook wrapper for expo-roomplan

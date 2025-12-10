@@ -39,6 +39,7 @@ npm install expo-roomplan@1.2.1
 ### 2. ✅ Updated Configuration
 
 **app.json:**
+
 ```json
 {
   "plugins": [
@@ -54,6 +55,7 @@ npm install expo-roomplan@1.2.1
 ### 3. ✅ Simplified useRoomPlan Hook
 
 **Old (161 lines):**
+
 - Manual NativeEventEmitter setup
 - Multiple useState hooks
 - useRef for subscription management
@@ -61,6 +63,7 @@ npm install expo-roomplan@1.2.1
 - Callback-based exports
 
 **New (18 lines):**
+
 ```typescript
 import { ExportType, useRoomPlan as useExpoRoomPlanLib } from 'expo-roomplan';
 
@@ -85,6 +88,7 @@ export const useRoomPlan = () => {
 ```
 
 **Benefits:**
+
 - Async/await (modern pattern)
 - No state management boilerplate
 - 88% less code
@@ -92,6 +96,7 @@ export const useRoomPlan = () => {
 ### 4. ✅ Simplified RoomPlanTestScreen
 
 **Old (376 lines):**
+
 - Manual scanning state
 - Room data tracking
 - Export result management
@@ -99,6 +104,7 @@ export const useRoomPlan = () => {
 - Conditional AR view rendering
 
 **New (156 lines):**
+
 ```typescript
 const { startScanning } = useRoomPlan();
 
@@ -117,6 +123,7 @@ const handleStartScan = async () => {
 ```
 
 **Benefits:**
+
 - Single async action
 - Automatic UI modal (no manual RoomPlanView)
 - Auto-export after preview
@@ -295,6 +302,7 @@ Status: 9/9 PASOS COMPLETOS = 100% ✅
 ## What's Ready for Phase 1
 
 ✅ **Phase 0 Foundation Complete:**
+
 - React Native Bare Workflow set up
 - RoomPlan API fully integrated
 - Async scanning workflow
@@ -304,6 +312,7 @@ Status: 9/9 PASOS COMPLETOS = 100% ✅
 ### Next: Phase 1 - Model Loading & Alignment
 
 **Goals:**
+
 - [ ] Upload 3D model (USDZ/glTF)
 - [ ] Align model with scanned space
 - [ ] Transform controls (scale, rotate, position)
@@ -368,6 +377,7 @@ D  ios/RoomPlanModule/ (7 files)             (now managed)
 Created comprehensive migration guide:
 
 📄 **docs/EXPO_ROOMPLAN_MIGRATION.md** (400+ lines)
+
 - Before/after comparison
 - API documentation
 - Architecture diagrams
