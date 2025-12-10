@@ -254,6 +254,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - ExpoRoomplan (1.2.1):
+    - ExpoModulesCore
   - ExpoSensors (15.0.8):
     - ExpoModulesCore
   - ExpoSplashScreen (31.0.12):
@@ -2246,6 +2248,7 @@ DEPENDENCIES:
   - ExpoKeepAwake (from `../node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
+  - ExpoRoomplan (from `../node_modules/expo-roomplan/ios`)
   - ExpoSensors (from `../node_modules/expo-sensors/ios`)
   - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
@@ -2380,6 +2383,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-linking/ios"
   ExpoModulesCore:
     :path: "../node_modules/expo-modules-core"
+  ExpoRoomplan:
+    :path: "../node_modules/expo-roomplan/ios"
   ExpoSensors:
     :path: "../node_modules/expo-sensors/ios"
   ExpoSplashScreen:
@@ -2561,6 +2566,7 @@ SPEC CHECKSUMS:
   ExpoKeepAwake: 55f75eca6499bb9e4231ebad6f3e9cb8f99c0296
   ExpoLinking: f4c4a351523da72a6bfa7e1f4ca92aee1043a3ca
   ExpoModulesCore: ded694f230d03c59d919efe243911622fa169834
+  ExpoRoomplan: dc3e6c85338944b73722f26720f0e765ed3ffd34
   ExpoSensors: 8f9fe9a9ffd36ca9c2f0fe40dafc0a063f844420
   ExpoSplashScreen: 76af87337650d06926aa7d0157fe98b4fddca336
   ExpoSymbols: 349ee2b4d7d5ff3ea8436467914f8a67635aa354
