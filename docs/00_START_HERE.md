@@ -14,19 +14,20 @@
 
 ### 🎯 Por Rol (Elige el Tuyo)
 
-**👨‍💻 Developer (Quiero desarrollar)**
+#### 👨‍💻 Developer (Quiero desarrollar)
 
 1. Lee: [BUILD_AND_RUN.md](./BUILD_AND_RUN.md) - Cómo compilar y ejecutar
 2. Lee: [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) - Estado actual del proyecto
-3. Lee: [NEXT_STEPS.md](./NEXT_STEPS.md) - Qué viene después
+3. Lee: [EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md) - Nuevo approach expo-roomplan (más alineado a la visión y más fácil de implementar)
+4. Lee: [NEXT_STEPS.md](./NEXT_STEPS.md) - Qué viene después
 
-**🏗️ Architect (Quiero entender la arquitectura)**
+#### 🏗️ Architect (Quiero entender la arquitectura)
 
 1. Lee: [PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md) - Visión técnica completa
 2. Lee: [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) - Implementación actual
 3. Lee: [NEXT_STEPS.md](./NEXT_STEPS.md) - Roadmap futuro
 
-**🎬 Product Owner (Quiero entender el POC)**
+#### 🎬 Product Owner (Quiero entender el POC)
 
 1. Lee: [README.md](./README.md) - Concepto y visión
 2. Lee: [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) - Progreso actual
@@ -45,10 +46,10 @@
 
 **[FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)** - ESTADO ACTUAL
 
-- Progreso de Fase 0 (88% completo)
-- Arquitectura implementada
-- Commits y cambios realizados
-- Métricas de éxito
+- Fase 0 completada (100%)
+- Integración expo-roomplan
+- Arquitectura simplificada
+- Sin módulos nativos manuales
 
 **[PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)** - VISIÓN TÉCNICA
 
@@ -64,6 +65,12 @@
 - Fase 1: Model Loading & Alignment
 - Timeline estimado
 
+**[EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md)** - GUÍA DE IMPLEMENTACIÓN
+
+- Implementación con `expo-roomplan` (enfoque oficial)
+- API simplificada sin código nativo manual
+- Modal UI nativa de Apple integrada automáticamente
+
 **[README.md](./README.md)** - ÍNDICE Y VISIÓN
 
 - Concepto del POC
@@ -72,23 +79,7 @@
 
 ### 📖 Documentación de Referencia
 
-**[PASO_7_ROOMPLAN_VIEW_COMPLETE.md](./PASO_7_ROOMPLAN_VIEW_COMPLETE.md)** - ÚLTIMA FEATURE COMPLETADA
 
-- ViewManager integration completa
-- Arquitectura React ↔ Native bridge
-- Testing y validación
-
-**[PASO_6_ROOMPLAN_API.md](./PASO_6_ROOMPLAN_API.md)** - ROOMPLAN API IMPLEMENTATION
-
-- Detalles de implementación de RoomPlan
-- Event emitters y state management
-- Export a USDZ
-
-**[FASE_0_SETUP.md](./FASE_0_SETUP.md)** - GUÍA SETUP INICIAL
-
-- Pasos 1-7 de Fase 0 detallados
-- Configuración de Xcode
-- Native modules creation
 
 ---
 
@@ -107,35 +98,36 @@
 
 **Status:** Fase 0 (Setup) - 88% completo. App compila, RoomPlan API funciona, ViewManager integrado.
 
+**Actualización 2025-12-09:** Se adopta `expo-roomplan` para el flujo de escaneo/export. Este enfoque es más cercano a la visión y elimina la complejidad del bridge manual. Ver `EXPO_ROOMPLAN_MIGRATION.md`.
+
 ---
 
-## 📊 Estado Actual (Fase 0)
+## 📊 Estado Actual (Fase 0 - COMPLETADA)
 
-```
-✅ Paso 1: Rama de desarrollo
-✅ Paso 2: Expo Bare Workflow migration
-✅ Paso 3: Xcode configuration
-✅ Paso 4-5: Native modules + React bridge
-✅ Paso 6: RoomPlan API implementation
-✅ Paso 7: RoomPlanView ViewManager
-⏳ Paso 8: USDZ export validation
-⏳ Paso 9: File management & sharing
+```text
+✅ Migración a Expo Bare Workflow
+✅ Integración expo-roomplan@1.2.1
+✅ Hook useRoomPlan implementado
+✅ RoomPlanTestScreen funcional
+✅ Export USDZ automático
+✅ Sin módulos nativos manuales
 
-Progress: 8/9 (88%)
+Progress: 100% ✅
 ```
 
-**Último logro:** Resuelto incompatibilidad `react-native-worklets` (0.5.1 → 0.7.1). App compila sin errores.
+**Implementación final:** `expo-roomplan` oficial de Expo, eliminando la necesidad de código Swift/Objective-C manual. App compila sin errores.
 
 ---
 
 ## 🔧 Stack Tecnológico
 
 | Capa | Tecnología |
-|------|-----------|
+|------|------------|
 | **Frontend** | React Native 0.81.5, Expo 54.0.27 (Bare Workflow), TypeScript 5.9.2 |
-| **AR Core** | RoomPlan API (iOS 16+), ARKit |
-| **Native** | Swift, Objective-C bridge |
-| **State** | React Hooks, NativeEventEmitter |
+| **AR Core** | RoomPlan API (iOS 16+) vía expo-roomplan |
+| **RoomPlan** | `expo-roomplan@1.2.1` (módulo oficial Expo) |
+| **Native** | Autolink vía Expo Modules (sin código Swift/ObjC manual) |
+| **State** | React Hooks, `useRoomPlan` (async/await) |
 | **Build** | Metro Bundler, CocoaPods, Xcode |
 
 ---

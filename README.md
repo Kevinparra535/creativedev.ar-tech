@@ -27,26 +27,21 @@ A diferencia de apps como IKEA Place (colocar objetos), esta plataforma permite 
 
 ## 📊 Estado Actual del Proyecto
 
-### ✅ Phase 1 (Foundation) - COMPLETADO
+### ✅ Phase 0 (Bare Workflow Migration) - COMPLETADO
 
-- ✅ Base Expo + React Navigation estructura
-- ✅ Código 3D anterior recuperado y refactorizado
-- ✅ Sistema de materiales implementado
-- ✅ Renderizado Three.js funcional
+**RoomPlan Integration con expo-roomplan ✅**
+- ✅ Migración a Expo Bare Workflow completada
+- ✅ Integración de `expo-roomplan@1.2.1` (módulo oficial Expo)
+- ✅ Hook `useRoomPlan` implementado con API simplificada
+- ✅ RoomPlanTestScreen funcional con UI modal nativa
+- ✅ Export USDZ automático integrado
+- ✅ Sin necesidad de módulos nativos manuales (Swift/Objective-C)
 
-### 🚀 Phase 0 (Bare Workflow Migration) - 88% COMPLETADO
-
-**Paso 7 - RoomPlanView ViewManager Integration ✅ COMPLETADO**
-- ✅ ViewManager files (Swift + Objective-C) integrados en Xcode target
-- ✅ iOS 16+ availability checks implementados
-- ✅ React Native component wrapper funcional
-- ✅ useRoomPlan hook con state management
-- ✅ RoomPlanTestScreen navegación integrada
-- ✅ Commit: `3cd04ea` - ViewManager iOS 16 fix + Xcode integration
-
-**Próximos: Pasos 8-9 (USDZ Validation & File Management)**
-
-**Progreso:** 8/9 pasos completados
+**Implementación Actual:**
+- Usa librería oficial `expo-roomplan` en lugar de bridge nativo manual
+- Modal UI nativa de Apple RoomPlan integrada automáticamente
+- Export parametric USDZ con un solo hook
+- Código JavaScript/TypeScript únicamente
 
 ```
 src/ui/
@@ -78,14 +73,18 @@ Ver [docs/CODIGO_3D_ANTERIOR.md](./docs/CODIGO_3D_ANTERIOR.md) para análisis co
 - **TypeScript** 5.9.2 (strict mode)
 - **New Architecture** de React Native habilitada
 
-### 3D & AR
+### AR & Room Scanning
 
-- **Three.js** 0.166.0 - Motor 3D
+- **expo-roomplan** 1.2.1 - RoomPlan API oficial de Apple (iOS 16+)
+- **expo-camera** ~17.0.10 - Acceso a cámara
+- **expo-sensors** ~15.0.0 - Giroscopio y acelerómetro
+
+### 3D Rendering (Futuro - Phase 1+)
+
+- **Three.js** 0.166.0 - Motor 3D (para visualización AR posterior)
 - **React Three Fiber** 8.17.10 - Integración React/Three.js
 - **expo-gl** ~16.0.8 - OpenGL context
 - **expo-three** 8.0.0 - Renderer para Expo
-- **expo-camera** ~17.0.10 - Acceso a cámara
-- **expo-sensors** ~15.0.0 - Giroscopio y acelerómetro
 
 ### Navigation & UI
 

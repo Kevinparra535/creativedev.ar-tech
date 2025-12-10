@@ -20,8 +20,8 @@ Plataforma de experiencias inmersivas en AR que permite a arquitectos presentar 
 
 - **Framework:** React Native 0.81.5 + Expo 54.0.27 (Bare Workflow)
 - **AR Core:** RoomPlan API (iOS 16+) para escaneo + ARKit para tracking
-- **Native Bridge:** Swift + Objective-C para módulos nativos
-- **State Management:** React Hooks + NativeEventEmitter
+- **RoomPlan Integration:** `expo-roomplan@1.2.1` (en vez de módulos nativos manuales)
+- **State Management:** React Hooks con hook `useRoomPlan` simplificado (async/await)
 - **Navigation:** React Navigation 7
 - **Language:** TypeScript 5.9.2 (strict mode)
 
@@ -29,15 +29,13 @@ Plataforma de experiencias inmersivas en AR que permite a arquitectos presentar 
 
 ```
 React Native App
-    ├─ RoomPlanTestScreen (UI)
-    │   ├─ useRoomPlan hook (state)
-    │   └─ RoomPlanView native component
+    ├─ RoomPlanTestScreen (UI simplificada)
+    │   └─ useRoomPlan (expo-roomplan) → startRoomPlan()
     │
-    ├─ Native Modules (Swift)
-    │   ├─ RoomPlanModule (scanning, export)
-    │   └─ RoomPlanViewManager (AR visualization)
+    ├─ Expo Modules (autolinked)
+    │   └─ expo-roomplan (scan modal + export automático)
     │
-    └─ iOS Native APIs
+    └─ iOS Native APIs (gestionadas por expo-roomplan)
         ├─ RoomPlan Framework (LiDAR scanning)
         └─ ARKit (6DOF tracking)
 ```
@@ -46,23 +44,23 @@ React Native App
 
 ## Estado Actual del Proyecto
 
-### ✅ Completado (Fase 0)
+### ✅ Fase 0 - COMPLETADA
 
-- Migración a Expo Bare Workflow
-- Módulos nativos Swift integrados
-- RoomPlan API funcionando (escaneo, export USDZ)
-- ViewManager para RoomCaptureView
-- React Native bridge completo
-- TypeScript compilando sin errores
-- ESLint clean
-- Worklets version mismatch resuelto
+- ✅ Migración a Expo Bare Workflow
+- ✅ Integración de `expo-roomplan@1.2.1` (módulo oficial Expo)
+- ✅ RoomPlan API funcionando (escaneo LiDAR + export USDZ automático)
+- ✅ Hook `useRoomPlan` con API simplificada (async/await)
+- ✅ RoomPlanTestScreen con UI modal nativa de Apple
+- ✅ Export parametric USDZ integrado
+- ✅ TypeScript strict mode sin errores
+- ✅ ESLint clean
 
-### ⏳ Pendiente (Fase 0)
+### 🚀 Próximo (Fase 1)
 
-- Paso 8: Validación de exportes USDZ
-- Paso 9: UI para gestionar escaneos guardados
-- Fase 1: Cargar y alinear modelos 3D del arquitecto
-- Fase 2-4: AR visualization, professional features, polish
+- Cargar modelos 3D del arquitecto (USDZ/glTF)
+- Alinear modelo 3D con escaneo de RoomPlan
+- Renderizar modelo en AR con occlusion
+- UI para gestionar múltiples escaneos guardados
 
 ---
 
@@ -71,16 +69,13 @@ React Native App
 Ver [00_START_HERE.md](./00_START_HERE.md) para guía rápida según tu rol.
 
 ### Documentación Activa
-- **[BUILD_AND_RUN.md](./BUILD_AND_RUN.md)** - Cómo compilar y ejecutar
-- **[FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)** - Estado actual (88% completo)
-- **[PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)** - Visión técnica y roadmap
-- **[NEXT_STEPS.md](./NEXT_STEPS.md)** - Pasos 8-9 y Fase 1
-- **[FASE_0_SETUP.md](./FASE_0_SETUP.md)** - Guía detallada de configuración
 
-### Referencia Técnica
-- **[PASO_6_ROOMPLAN_API.md](./PASO_6_ROOMPLAN_API.md)** - Detalles RoomPlan implementation
-- **[PASO_7_ROOMPLAN_VIEW_COMPLETE.md](./PASO_7_ROOMPLAN_VIEW_COMPLETE.md)** - ViewManager integration
-- **[PLAN_IMPLEMENTACION.md](./PLAN_IMPLEMENTACION.md)** - Plan original (referencia histórica)
+- **[BUILD_AND_RUN.md](./BUILD_AND_RUN.md)** - Cómo compilar y ejecutar
+- **[FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)** - Resumen completo Fase 0
+- **[PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)** - Visión técnica y roadmap
+- **[EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md)** - Implementación actual con expo-roomplan
+
+
 
 ---
 

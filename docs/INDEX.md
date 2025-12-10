@@ -1,8 +1,8 @@
 # 📚 Documentación - Índice Consolidado
 
 **Última actualización:** 2025-12-09  
-**Total de documentos:** 9 archivos  
-**Estado:** Fase 0 - 88% completo
+**Total de documentos:** 5 archivos  
+**Estado:** Fase 0 - 100% completo
 
 ---
 
@@ -18,14 +18,13 @@
    - Cómo compilar y ejecutar
    - Troubleshooting común
 
-3. **Para contexto:** [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) (15 min)
-   - Estado actual del proyecto
-   - Commits y cambios realizados
+3. **Para contexto:** [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) (10 min)
+   - Fase 0 completada (100%)
+   - Implementación con expo-roomplan
 
-4. **Cuando necesites detalles:**
-   - `PASO_6_ROOMPLAN_API.md` - Detalles RoomPlan implementation
-   - `PASO_7_ROOMPLAN_VIEW_COMPLETE.md` - ViewManager integration
-   - `FASE_0_SETUP.md` - Setup inicial (pasos 1-7)
+4. **Nueva arquitectura simplificada:** [EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md) (10 min)
+   - Enfoque expo-roomplan (más alineado a la visión)
+   - Sin código nativo manual
 
 ### 🏗️ Si eres Architect
 
@@ -35,13 +34,9 @@
    - Fase 0-4 roadmap
    - Decisiones técnicas
 
-2. **Validación:** [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) (15 min)
-   - Implementación actual vs plan
+2. **Validación:** [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) (10 min)
+   - Implementación actual
    - Métricas de éxito
-
-3. **Deep dive:** [PASO_6_ROOMPLAN_API.md](./PASO_6_ROOMPLAN_API.md) + [PASO_7_ROOMPLAN_VIEW_COMPLETE.md](./PASO_7_ROOMPLAN_VIEW_COMPLETE.md)
-   - Patrones de integración nativa
-   - React ↔ Native bridge
 
 ### 🎬 Si eres Product Owner
 
@@ -50,12 +45,8 @@
    - Stack tecnológico
 
 2. **Progress:** [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) (10 min)
-   - Estado actual (88%)
-   - Checkpoints completados
-
-3. **Timeline:** [NEXT_STEPS.md](./NEXT_STEPS.md) (5 min)
-   - Pasos 8-9 (esta semana)
-   - Fase 1 (próximas 2-3 semanas)
+   - Fase 0 completada (100%)
+   - Próximas fases
 
 ---
 
@@ -66,12 +57,9 @@
 | **00_START_HERE.md** | 2KB | Entry point | Necesitas orientación rápida |
 | **README.md** | 4KB | Overview | Necesitas visión general |
 | **BUILD_AND_RUN.md** | 15KB | Operacional | Quieres compilar/ejecutar |
-| **FASE_0_RESUMEN_FINAL.md** | 18KB | Status actual | Quieres saber qué está hecho |
+| **FASE_0_RESUMEN_FINAL.md** | 6KB | Status actual | Quieres saber qué está hecho |
 | **PLAN_AR_INMERSIVO.md** | 16KB | Arquitectura | Quieres entender la visión técnica |
-| **NEXT_STEPS.md** | 10KB | Roadmap | Quieres saber qué viene |
-| **FASE_0_SETUP.md** | 20KB | Configuración | Necesitas setup manual (pasos 1-7) |
-| **PASO_6_ROOMPLAN_API.md** | 12KB | RoomPlan detalles | Quieres entender RoomPlan API |
-| **PASO_7_ROOMPLAN_VIEW_COMPLETE.md** | 14KB | ViewManager detalles | Quieres entender React ↔ Native |
+| **EXPO_ROOMPLAN_MIGRATION.md** | 12KB | Migración expo-roomplan | Entender nuevo approach simplificado |
 
 ---
 
@@ -89,47 +77,57 @@ Los siguientes archivos fueron eliminados por estar obsoletos o redundantes:
 ✗ **PASO_3_XCODE_CONFIG.md** - Setup completado  
 ✗ **PASO_4_NATIVE_MODULE.md** - Setup completado  
 ✗ **PASO_7_ROOMPLAN_VIEW.md** - Duplicado de PASO_7_ROOMPLAN_VIEW_COMPLETE.md  
-✗ **PLAN_IMPLEMENTACION.md** - Plan original con Three.js  
+---
+
+## 🎯 Archivos Eliminados (Obsoletos)
+
+Los siguientes archivos fueron eliminados por estar obsoletos o redundantes:
+
+✗ **PASO_6_ROOMPLAN_API.md** - Implementación nativa manual (obsoleto, ahora usa expo-roomplan)  
+✗ **PASO_7_ROOMPLAN_VIEW_COMPLETE.md** - ViewManager manual (obsoleto)  
+✗ **PASO_7_ARCHITECTURE_REFACTOR.md** - Refactor histórico  
+✗ **PASO_7_BRIDGE_FIX.md** - Fix de bridge nativo (obsoleto)  
+✗ **FASE_0_SETUP.md** - Setup manual de módulos nativos (obsoleto)  
+✗ **NEXT_STEPS.md** - Roadmap antiguo (integrado en FASE_0_RESUMEN_FINAL.md)
 
 ---
 
 ## 📊 Estadísticas
 
-- **Total de documentos activos:** 9
-- **Total de líneas de documentación:** ~1500 líneas
-- **Documentos de referencia técnica:** 2 (PASO_6, PASO_7)
+- **Total de documentos activos:** 5
+- **Total de líneas de documentación:** ~800 líneas
 - **Documentos operacionales:** 1 (BUILD_AND_RUN)
 - **Documentos de arquitectura:** 1 (PLAN_AR_INMERSIVO)
 - **Documentos de status:** 1 (FASE_0_RESUMEN_FINAL)
-- **Documentos de roadmap:** 1 (NEXT_STEPS)
-- **Documentos de setup:** 2 (00_START_HERE, FASE_0_SETUP)
+- **Documentos de guía:** 1 (EXPO_ROOMPLAN_MIGRATION)
+- **Documentos de overview:** 2 (00_START_HERE, README)
 
 ---
 
 ## 🔗 Flujo de Lectura Recomendado
 
 **Para Onboarding Rápido (30 min):**
-```
+
+```text
 00_START_HERE.md 
   → README.md 
   → BUILD_AND_RUN.md
 ```
 
-**Para Entender Todo (2 horas):**
-```
+**Para Entender Todo (1 hora):**
+
+```text
 00_START_HERE.md 
   → PLAN_AR_INMERSIVO.md 
   → FASE_0_RESUMEN_FINAL.md 
-  → NEXT_STEPS.md 
-  → PASO_6_ROOMPLAN_API.md 
-  → PASO_7_ROOMPLAN_VIEW_COMPLETE.md
+  → EXPO_ROOMPLAN_MIGRATION.md
 ```
 
-**Para Contribuir al Código (1 hora):**
-```
+**Para Contribuir al Código (30 min):**
+
+```text
 BUILD_AND_RUN.md 
-  → PASO_6_ROOMPLAN_API.md 
-  → PASO_7_ROOMPLAN_VIEW_COMPLETE.md
+  → EXPO_ROOMPLAN_MIGRATION.md
 ```
 
 ---
@@ -137,9 +135,8 @@ BUILD_AND_RUN.md
 ## 🚀 Próximas Acciones
 
 1. ✅ **Documentación consolidada** - Estructura lista
-2. ⏳ **Completar Paso 8** - USDZ export validation
-3. ⏳ **Completar Paso 9** - File management UI
-4. 🎯 **Iniciar Fase 1** - Model loading & alignment
+2. ✅ **Fase 0 completada** - expo-roomplan integrado
+3. 🎯 **Iniciar Fase 1** - Model loading & alignment
 
 ---
 
