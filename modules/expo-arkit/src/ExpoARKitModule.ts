@@ -5,7 +5,5 @@ interface ExpoARKitModuleType {
   addTestObject(viewTag: number): Promise<void>;
 }
 
-// Get the native module
-const ExpoARKitModule = requireNativeModule<ExpoARKitModuleType>('ExpoARKit');
-
-export default ExpoARKitModule;
+// Get the native module and export it
+export const ExpoARKitModule = requireNativeModule<ExpoARKitModuleType>('ExpoARKit');

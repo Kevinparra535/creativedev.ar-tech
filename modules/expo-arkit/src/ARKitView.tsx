@@ -1,7 +1,7 @@
 import React, { useRef, useImperativeHandle, forwardRef } from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
 import { ViewProps, StyleSheet, findNodeHandle } from 'react-native';
-import ExpoARKitModule from './ExpoARKitModule';
+import { ExpoARKitModule } from './ExpoARKitModule';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
 
@@ -22,7 +22,11 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       try {
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId !== null) {
+          console.log('Calling addTestObject with viewId:', viewId);
           await ExpoARKitModule.addTestObject(viewId);
+          console.log('addTestObject completed successfully');
+        } else {
+          console.error('viewId is null');
         }
       } catch (error) {
         console.error('Error adding test object:', error);
