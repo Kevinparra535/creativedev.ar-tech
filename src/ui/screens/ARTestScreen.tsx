@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ARKitView, ARKitViewRef } from 'expo-arkit';
+import { ARKitView, ARKitViewRef } from '../ar/components/ARKitView';
 
 export const ARTestScreen = () => {
   const arViewRef = useRef<ARKitViewRef>(null);
@@ -26,10 +26,42 @@ export const ARTestScreen = () => {
     Alert.alert('ARKit Error', error);
   };
 
+  const handleModelLoaded = (event: { nativeEvent: { success: boolean; message: string; path: string } }) => {
+    const { success, message, path } = event.nativeEvent;
+    if (success) {
+      setStatusMessage(`Model loaded: ${path}`);
+      Alert.alert('Model Loaded', message);
+    }
+  };
+
   const handleAddTestObject = () => {
     if (arViewRef.current) {
       arViewRef.current.addTestObject();
       Alert.alert('Object Added', 'A red cube has been added to the AR scene!');
+    }
+  };
+
+  const handleLoadTestModel = () => {
+    if (arViewRef.current) {
+      // For now, prompt for a path - in a real app, use expo-document-picker
+      Alert.prompt(
+        'Load USDZ Model',
+        'Enter the path to a USDZ file:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Load',
+            onPress: (path?: string) => {
+              if (path && arViewRef.current) {
+                arViewRef.current.loadModel(path);
+                setStatusMessage('Loading model...');
+              }
+            }
+          }
+        ],
+        'plain-text',
+        '/path/to/model.usdz'
+      );
     }
   };
 
@@ -40,6 +72,7 @@ export const ARTestScreen = () => {
         style={styles.arView}
         onARInitialized={handleARInitialized}
         onARError={handleARError}
+        onModelLoaded={handleModelLoaded}
       />
 
       <View style={styles.overlay}>
@@ -56,11 +89,19 @@ export const ARTestScreen = () => {
             <Text style={styles.buttonText}>Add Red Cube</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={[styles.button, styles.buttonSecondary, !isARReady && styles.buttonDisabled]}
+            onPress={handleLoadTestModel}
+            disabled={!isARReady}
+          >
+            <Text style={styles.buttonText}>Load USDZ Model</Text>
+          </TouchableOpacity>
+
           <View style={styles.infoBox}>
             <Text style={styles.infoTitle}>ARKit Test</Text>
             <Text style={styles.infoText}>
               • Move your device to detect planes{'\n'}• Tap "Add Red Cube" to place a test object
-              {'\n'}• The cube will appear 0.5m in front of you
+              {'\n'}• Tap "Load USDZ Model" to load a model file{'\n'}• The cube will appear 0.5m in front of you
             </Text>
           </View>
         </View>
@@ -103,6 +144,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     alignItems: 'center'
+  },
+  buttonSecondary: {
+    backgroundColor: '#34C759'
   },
   buttonDisabled: {
     backgroundColor: '#555',

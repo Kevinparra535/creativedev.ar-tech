@@ -1,17 +1,22 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
-import { StyleSheet, ViewProps } from 'react-native';
+import { findNodeHandle, StyleSheet, ViewProps } from 'react-native';
 
-import { NativeModulesProxy, requireNativeViewManager } from 'expo-modules-core';
+import { requireNativeModule, requireNativeViewManager } from 'expo-modules-core';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
+const ExpoARKitModule = requireNativeModule('ExpoARKit');
 
 export interface ARKitViewProps extends ViewProps {
   onARInitialized?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
   onARError?: (event: { nativeEvent: { error: string } }) => void;
+  onModelLoaded?: (event: {
+    nativeEvent: { success: boolean; message: string; path: string };
+  }) => void;
 }
 
 export interface ARKitViewRef {
   addTestObject: () => void;
+  loadModel: (path: string, scale?: number, position?: [number, number, number]) => void;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -19,8 +24,19 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
 
   useImperativeHandle(ref, () => ({
     addTestObject: () => {
-      if (nativeRef.current) {
-        NativeModulesProxy.ExpoARKit.addTestObject(nativeRef.current);
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        ExpoARKitModule.addTestObject(viewTag);
+      }
+    },
+    loadModel: (
+      path: string,
+      scale: number = 1,
+      position: [number, number, number] = [0, 0, -1]
+    ) => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        ExpoARKitModule.loadModel(viewTag, path, scale, position);
       }
     }
   }));
@@ -31,6 +47,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       style={[styles.container, props.style]}
       onARInitialized={props.onARInitialized}
       onARError={props.onARError}
+      onModelLoaded={props.onModelLoaded}
     />
   );
 });

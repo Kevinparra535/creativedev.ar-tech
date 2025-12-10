@@ -9,11 +9,25 @@ public class ExpoARKitModule: Module {
     // ViewManager definition
     View(ExpoARKitView.self) {
       // Events
-      Events("onARInitialized", "onARError")
+      Events("onARInitialized", "onARError", "onModelLoaded")
+    }
 
-      // Methods exposed to JS
-      AsyncFunction("addTestObject") { (view: ExpoARKitView) in
+    // Module methods that operate on views
+    AsyncFunction("addTestObject") { (viewTag: Int) in
+      DispatchQueue.main.async {
+        guard let view = self.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          return
+        }
         view.addTestObject()
+      }
+    }
+
+    AsyncFunction("loadModel") { (viewTag: Int, path: String, scale: Float, position: [Float]) in
+      DispatchQueue.main.async {
+        guard let view = self.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          return
+        }
+        view.loadModel(path: path, scale: scale, position: position)
       }
     }
   }

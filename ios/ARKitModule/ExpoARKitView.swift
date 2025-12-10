@@ -10,6 +10,7 @@ class ExpoARKitView: ExpoView {
   // Event emitters
   let onARInitialized = EventDispatcher()
   let onARError = EventDispatcher()
+  let onModelLoaded = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -77,6 +78,57 @@ class ExpoARKitView: ExpoView {
 
       // Add to scene
       self.arView.scene.addAnchor(anchor)
+    }
+  }
+
+  // Method to load USDZ model from file path
+  func loadModel(path: String, scale: Float = 1.0, position: [Float] = [0, 0, -1.0]) {
+    guard isInitialized else {
+      onARError(["error": "AR not initialized"])
+      return
+    }
+
+    // Validate file exists
+    let fileURL = URL(fileURLWithPath: path)
+    guard FileManager.default.fileExists(atPath: path) else {
+      onARError(["error": "Model file not found at path: \(path)"])
+      return
+    }
+
+    // Load model asynchronously
+    Task { @MainActor [weak self] in
+      guard let self = self else { return }
+
+      do {
+        // Load the USDZ model
+        let modelEntity = try await ModelEntity.load(contentsOf: fileURL)
+
+        // Apply scale
+        modelEntity.scale = [scale, scale, scale]
+
+        // Apply position
+        modelEntity.position = SIMD3(x: position[0], y: position[1], z: position[2])
+
+        // Create anchor at specified position
+        let anchorPosition = SIMD3(x: position[0], y: position[1], z: position[2])
+        let anchor = AnchorEntity(world: anchorPosition)
+        anchor.addChild(modelEntity)
+
+        // Add to scene
+        self.arView.scene.addAnchor(anchor)
+
+        // Notify success
+        self.onModelLoaded([
+          "success": true,
+          "message": "Model loaded successfully",
+          "path": path
+        ])
+      } catch {
+        // Handle loading errors
+        self.onARError([
+          "error": "Failed to load model: \(error.localizedDescription)"
+        ])
+      }
     }
   }
 
