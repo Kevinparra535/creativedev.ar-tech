@@ -1,7 +1,7 @@
-# FASE 1: MODEL LOADING & ALIGNMENT
+# FASE 1: AR IMMERSIVE VISUALIZATION
 
-**Estado:** ⏳ PENDIENTE  
-**Rama:** `feature/model-loading` (por crear)  
+**Estado:** ⏳ EN PROGRESO  
+**Rama:** `feature/arkit-integration`  
 **Última actualización:** 2025-12-09  
 **Dependencias:** Fase 0 completada ✅
 
@@ -9,199 +9,287 @@
 
 ## 🎯 Objetivo de Fase 1
 
-Implementar el sistema de carga y alineación de modelos 3D para que arquitectos puedan:
+Implementar visualización AR inmersiva para lograr la visión del POC:
 
-1. ⏳ Cargar modelos 3D de diseños (USDZ/glTF)
-2. ⏳ Visualizar modelos en preview
-3. ⏳ Alinear modelos con escaneos de RoomPlan
-4. ⏳ Ajustar transformaciones (escala, rotación, posición)
-5. ⏳ Guardar configuraciones de alineación
+1. ⏳ Cargar modelos 3D del arquitecto (USDZ nativo)
+2. ⏳ Integrar ARKit para tracking y rendering
+3. ⏳ Alinear modelo con escaneo de RoomPlan
+4. ⏳ Renderizar modelo en AR con occlusion (reemplazo de realidad)
+5. ⏳ Navegación 6DOF dentro del modelo
+
+**Stack:** ARKit + RealityKit (nativo iOS) + React Native bridge
 
 ---
 
 ## 📋 Tareas Desglosadas
 
-### Tarea 1: Model Upload System (Semana 1)
+### Tarea 1: Model Upload System (3-4 días)
 
-**Objetivo:** Permitir a usuarios seleccionar y cargar archivos 3D desde su dispositivo.
+**Objetivo:** Permitir cargar modelos USDZ del arquitecto.
 
 #### Subtareas
 
 - [ ] **1.1 Instalar dependencias**
-
-
   ```bash
   npx expo install expo-document-picker expo-file-system
   ```
 
 - [ ] **1.2 Crear ModelLibraryScreen**
   - Archivo: `src/ui/screens/ModelLibraryScreen.tsx`
-  - Lista de modelos cargados
+  - Lista de modelos cargados (AsyncStorage para metadata)
   - Botón "Agregar modelo"
-  - Cards con preview/nombre de cada modelo
-  - Opciones: Ver, Editar, Eliminar
+  - Cards con nombre, tamaño, fecha
+  - Opciones: Ver preview, Usar en AR, Eliminar
 
 - [ ] **1.3 Crear ModelPicker component**
   - Archivo: `src/ui/components/ModelPicker.tsx`
   - Integrar `expo-document-picker`
-  - Filtrar por extensiones: `.usdz`, `.glb`, `.gltf`
-  - Validar tamaño de archivo (< 50MB recomendado)
-  - Copiar archivo a directorio de la app
+  - Filtrar por extensión: `.usdz` (prioridad), `.reality`
+  - Validar tamaño (< 100MB recomendado)
+  - Copiar a `${FileSystem.documentDirectory}models/`
 
 - [ ] **1.4 Crear useModelStorage hook**
   - Archivo: `src/ui/ar/hooks/useModelStorage.ts`
-  - Funciones: `saveModel()`, `loadModels()`, `deleteModel()`
-  - Usar `expo-file-system` para persistencia
-  - Metadata: `{ id, name, path, format, size, uploadDate }`
+  - `saveModel()`, `loadModels()`, `deleteModel()`
+  - Metadata: `{ id, name, path, size, uploadDate, bounds? }`
+  - AsyncStorage para índice de modelos
 
-- [ ] **1.5 Validación de modelos**
-  - Verificar formato válido
-  - Verificar integridad del archivo
-  - Extraer dimensiones (si es posible)
-  - Error handling con mensajes claros
+- [ ] **1.5 Preview nativo USDZ (iOS Quick Look)**
+  - Usar Quick Look API de iOS para preview
+  - Botón "Vista previa" abre AR Quick Look
+  - No requiere Three.js, es nativo de iOS
 
-**Entregable:** Usuario puede seleccionar archivos 3D y verlos en lista.
-
----
-
-### Tarea 2: Model Viewer Component (Semana 1-2)
-
-**Objetivo:** Renderizar modelos 3D en una vista previa interactiva.
-
-#### Subtareas
-
-- [ ] **2.1 Crear ModelViewer component**
-  - Archivo: `src/ui/ar/components/ModelViewer.tsx`
-  - Usar `@react-three/fiber` con `expo-gl`
-  - Props: `modelPath`, `scale`, `rotation`, `position`
-  - Canvas con cámara perspective
-
-- [ ] **2.2 Implementar USDZ loader**
-  - Investigar: SceneKit bridge vs conversión a glTF
-  - Opción A: Módulo nativo Swift para USDZ → Three.js
-  - Opción B: Pre-convertir USDZ a glTF en server/local
-  - Cargar geometría y texturas
-
-- [ ] **2.3 Implementar glTF loader**
-  - Usar `GLTFLoader` de Three.js
-  - Parsear `.glb` y `.gltf`
-  - Manejar texturas embebidas y externas
-
-- [ ] **2.4 Controles de cámara**
-  - Orbit controls (rotate around model)
-  - Pinch to zoom
-  - Pan con 2 dedos
-  - Reset camera button
-
-- [ ] **2.5 Iluminación básica**
-  - Ambient light (0.6 intensity)
-  - Directional light (0.8 intensity)
-  - Opcional: Environment map para reflections
-
-**Entregable:** Modelo 3D renderizado con controles de navegación funcionales.
+**Entregable:** Usuario puede cargar y gestionar modelos USDZ.
 
 ---
 
-### Tarea 3: Alignment System (Semana 2-3)
+### Tarea 2: ARKit Native Module (5-7 días)
 
-**Objetivo:** Alinear modelo 3D con escaneo de RoomPlan.
+**Objetivo:** Crear bridge React Native ↔ ARKit para renderizado AR.
 
 #### Subtareas
 
-- [ ] **3.1 Crear AlignmentScreen**
-  - Archivo: `src/ui/screens/AlignmentScreen.tsx`
-  - Split view: Escaneo RoomPlan | Modelo 3D
-  - Modo toggle: Side-by-side | Overlay
-  - Navegación desde RoomPlanTestScreen
+- [ ] **2.1 Crear estructura de módulo nativo**
+  ```
+  ios/ARKitModule/
+  ├── ARKitModule.swift          # AR session manager
+  ├── ARKitBridge.m              # Objective-C bridge
+  ├── ARKitView.swift            # UIView wrapper para ARView
+  └── ARKitViewManager.swift     # ViewManager para React Native
+  ```
 
-- [ ] **3.2 Cargar escaneo USDZ de RoomPlan**
-  - Leer archivo USDZ exportado por `expo-roomplan`
-  - Renderizar geometría del escaneo (paredes, piso, objetos)
-  - Color semitransparente para diferenciar
+- [ ] **2.2 Implementar ARKitModule.swift**
+  - Métodos: `startARSession()`, `stopARSession()`, `loadModel()`
+  - Configurar ARWorldTrackingConfiguration
+  - Scene reconstruction + depth semantics
+  - Event emitters: `onSessionStarted`, `onModelLoaded`, `onTrackingUpdate`
 
-- [ ] **3.3 Sistema de transformación manual**
-  - **Scale controls:**
-    - Sliders X, Y, Z (0.1x - 10x)
-    - Lock uniform scale checkbox
-  - **Rotation controls:**
-    - Sliders Yaw, Pitch, Roll (-180° a 180°)
-    - Snap to 15° intervals option
-  - **Position controls:**
-    - Sliders X, Y, Z offset
-    - Joystick 2D para X-Z plane
-  - Reset button para cada transformación
+- [ ] **2.3 Implementar ARKitView (RealityKit)**
+  ```swift
+  import RealityKit
+  import ARKit
+  
+  class ARKitView: UIView {
+    var arView: ARView!
+    var modelEntity: ModelEntity?
+    
+    func loadModel(path: String, alignment: Alignment) {
+      modelEntity = try! ModelEntity.loadModel(named: path)
+      modelEntity?.scale = alignment.scale
+      modelEntity?.position = alignment.position
+      
+      let anchor = AnchorEntity(world: alignment.worldPosition)
+      anchor.addChild(modelEntity!)
+      arView.scene.addAnchor(anchor)
+    }
+  }
+  ```
 
-- [ ] **3.4 Visualización de alineación**
-  - Overlay mode: Modelo superpuesto a escaneo
-  - Wireframe toggle para ver ambos meshes
-  - Grid helper para referencia de escala
-  - Axes helper para orientación
+- [ ] **2.4 Configurar Occlusion (Scene Reconstruction)**
+  ```swift
+  let config = ARWorldTrackingConfiguration()
+  config.sceneReconstruction = .mesh
+  config.frameSemantics = [.sceneDepth, .smoothedSceneDepth]
+  config.environmentTexturing = .automatic
+  arView.session.run(config)
+  ```
 
-- [ ] **3.5 Matching automático (opcional)**
-  - Algoritmo básico: Comparar bounding boxes
-  - Auto-scale basado en dimensiones de habitación
-  - Sugerencias de posición inicial
-  - Usuario puede aceptar o ajustar manualmente
+- [ ] **2.5 Crear componente React Native ARViewer**
+  - Archivo: `src/ui/ar/components/ARViewer.tsx`
+  - Wrapper de vista nativa
+  - Props: `modelPath`, `alignment`, `onSessionStart`, `onError`
+  - Usar `requireNativeComponent` pattern
 
-- [ ] **3.6 Guardar configuración de alineación**
-  - Metadata: `{ modelId, scanId, scale, rotation, position, timestamp }`
-  - Usar AsyncStorage o JSON local
-  - Asociar modelo + escaneo como "proyecto"
-
-**Entregable:** Usuario puede alinear modelo 3D con escaneo y guardar configuración.
+**Entregable:** Módulo ARKit funcional, modelo se renderiza en AR con tracking.
 
 ---
 
-### Tarea 4: Integration & Polish (Semana 3)
+### Tarea 3: Auto-Alignment System (3-4 días)
 
-**Objetivo:** Integrar todas las piezas y pulir la experiencia.
+**Objetivo:** Alinear automáticamente modelo con escaneo de RoomPlan.
 
 #### Subtareas
 
-- [ ] **4.1 Flujo completo de navegación**
-  - HomeScreen → ModelLibraryScreen → Seleccionar modelo
-  - ModelLibraryScreen → RoomPlanTestScreen → Seleccionar escaneo
-  - RoomPlanTestScreen → AlignmentScreen → Alinear
-  - Guardar "proyecto" con modelo + escaneo + transformación
+- [ ] **3.1 Extraer bounds del modelo USDZ**
+  ```swift
+  // Swift: Leer dimensiones del modelo
+  let modelEntity = try! ModelEntity.loadModel(named: modelPath)
+  let bounds = modelEntity.model!.mesh.bounds
+  let modelSize = SIMD3<Float>(
+    bounds.extents.x,
+    bounds.extents.y, 
+    bounds.extents.z
+  )
+  ```
 
-- [ ] **4.2 Crear ProjectsScreen (opcional)**
+- [ ] **3.2 Extraer bounds del escaneo RoomPlan**
+  - Parsear USDZ de RoomPlan
+  - Obtener dimensiones de la habitación
+  - Calcular centro del espacio
+
+- [ ] **3.3 Calcular transformación automática**
+  ```swift
+  func autoAlign(model: ModelBounds, scan: RoomBounds) -> Alignment {
+    // Scale: ajustar modelo al tamaño de habitación
+    let scaleX = scan.width / model.width
+    let scaleY = scan.height / model.height
+    let scaleZ = scan.depth / model.depth
+    let uniformScale = min(scaleX, scaleY, scaleZ)
+    
+    // Position: centrar modelo en habitación
+    let position = scan.center
+    
+    return Alignment(
+      scale: SIMD3(uniformScale, uniformScale, uniformScale),
+      position: position,
+      rotation: SIMD3(0, 0, 0) // Sin rotación inicial
+    )
+  }
+  ```
+
+- [ ] **3.4 UI de ajuste manual (opcional)**
+  - Sliders para scale, position, rotation
+  - Preview de alineación en 2D/3D
+  - Botón "Aplicar" para confirmar
+
+- [ ] **3.5 Guardar configuración**
+  ```typescript
+  // AsyncStorage
+  const project = {
+    id: uuid(),
+    modelPath: modelPath,
+    scanPath: scanPath,
+    alignment: { scale, position, rotation },
+    createdAt: Date.now()
+  };
+  await AsyncStorage.setItem(`project_${id}`, JSON.stringify(project));
+  ```
+
+**Entregable:** Modelo auto-alineado con escaneo, listo para AR.
+
+---
+
+### Tarea 4: AR Immersive Experience (4-5 días)
+
+**Objetivo:** Usuario camina dentro del modelo (visión del POC).
+
+#### Subtareas
+
+- [ ] **4.1 Crear ARImmersiveScreen**
+  - Archivo: `src/ui/screens/ARImmersiveScreen.tsx`
+  - Full-screen ARViewer
+  - Controles mínimos (UI overlay transparente)
+  - Botón salir, botón screenshot
+
+- [ ] **4.2 Cargar modelo con alineación aplicada**
+  ```typescript
+  const project = await loadProject(projectId);
+  ARKitModule.loadModel({
+    path: project.modelPath,
+    scale: project.alignment.scale,
+    position: project.alignment.position,
+    rotation: project.alignment.rotation
+  });
+  ```
+
+- [ ] **4.3 Habilitar navegación 6DOF**
+  - ARKit maneja tracking automáticamente
+  - Usuario camina físicamente → cámara se mueve en AR
+  - Usuario gira → vista rota en AR
+  - Sin controles virtuales, todo es físico
+
+- [ ] **4.4 Optimización de occlusion**
+  - Renderizar solo modelo, NO espacio real
+  - Usar depth map para occlusion precisa
+  - Mesh reconstruction oculta realidad física
+
+- [ ] **4.5 Testing del POC**
+  - Probar en espacio real con LiDAR
+  - Validar que usuario "entra" al modelo
+  - Verificar occlusion funciona
+  - Performance: mantener 60 FPS
+
+**Entregable:** POC funcional - Usuario camina dentro del diseño 3D.
+
+---
+
+### Tarea 5: Polish & Integration (2-3 días)
+
+**Objetivo:** Pulir experiencia y flujo completo.
+
+#### Subtareas
+
+- [ ] **5.1 Flujo completo de navegación**
+  - HomeScreen → ModelLibraryScreen → Cargar modelo
+  - Tap modelo → RoomPlanTestScreen → Escanear espacio
+  - Automático: Auto-alignment
+  - Tap "Ver en AR" → ARImmersiveScreen
+  - Usuario explora diseño en AR
+
+- [ ] **5.2 Estados de carga y errores**
+  - Loading al cargar modelos pesados (> 20MB)
+  - Error handling: Modelo corrupto, sin LiDAR, iOS < 16
+  - Mensajes claros para usuario
+
+- [ ] **5.3 Tutorial/Onboarding**
+  - Primera vez: "Cómo usar AR inmersivo"
+  - Tips: "Camina lentamente", "Apunta al suelo primero"
+  - Skip button para usuarios avanzados
+
+- [ ] **5.4 Gestión de proyectos**
   - Lista de proyectos guardados
-  - Preview: Thumbnail de modelo + nombre de escaneo
-  - Opciones: Editar alineación, Ver en AR (Fase 2), Eliminar
+  - Editar/Eliminar proyectos
+  - Re-escanear espacio si cambió
 
-- [ ] **4.3 Estados de carga y errores**
-  - Loading spinner al cargar modelos pesados
-  - Error handling: Archivo corrupto, formato no soportado
-  - Mensajes de usuario amigables
-  - Fallback UI para casos edge
-
-- [ ] **4.4 Optimización de performance**
-  - Lazy loading de modelos
-  - LOD (Level of Detail) para modelos complejos
-  - Cache de geometría parseada
-  - Liberar memoria al desmontar componentes
-
-- [ ] **4.5 Testing en dispositivo real**
-  - Probar con modelos de diferentes tamaños
-  - Validar performance en iPhone 14 Pro Max
-  - Verificar persistencia de datos
-  - Testear flujo completo end-to-end
-
-**Entregable:** Sistema completo de carga y alineación funcionando de punta a punta.
+**Entregable:** Flujo completo funcional, POC demo-ready.
 
 ---
 
-## 🛠 Stack Técnico
+## 🛠 Stack Técnico Final
 
-### Nuevas Dependencias
+### Dependencias NPM
 
 ```json
 {
+  "expo": "~54.0.27",
+  "expo-roomplan": "^1.2.1",
   "expo-document-picker": "^12.0.2",
   "expo-file-system": "^18.0.11",
-  "@react-three/fiber": "^8.17.10",
-  "three": "^0.166.0"
+  "@react-native-async-storage/async-storage": "^2.1.0"
 }
+```
+
+**Eliminados:**
+- ❌ `@react-three/fiber` (no necesario)
+- ❌ `three` (no necesario)
+
+### iOS Frameworks Nativos
+
+```swift
+import ARKit           // AR tracking, world tracking
+import RealityKit      // Renderizado moderno (recomendado)
+import RoomPlan        // Escaneo LiDAR (vía expo-roomplan)
+import QuickLook       // Preview USDZ (opcional)
 ```
 
 ### Estructura de Archivos
@@ -210,27 +298,31 @@ Implementar el sistema de carga y alineación de modelos 3D para que arquitectos
 src/ui/
 ├── screens/
 │   ├── ModelLibraryScreen.tsx      # Lista de modelos cargados
-│   ├── AlignmentScreen.tsx         # Alineación modelo + escaneo
+│   ├── ARImmersiveScreen.tsx       # AR viewer inmersivo
 │   └── ProjectsScreen.tsx          # Proyectos guardados (opcional)
 │
 ├── components/
-│   ├── ModelPicker.tsx             # File picker para 3D files
+│   ├── ModelPicker.tsx             # File picker para USDZ
 │   └── ModelCard.tsx               # Card con info de modelo
 │
 ├── ar/
 │   ├── components/
-│   │   ├── ModelViewer.tsx         # Renderizado 3D con Three.js
-│   │   ├── TransformControls.tsx   # Sliders de transformación
-│   │   └── AlignmentOverlay.tsx    # Vista overlay de alineación
+│   │   └── ARKitView.tsx           # Native UIViewRepresentable wrapper
 │   │
 │   ├── hooks/
 │   │   ├── useModelStorage.ts      # CRUD de modelos
-│   │   ├── useModelLoader.ts       # Cargar/parsear 3D files
-│   │   └── useAlignment.ts         # State de transformación
+│   │   ├── useAutoAlignment.ts     # Alineación automática
+│   │   └── useARSession.ts         # ARKit session management
 │   │
 │   └── utils/
-│       ├── modelParsers.ts         # USDZ/glTF parsers
-│       └── alignmentHelpers.ts     # Cálculos de matching
+│       ├── modelHelpers.ts         # Cálculos de bounds, escala
+│       └── alignmentHelpers.ts     # Algoritmo de matching
+│
+├── native/
+│   └── ARKitModule/                # Native Swift module
+│       ├── ARKitModule.swift       # RealityKit rendering
+│       ├── ARKitBridge.m           # Objective-C bridge
+│       └── AutoAlignmentEngine.swift # Alignment algorithm
 │
 └── navigation/
     └── TabNavigator.tsx            # Agregar tab ModelLibrary
@@ -242,12 +334,12 @@ src/ui/
 
 | Métrica | Objetivo |
 |---------|----------|
-| **Archivos Nuevos** | ~15 archivos TypeScript/TSX |
-| **Líneas de Código** | ~2000-2500 líneas |
+| **Archivos Nuevos** | ~12 archivos (TypeScript + Swift) |
+| **Líneas de Código** | ~1800-2000 líneas |
 | **Dependencias Agregadas** | 2 (expo-document-picker, expo-file-system) |
-| **Complejidad** | Media-Alta |
+| **Complejidad** | Alta (Native Swift + React Native bridge) |
 | **Tiempo de Desarrollo** | 2-3 semanas |
-| **Performance Target** | < 3s para cargar modelo de 10MB |
+| **Performance Target** | 60 FPS en AR, < 2s para cargar modelo 10MB |
 
 ---
 
@@ -255,155 +347,158 @@ src/ui/
 
 ### 1. Formato de Modelos 3D
 
+**Decisión: Solo USDZ** ✅
 
-**Opción A: USDZ primario**
+- ✅ Formato nativo de iOS ARKit/RealityKit
+- ✅ RoomPlan exporta USDZ → mismo formato para modelos
+- ✅ Cero conversión necesaria
+- ✅ Mejor performance y compatibilidad
+- ❌ Solo iOS (pero proyecto ya es iOS-only)
 
-- ✅ Nativo de iOS, integración directa con RoomPlan
-- ✅ Mejor performance en iOS
-- ❌ Requiere bridge nativo Swift o conversión
-- ❌ No cross-platform
-
-
-**Opción B: glTF primario**
-
-- ✅ Standard web, Three.js nativo
-- ✅ Cross-platform (iOS, Android, Web)
-- ✅ Más fácil de implementar
-- ❌ Requiere conversión desde USDZ de RoomPlan para overlay
-
-**Decisión recomendada:** Soportar ambos, priorizar **glTF** para desarrollo rápido, agregar USDZ después si es necesario.
+**Eliminado:**
+- ❌ glTF/GLB (requiere Three.js, no necesario)
+- ❌ FBX (herramienta de autor, no runtime)
 
 ---
+
 
 
 ### 2. Almacenamiento de Modelos
 
-**Opción A: Local file system**
+**Decisión: Local file system** ✅
 
-- ✅ Funciona offline
-- ✅ No requiere backend
+- ✅ Funciona offline (crítico para AR)
+- ✅ No requiere backend para POC
+- ✅ Más simple y rápido de implementar
+- ❌ Limitado a un dispositivo (aceptable para POC)
+- ❌ Sin backup automático (mitigado con iCloud backup del sistema)
 
-- ❌ Limitado a un dispositivo
-- ❌ Sin backup automático
+**Eliminado:**
+- ❌ Cloud storage (complejidad innecesaria para POC, dejar para producción)
 
-**Opción B: Cloud storage**
-
-- ✅ Compartir entre dispositivos
-- ✅ Backup automático
-- ❌ Requiere internet
-- ❌ Costos de infraestructura
-
-**Decisión recomendada:** **Local** para POC (Fase 1), migrar a cloud en Fase 3-4.
-
+**Ubicación:** `FileSystem.documentDirectory + 'models/'`
 
 ---
 
-### 3. Alineación Automática vs Manual
+### 3. Alineación Modelo-Escaneo
 
-**Opción A: Solo manual**
+**Decisión: Automática** ✅
 
+- ✅ Cumple visión del POC (experiencia fluida)
+- ✅ Algoritmo bounds-based es factible
+- ✅ No requiere UI manual compleja
+- ❌ Puede no ser 100% preciso (aceptable para POC)
 
-- ✅ Control total del usuario
-- ✅ Más simple de implementar
-- ❌ Puede ser tedioso
+**Algoritmo:**
+1. Obtener bounding box del modelo USDZ
+2. Obtener bounding box del escaneo RoomPlan
+3. Calcular scale factor (max dimension)
+4. Centrar modelo en origen del escaneo
+5. Aplicar transform a ARKit anchor
 
-**Opción B: Automática + manual override**
-
-- ✅ UX más rápido
-- ✅ Usuario ajusta si no es perfecto
-- ❌ Algoritmo de matching complejo
-
-**Decisión recomendada:** **Manual** primero (Fase 1), agregar auto-matching en Fase 3 si hay tiempo.
+**Eliminado:**
+- ❌ UI de alineación manual (complejidad innecesaria si algoritmo funciona bien)
+- ❌ Sliders de transformación (puede agregarse después si es necesario)
 
 ---
 
 ## 🎓 Lecciones de Fase 0 Aplicadas
 
 1. **Priorizar librerías oficiales:** Usar `expo-document-picker` en vez de custom native module
-2. **Simplicidad sobre control:** Empezar con glTF (más simple) antes que USDZ
-3. **Iterar rápido:** MVP funcional antes de optimizaciones prematuras
+2. **Simplicidad sobre control:** USDZ nativo es más simple que Three.js + conversión
+3. **Iterar rápido:** MVP funcional con auto-alignment antes de optimizaciones
 4. **Testing en real device:** Probar con modelos reales desde día 1
+5. **ARKit-first:** Aprovechar APIs nativas en vez de reinventar (RealityKit occlusion, world tracking)
 
 ---
 
 ## 🔗 Flujo de Usuario Esperado
 
-```
+```text
 1. Usuario abre ModelLibraryScreen
-2. Tap "Agregar Modelo" → ModelPicker
-3. Selecciona archivo .glb desde Files app
-4. Modelo se carga y aparece en lista
-5. Tap en modelo → ModelViewer preview
-6. Tap "Alinear con escaneo"
-7. Selecciona escaneo de RoomPlanTestScreen
-8. AlignmentScreen muestra escaneo + modelo
-9. Ajusta scale/rotation/position con sliders
-10. Tap "Guardar alineación"
-11. Proyecto guardado (listo para Fase 2: AR visualization)
+2. Tap "Agregar Modelo" → DocumentPicker
+3. Selecciona archivo .usdz desde Files app
+4. Modelo se carga en biblioteca
+5. Tap "Escanear Espacio" → RoomPlanTestScreen
+6. Usuario escanea habitación con LiDAR
+7. USDZ de escaneo se guarda automáticamente
+8. Sistema ejecuta auto-alignment (bounds matching)
+9. Proyecto creado con modelo + escaneo + alineación
+10. Tap "Ver en AR" → ARImmersiveScreen
+11. Usuario camina dentro del diseño 3D (visión del POC lograda ✅)
 ```
 
 ---
 
 ## ✅ Criterios de Éxito
 
-- [ ] Usuario puede cargar archivos glTF/GLB desde Files app
-- [ ] Modelos se renderizan correctamente en ModelViewer
-- [ ] Controles de cámara (orbit, zoom, pan) funcionan fluidos
-- [ ] Usuario puede ajustar transformaciones con sliders
-- [ ] Modelo se superpone visualmente al escaneo en AlignmentScreen
-- [ ] Configuración de alineación se guarda y persiste
-- [ ] Performance: < 3s para cargar modelo de 10MB
-- [ ] Cero crashes al cargar modelos válidos
-
+- [ ] Usuario puede cargar archivos USDZ desde Files app
+- [ ] Modelos se almacenan en `FileSystem.documentDirectory`
+- [ ] Auto-alignment calcula scale/position/rotation automáticamente
+- [ ] Bounds matching alinea modelo con escaneo en < 1s
+- [ ] Configuración de proyecto se guarda en AsyncStorage
+- [ ] Performance: < 2s para cargar modelo de 10MB
+- [ ] Cero crashes al cargar modelos válidos USDZ
 - [ ] Error handling claro para formatos no soportados
+- [ ] ARKit session puede cargar modelo con transform aplicado
 
 ---
 
 ## 🚀 Próximos Pasos (Post Fase 1)
 
+### Fase 2: AR Visualization (3-4 semanas)
 
-**Fase 2: AR Visualization**
+- Integrar RealityKit para renderizado AR
+- Aplicar occlusion con depth buffer (mesh reconstruction)
+- Implementar 6DOF tracking continuo
+- Testing: usuario camina dentro del modelo sin glitches
 
-- Renderizar modelo alineado en AR con ARKit
-- Occlusion usando depth buffer
-- 6DOF tracking continuo
-- Navegación dentro del modelo
+### Fase 3: Professional Features (2-3 semanas)
 
-**Fase 3: Professional Features**
-
-- Cambio de materiales en tiempo real
-
-- Sistema de mediciones
+- Sistema de mediciones AR (distancia entre puntos)
 - Screenshots y video capture
-- Comparación de variantes de diseño
+- Cambio de materiales PBR en tiempo real
+- Comparación de variantes de diseño (A/B testing visual)
+
+### Fase 4: Polish & Production (1-2 semanas)
+
+- Optimización de performance (LOD, culling)
+- Onboarding/tutorial AR
+- Demo content profesional
+- Testing extensivo en devices reales
 
 ---
 
-
 ## 📚 Recursos de Referencia
 
-### Three.js & React Three Fiber
+### ARKit & RealityKit (iOS)
 
-
-- [React Three Fiber Docs](https://docs.pmnd.rs/react-three-fiber)
-- [Three.js GLTFLoader](https://threejs.org/docs/#examples/en/loaders/GLTFLoader)
-- [Three.js OrbitControls](https://threejs.org/docs/#examples/en/controls/OrbitControls)
+- [ARKit Documentation](https://developer.apple.com/documentation/arkit)
+- [RealityKit Documentation](https://developer.apple.com/documentation/realitykit)
+- [RoomPlan API](https://developer.apple.com/documentation/roomplan)
+- [USDZ File Format](https://developer.apple.com/augmented-reality/usdz/)
 
 ### Expo APIs
 
 - [expo-document-picker](https://docs.expo.dev/versions/latest/sdk/document-picker/)
 - [expo-file-system](https://docs.expo.dev/versions/latest/sdk/filesystem/)
-- [expo-gl](https://docs.expo.dev/versions/latest/sdk/gl-view/)
+- [expo-roomplan](https://docs.expo.dev/versions/latest/sdk/roomplan/)
 
-### USDZ Resources
+### React Native Native Modules
 
-- [Apple USDZ Tools](https://developer.apple.com/augmented-reality/tools/)
-- [USDZ Converter](https://developer.apple.com/augmented-reality/quick-look/)
+- [Creating Native Modules (iOS)](https://reactnative.dev/docs/native-modules-ios)
+- [Swift/Objective-C Bridge Pattern](https://reactnative.dev/docs/native-modules-intro)
+
+### Community Examples
+
+- [React Native ARKit (outdated but useful)](https://github.com/react-native-ar/react-native-arkit)
+- [Apple WWDC RoomPlan Sessions](https://developer.apple.com/videos/play/wwdc2022/10127/)
 
 ---
 
 **Documento:** FASE_1_MODEL_LOADING.md  
-**Versión:** 1.0  
+**Versión:** 2.0 (ARKit-focused)  
 **Última actualización:** 2025-12-09  
-**Estado:** Fase 1 - Documentación completa ✅  
-**Próximo:** Crear branch y comenzar implementación
+**Estado:** Fase 1 - Documentación completa (actualizada sin Three.js) ✅  
+**Próximo:** Crear branch `feature/arkit-integration` y comenzar Tarea 1
+
