@@ -95,11 +95,46 @@ class Plane: SCNNode {
         guard let material = meshNode.geometry?.firstMaterial
             else { fatalError("ARSCNPlaneGeometry always has one material") }
 
-        // Different colors for horizontal vs vertical planes
-        if planeAnchor.alignment == .horizontal {
-            material.diffuse.contents = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4)
+        // Set color based on plane classification for better visual feedback
+        material.diffuse.contents = getColorForClassification()
+    }
+
+    // Get color based on plane classification
+    private func getColorForClassification() -> UIColor {
+        if #available(iOS 12.0, *) {
+            switch planeAnchor.classification {
+            case .floor:
+                // Blue for floors
+                return UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4)
+            case .wall:
+                // Orange for walls
+                return UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
+            case .ceiling:
+                // Purple for ceilings
+                return UIColor(red: 0.7, green: 0.3, blue: 1.0, alpha: 0.4)
+            case .table:
+                // Green for tables
+                return UIColor(red: 0.0, green: 0.8, blue: 0.3, alpha: 0.4)
+            case .seat:
+                // Yellow for seats
+                return UIColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 0.4)
+            case .window:
+                // Cyan for windows
+                return UIColor(red: 0.0, green: 0.8, blue: 0.8, alpha: 0.4)
+            case .door:
+                // Magenta for doors
+                return UIColor(red: 1.0, green: 0.0, blue: 0.5, alpha: 0.4)
+            default:
+                // Gray for unknown/none - fallback to alignment-based color
+                return planeAnchor.alignment == .horizontal ?
+                    UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4) :
+                    UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
+            }
         } else {
-            material.diffuse.contents = UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
+            // Fallback for iOS < 12: use alignment-based colors
+            return planeAnchor.alignment == .horizontal ?
+                UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4) :
+                UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
         }
     }
 
@@ -110,12 +145,8 @@ class Plane: SCNNode {
         guard let material = extentNode.geometry?.firstMaterial
             else { fatalError("SCNPlane always has one material") }
 
-        // Different colors for horizontal vs vertical planes
-        if planeAnchor.alignment == .horizontal {
-            material.diffuse.contents = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4)
-        } else {
-            material.diffuse.contents = UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
-        }
+        // Use same color as mesh for consistency
+        material.diffuse.contents = getColorForClassification()
 
         // Use a simple wireframe rendering
         material.fillMode = .lines

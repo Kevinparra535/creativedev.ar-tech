@@ -1,4 +1,4 @@
-import { ExpoRoomplan, ExportType, useRoomPlan as useExpoRoomPlanLib, CapturedRoomInfo } from 'expo-roomplan';
+import { ExportType, useRoomPlan as useExpoRoomPlanLib } from 'expo-roomplan';
 
 /**
  * Hook wrapper for expo-roomplan
@@ -34,26 +34,7 @@ export const useRoomPlan = () => {
     }
   };
 
-  /**
-   * Load a captured room from a JSON file
-   * Compatible with Apple's RoomPlan example format
-   * @param jsonPath - Path to the JSON file (e.g., from file picker or previous scan)
-   * @returns Promise with room information (type, walls, doors, etc.)
-   */
-  const loadModel = async (jsonPath: string): Promise<CapturedRoomInfo> => {
-    try {
-      console.log('[RoomPlan] Loading model from:', jsonPath);
-      const result = await ExpoRoomplan.loadCapturedRoom(jsonPath);
-      console.log('[RoomPlan] Model loaded:', result);
-      return result;
-    } catch (error) {
-      console.error('[RoomPlan] Load model error:', error);
-      throw error;
-    }
-  };
-
   return {
-    startScanning,
-    loadModel
+    startScanning
   };
 };
