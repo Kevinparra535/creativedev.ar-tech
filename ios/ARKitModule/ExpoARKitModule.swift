@@ -9,7 +9,18 @@ public class ExpoARKitModule: Module {
     // ViewManager definition
     View(ExpoARKitView.self) {
       // Events
-      Events("onARInitialized", "onARError", "onModelLoaded")
+      Events(
+        "onARInitialized",
+        "onARError",
+        "onModelLoaded",
+        "onPlaneDetected",
+        "onPlaneUpdated",
+        "onPlaneRemoved",
+        "onPlaneSelected",
+        "onMeshAdded",
+        "onMeshUpdated",
+        "onMeshRemoved"
+      )
     }
 
     // Module methods that operate on views

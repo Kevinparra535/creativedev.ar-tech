@@ -6,12 +6,105 @@ import { requireNativeModule, requireNativeViewManager } from 'expo-modules-core
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
 const ExpoARKitModule = requireNativeModule('ExpoARKit');
 
+// Plane detection types
+export interface PlaneInfo {
+  id: string;
+  type: string;
+  alignment: 'horizontal' | 'vertical' | 'unknown';
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+  centerZ: number;
+}
+
+export interface PlaneDetectedEvent {
+  nativeEvent: {
+    plane: PlaneInfo;
+    totalPlanes: number;
+  };
+}
+
+export interface PlaneUpdatedEvent {
+  nativeEvent: {
+    plane: PlaneInfo;
+    totalPlanes: number;
+  };
+}
+
+export interface PlaneRemovedEvent {
+  nativeEvent: {
+    planeId: string;
+    totalPlanes: number;
+  };
+}
+
+export interface PlaneSelectedEvent {
+  nativeEvent: {
+    plane?: PlaneInfo;
+    selected: boolean;
+  };
+}
+
+// Mesh reconstruction types
+export type MeshClassification =
+  | 'wall'
+  | 'floor'
+  | 'ceiling'
+  | 'door'
+  | 'window'
+  | 'seat'
+  | 'table'
+  | 'none'
+  | 'unknown';
+
+export interface MeshInfo {
+  id: string;
+  vertexCount: number;
+  faceCount: number;
+  classification: MeshClassification;
+  centerX: number;
+  centerY: number;
+  centerZ: number;
+  extentX: number;
+  extentY: number;
+  extentZ: number;
+}
+
+export interface MeshAddedEvent {
+  nativeEvent: {
+    mesh: MeshInfo;
+    totalMeshes: number;
+  };
+}
+
+export interface MeshUpdatedEvent {
+  nativeEvent: {
+    mesh: MeshInfo;
+    totalMeshes: number;
+  };
+}
+
+export interface MeshRemovedEvent {
+  nativeEvent: {
+    meshId: string;
+    totalMeshes: number;
+  };
+}
+
 export interface ARKitViewProps extends ViewProps {
   onARInitialized?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
   onARError?: (event: { nativeEvent: { error: string } }) => void;
   onModelLoaded?: (event: {
     nativeEvent: { success: boolean; message: string; path: string };
   }) => void;
+  onPlaneDetected?: (event: PlaneDetectedEvent) => void;
+  onPlaneUpdated?: (event: PlaneUpdatedEvent) => void;
+  onPlaneRemoved?: (event: PlaneRemovedEvent) => void;
+  onPlaneSelected?: (event: PlaneSelectedEvent) => void;
+  onMeshAdded?: (event: MeshAddedEvent) => void;
+  onMeshUpdated?: (event: MeshUpdatedEvent) => void;
+  onMeshRemoved?: (event: MeshRemovedEvent) => void;
 }
 
 export interface ARKitViewRef {
@@ -48,6 +141,13 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       onARInitialized={props.onARInitialized}
       onARError={props.onARError}
       onModelLoaded={props.onModelLoaded}
+      onPlaneDetected={props.onPlaneDetected}
+      onPlaneUpdated={props.onPlaneUpdated}
+      onPlaneRemoved={props.onPlaneRemoved}
+      onPlaneSelected={props.onPlaneSelected}
+      onMeshAdded={props.onMeshAdded}
+      onMeshUpdated={props.onMeshUpdated}
+      onMeshRemoved={props.onMeshRemoved}
     />
   );
 });
