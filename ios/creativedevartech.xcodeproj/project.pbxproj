@@ -7,29 +7,29 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		06C84A0A779DB08632AE7C0E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0F4E2025DA1D834C559DF918 /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		8C54FAD0B691D7C4B38DEDEF /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7041B22A4BEA4467BB47EBA1 /* ExpoModulesProvider.swift */; };
+		7D18FEF770AD4BC4A912F604 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FCC72A57750C461E979B5F53 /* PrivacyInfo.xcprivacy */; };
+		833B4B29A6C5E9A37AB95C1E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A54B55096C7D5870845557E /* ExpoModulesProvider.swift */; };
+		966CDCAA9614507C9B75DE58 /* libPods-creativedevartech.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46B19CB99C9A517884B177D8 /* libPods-creativedevartech.a */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D51B6BB681D7763837EF4ADF /* libPods-creativedevartech.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 15ACF457325BB901D17074A0 /* libPods-creativedevartech.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0F4E2025DA1D834C559DF918 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = creativedevartech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		0A54B55096C7D5870845557E /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-creativedevartech/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* creativedevartech.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = creativedevartech.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = creativedevartech/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = creativedevartech/Info.plist; sourceTree = "<group>"; };
-		15ACF457325BB901D17074A0 /* libPods-creativedevartech.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-creativedevartech.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		22C6B7418AA07CF03A3B36C5 /* Pods-creativedevartech.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-creativedevartech.release.xcconfig"; path = "Target Support Files/Pods-creativedevartech/Pods-creativedevartech.release.xcconfig"; sourceTree = "<group>"; };
-		7041B22A4BEA4467BB47EBA1 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-creativedevartech/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		A0B6F67C16DBB9D06E06C06A /* Pods-creativedevartech.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-creativedevartech.debug.xcconfig"; path = "Target Support Files/Pods-creativedevartech/Pods-creativedevartech.debug.xcconfig"; sourceTree = "<group>"; };
+		46B19CB99C9A517884B177D8 /* libPods-creativedevartech.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-creativedevartech.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = creativedevartech/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		E404DD71353E901246663002 /* Pods-creativedevartech.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-creativedevartech.release.xcconfig"; path = "Target Support Files/Pods-creativedevartech/Pods-creativedevartech.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = creativedevartech/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* creativedevartech-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "creativedevartech-Bridging-Header.h"; path = "creativedevartech/creativedevartech-Bridging-Header.h"; sourceTree = "<group>"; };
+		F4440708365DC25610207F85 /* Pods-creativedevartech.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-creativedevartech.debug.xcconfig"; path = "Target Support Files/Pods-creativedevartech/Pods-creativedevartech.debug.xcconfig"; sourceTree = "<group>"; };
+		FCC72A57750C461E979B5F53 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = PrivacyInfo.xcprivacy; path = creativedevartech/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D51B6BB681D7763837EF4ADF /* libPods-creativedevartech.a in Frameworks */,
+				966CDCAA9614507C9B75DE58 /* libPods-creativedevartech.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,26 +53,36 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				0F4E2025DA1D834C559DF918 /* PrivacyInfo.xcprivacy */,
+				FCC72A57750C461E979B5F53 /* PrivacyInfo.xcprivacy */,
 			);
 			name = creativedevartech;
+			sourceTree = "<group>";
+		};
+		17853116E2AA005E84F00F6D /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				F4440708365DC25610207F85 /* Pods-creativedevartech.debug.xcconfig */,
+				E404DD71353E901246663002 /* Pods-creativedevartech.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				15ACF457325BB901D17074A0 /* libPods-creativedevartech.a */,
+				46B19CB99C9A517884B177D8 /* libPods-creativedevartech.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		56F92D6EFA02359C589C01E1 /* creativedevartech */ = {
+		68A8F9C905E3B4B4A939901F /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				7041B22A4BEA4467BB47EBA1 /* ExpoModulesProvider.swift */,
+				A21400FF8C99A666A1E1DB65 /* creativedevartech */,
 			);
-			name = creativedevartech;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -89,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				938E91C9FA1B5DDC69D9809B /* Pods */,
-				E93D416BF029FCFA16B50F64 /* ExpoModulesProviders */,
+				17853116E2AA005E84F00F6D /* Pods */,
+				68A8F9C905E3B4B4A939901F /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -105,13 +115,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		938E91C9FA1B5DDC69D9809B /* Pods */ = {
+		A21400FF8C99A666A1E1DB65 /* creativedevartech */ = {
 			isa = PBXGroup;
 			children = (
-				A0B6F67C16DBB9D06E06C06A /* Pods-creativedevartech.debug.xcconfig */,
-				22C6B7418AA07CF03A3B36C5 /* Pods-creativedevartech.release.xcconfig */,
+				0A54B55096C7D5870845557E /* ExpoModulesProvider.swift */,
 			);
-			path = Pods;
+			name = creativedevartech;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -123,14 +132,6 @@
 			path = creativedevartech/Supporting;
 			sourceTree = "<group>";
 		};
-		E93D416BF029FCFA16B50F64 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				56F92D6EFA02359C589C01E1 /* creativedevartech */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -139,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "creativedevartech" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				3E078E0987D52C4A261ECC6B /* [Expo] Configure project */,
+				AEEE6CE9429A0BE51E1CF5CB /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				0B6C680580E5F0993E702E8B /* [CP] Embed Pods Frameworks */,
+				3B5489DC9AC073BCC5E89635 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -166,6 +167,8 @@
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1250;
+						DevelopmentTeam = "F523Z5TQ7C";
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -195,7 +198,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				06C84A0A779DB08632AE7C0E /* PrivacyInfo.xcprivacy in Resources */,
+				7D18FEF770AD4BC4A912F604 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,7 +244,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		0B6C680580E5F0993E702E8B /* [CP] Embed Pods Frameworks */ = {
+		3B5489DC9AC073BCC5E89635 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -262,30 +265,6 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-creativedevartech/Pods-creativedevartech-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
-		};
-		3E078E0987D52C4A261ECC6B /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/.xcode.env",
-				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/creativedevartech/creativedevartech.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-creativedevartech/expo-configure-project.sh",
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-creativedevartech/ExpoModulesProvider.swift",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-creativedevartech/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -325,6 +304,30 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-creativedevartech/Pods-creativedevartech-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
+		AEEE6CE9429A0BE51E1CF5CB /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/.xcode.env",
+				"$(SRCROOT)/.xcode.env.local",
+				"$(SRCROOT)/creativedevartech/creativedevartech.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-creativedevartech/expo-configure-project.sh",
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Pods/Target Support Files/Pods-creativedevartech/ExpoModulesProvider.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-creativedevartech/expo-configure-project.sh\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -333,7 +336,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				8C54FAD0B691D7C4B38DEDEF /* ExpoModulesProvider.swift in Sources */,
+				833B4B29A6C5E9A37AB95C1E /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -342,13 +345,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A0B6F67C16DBB9D06E06C06A /* Pods-creativedevartech.debug.xcconfig */;
+			baseConfigurationReference = F4440708365DC25610207F85 /* Pods-creativedevartech.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = creativedevartech/creativedevartech.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = F523Z5TQ7C;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -374,18 +376,20 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "F523Z5TQ7C";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 22C6B7418AA07CF03A3B36C5 /* Pods-creativedevartech.release.xcconfig */;
+			baseConfigurationReference = E404DD71353E901246663002 /* Pods-creativedevartech.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = creativedevartech/creativedevartech.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = F523Z5TQ7C;
 				INFOPLIST_FILE = creativedevartech/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -405,6 +409,9 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "F523Z5TQ7C";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
 		};

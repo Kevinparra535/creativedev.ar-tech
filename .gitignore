@@ -40,4 +40,4 @@ app-example
 
 # generated native folders
 /android
-/CreateA3DModelOfAnInteriorRoomByGuidingTheUserThroughAnARExperience
+/CreateA3DModelOfAnInteriorRoomByGuidingTheUserThroughAnARExperience/*

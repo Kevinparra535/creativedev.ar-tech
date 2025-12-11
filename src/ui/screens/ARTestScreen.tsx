@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as DocumentPicker from 'expo-document-picker';
 
 import {
   ARDebugOverlay,
@@ -160,27 +161,45 @@ export const ARTestScreen = () => {
     }
   };
 
-  const handleLoadTestModel = () => {
-    if (arViewRef.current) {
-      // For now, prompt for a path - in a real app, use expo-document-picker
-      Alert.prompt(
-        'Load USDZ Model',
-        'Enter the path to a USDZ file:',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Load',
-            onPress: (path?: string) => {
-              if (path && arViewRef.current) {
-                arViewRef.current.loadModel(path);
-                setStatusMessage('Loading model...');
-              }
-            }
-          }
-        ],
-        'plain-text',
-        '/path/to/model.usdz'
+  const handleLoadTestModel = async () => {
+    if (!arViewRef.current) return;
+
+    try {
+      setStatusMessage('Opening file picker...');
+
+      // Open document picker with USDZ filter
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['public.usdz', 'com.pixar.universal-scene-description-mobile'],
+        copyToCacheDirectory: true, // Copia archivo a directorio accesible
+        multiple: false
+      });
+
+      // Check if cancelled
+      if (result.canceled) {
+        setStatusMessage('File selection cancelled');
+        return;
+      }
+
+      const file = result.assets[0];
+
+      // Validate file extension
+      if (!file.name.toLowerCase().endsWith('.usdz')) {
+        Alert.alert('Invalid File Type', 'Please select a USDZ file');
+        setStatusMessage('Invalid file type selected');
+        return;
+      }
+
+      // Load model a ESCALA 1:1 (escala real para arquitectura)
+      setStatusMessage(`Loading ${file.name}...`);
+      arViewRef.current.loadModel(
+        file.uri,
+        1.0, // scale 1:1 (el modelo debe venir a escala real)
+        [0, 0, -1] // position temporal (1m en frente para testing)
       );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Error', `Failed to load model: ${errorMessage}`);
+      setStatusMessage(`Error: ${errorMessage}`);
     }
   };
 
@@ -265,7 +284,7 @@ export const ARTestScreen = () => {
             onPress={handleLoadTestModel}
             disabled={!isARReady}
           >
-            <Text style={styles.buttonText}>Load USDZ Model</Text>
+            <Text style={styles.buttonText}>Import USDZ Model</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
