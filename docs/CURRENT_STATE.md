@@ -1,16 +1,20 @@
 # Estado Actual del Proyecto
 
 **Fecha:** 2025-12-11
-**Versión:** 0.5.0
-**Fase:** 0.5 - Plane Detection (20% completo)
+**Versión:** 0.7.0
+**Fase:** Tap-to-Place Implementation (Backend Swift 100% completo)
 
 ---
 
 ## Resumen Ejecutivo
 
-El proyecto está en la **Fase 0.5** de implementación. Hemos completado la fase de setup básico de ARKit (Fase 0) y estamos implementando la detección y visualización de planos en tiempo real.
+El proyecto ha avanzado significativamente. Hemos completado:
+- ✅ Fase 0: Setup básico de ARKit
+- ✅ Fase 0.5: Plane Detection con visualización y eventos
+- ✅ Fase 0.8: Model Loading básico (USDZ)
+- ✅ **Tap-to-Place Backend (Fases 1-3)**: Sistema completo de anclaje espacial en Swift
 
-**Último logro:** Build exitoso de iOS con visualización de planos compatible iOS 16+
+**Último logro:** Backend Swift completo para tap-to-place con gesture detection, hit-testing y anchor management
 
 ---
 
@@ -36,7 +40,7 @@ El proyecto está en la **Fase 0.5** de implementación. Hemos completado la fas
 - World tracking activo
 - Renderizado 3D básico
 
-### Plane Detection (Fase 0.5 - En Progreso)
+### Plane Detection (Fase 0.5 - Completada ✅)
 
 ✅ **Visualización de Planos**
 - Archivo `Plane.swift` implementado (basado en código de Apple)
@@ -49,18 +53,62 @@ El proyecto está en la **Fase 0.5** de implementación. Hemos completado la fas
 - Sistema de clasificación funcional (floor, wall, ceiling, table, seat, window, door)
 - Función helper `classificationString(for:)` implementada
 - Soporte para casos unknown con `@unknown default`
+- Colores por clasificación para identificación visual
 
 ✅ **Renderizado**
-- Colores diferentes para planos horizontales (azul) vs verticales (naranja)
+- Colores diferentes para planos horizontales vs verticales
+- Colores específicos por clasificación (floor=green, wall=orange, etc.)
 - Mesh semi-transparente
 - Wireframe grid para visualización clara
-- Etiquetas de texto 3D con clasificación
 
-⏳ **Por Implementar (Fase 0.5)**
-- Eventos hacia React Native (`onPlaneDetected`, `onPlaneUpdated`, etc.)
-- UI overlay en React Native mostrando estadísticas
-- Selección de planos con tap gestures
-- Highlight de plano seleccionado
+✅ **Eventos React Native**
+- `onPlaneDetected` - cuando se detecta nuevo plano
+- `onPlaneUpdated` - cuando plano se refina (optimizado para no saturar)
+- `onPlaneRemoved` - cuando plano desaparece
+- Eventos incluyen: id, type, alignment, dimensions, center position
+
+### Model Loading (Fase 0.8 - Completada ✅)
+
+✅ **Carga de USDZ**
+- Método `loadModel()` implementado en Swift
+- Soporte para file:// URLs y paths absolutos
+- Security-scoped resource access para DocumentPicker
+- Carga relativa a cámara (posición configurable)
+
+✅ **Gestión de Modelos**
+- Parsing de USDZ files vía SceneKit
+- Sistema de escalado configurable
+- Posicionamiento relativo a cámara actual
+- Evento `onModelLoaded` hacia React Native
+
+### Tap-to-Place (Backend Swift - Completada ✅)
+
+✅ **Fase 1: Tap Gesture Detection**
+- UITapGestureRecognizer agregado a ARSCNView
+- Handler `handleTap()` implementado
+- Validación de inicialización AR
+- No interfiere con gestures existentes de SceneKit
+
+✅ **Fase 2: Hit-Testing contra Planos**
+- Raycast API moderno (iOS 13+) para hit-testing
+- Fallback a hitTest deprecated para iOS < 13
+- Detección de intersección con planos existentes
+- Validación de ARPlaneAnchor
+- Filtrado opcional por clasificación de plano
+- Manejo de errores descriptivos
+
+✅ **Fase 3: Anchor Management**
+- Sistema de gestión de anchors (`modelAnchors: [UUID: ARAnchor]`)
+- Mapeo de nodos anclados (`anchoredNodes: [UUID: SCNNode]`)
+- Creación y registro de ARAnchor en punto de tap
+- Método `loadModel()` extendido con parámetro `anchorToLastTap`
+- Actualización automática de anchors cuando ARKit los refina
+- Método `removeAllAnchors()` para limpiar escena completa
+
+⏳ **Por Implementar (Tap-to-Place)**
+- Fase 4: React Native Bridge (exponer métodos a RN)
+- Fase 5: UI y UX (botones, indicadores, feedback)
+- Fase 6: Testing y refinamiento
 
 ---
 
@@ -142,32 +190,40 @@ creativedev.ar-tech/
 - [x] ARSession básico
 - [x] Comunicación bidireccional
 
-### Fase 0.5: Plane Detection (20% 🔨)
+### Fase 0.5: Plane Detection (100% ✅)
 
 - [x] Visualización de planos (Plane.swift)
 - [x] Clasificación de planos
 - [x] Compatibilidad iOS 16+
-- [ ] Eventos React Native (onPlaneDetected, etc.)
-- [ ] UI overlay con estadísticas
-- [ ] Selección con gestos
-- [ ] Highlight de selección
+- [x] Eventos React Native (onPlaneDetected, onPlaneUpdated, onPlaneRemoved)
+- [x] Renderizado con colores por clasificación
+- [x] ARSessionDelegate implementado
 
-### Fase 1: Model Loading (0% ⏳)
+### Fase 0.8: Model Loading (100% ✅)
 
-- [ ] Carga de USDZ desde filesystem
-- [ ] Preview de modelo 3D
-- [ ] Sistema de alineación con planos
-- [ ] UI de transformación (scale/rotate/position)
-- [ ] Persistencia de alineación
+- [x] Carga de USDZ desde filesystem
+- [x] Soporte para file:// URLs y paths absolutos
+- [x] Security-scoped resource access
+- [x] Posicionamiento relativo a cámara
+- [x] Sistema de escalado
 
-### Fase 2: Room Scanning (0% ⏳)
+### Tap-to-Place Backend (75% 🔨)
+
+- [x] **Fase 1**: Tap Gesture Detection (100%)
+- [x] **Fase 2**: Hit-Testing contra Planos (100%)
+- [x] **Fase 3**: Anchor Management (100%)
+- [ ] **Fase 4**: React Native Bridge (0%)
+- [ ] **Fase 5**: UI y UX (0%)
+- [ ] **Fase 6**: Testing y Refinamiento (0%)
+
+### Room Scanning (0% ⏳)
 
 - [ ] Integración RoomPlan API
 - [ ] Export de geometría escaneada
 - [ ] Matching automático de dimensiones
 - [ ] UI de room scanning
 
-### Fase 3: AR Inmersivo (0% ⏳)
+### AR Inmersivo (0% ⏳)
 
 - [ ] Occlusion rendering
 - [ ] Reemplazo de realidad
@@ -178,21 +234,32 @@ creativedev.ar-tech/
 
 ## Próximos Pasos Inmediatos
 
-### 1. Completar Plane Detection (Fase 0.5)
+### 1. Completar Tap-to-Place (Fases 4-6)
 
 **Prioridad:** Alta
-**Duración estimada:** 3-5 días
+**Duración estimada:** 2-3 días
 
 **Tareas:**
-1. Implementar `ARSessionDelegate` en `ExpoARKitView.swift`
-2. Crear eventos: `onPlaneDetected`, `onPlaneUpdated`, `onPlaneRemoved`
-3. Implementar sistema de gestión de planos (Map de anchors)
-4. Agregar tap gesture recognizer
-5. Implementar selección de planos
-6. Crear componente `PlaneStatsOverlay.tsx`
-7. Integrar overlay en `ARTestScreen.tsx`
+1. **Fase 4: React Native Bridge**
+   - Exponer `placeModelOnTap()` a React Native
+   - Implementar `prepareModelForTapPlacement()` en Swift
+   - Exponer `removeAllAnchors()` a React Native
+   - Crear evento `onModelPlaced`
+   - Actualizar tipos TypeScript
+   - Implementar métodos imperativos en ARKitView
 
-**Referencia:** [PLANE_DETECTION_PLAN.md](./PLANE_DETECTION_PLAN.md)
+2. **Fase 5: UI y UX**
+   - Actualizar ARTestScreen con modo tap-to-place
+   - Agregar botón "Clear Models"
+   - Implementar handler onModelPlaced
+   - Agregar indicador visual de "tap mode activo"
+
+3. **Fase 6: Testing**
+   - Testing en dispositivo real
+   - Edge cases
+   - Performance
+
+**Referencia:** [TAP_TO_PLACE_IMPLEMENTATION.md](./TAP_TO_PLACE_IMPLEMENTATION.md)
 
 ### 2. Testing en Dispositivo Real
 
@@ -305,14 +372,14 @@ cd ios && pod install && cd ..
 
 ### Fases
 
-- **Completadas:** 1 (Fase 0)
-- **En progreso:** 1 (Fase 0.5 - 20%)
-- **Pendientes:** 3 (Fases 1, 2, 3)
+- **Completadas:** 3 (Fase 0, 0.5, 0.8 + Tap-to-Place Backend)
+- **En progreso:** 1 (Tap-to-Place - React Native Bridge)
+- **Pendientes:** 2 (Room Scanning, AR Inmersivo)
 
 ### Tiempo
 
-- **Invertido:** ~3 semanas
-- **Estimado restante:** ~8-10 semanas para POC completo
+- **Invertido:** ~4 semanas
+- **Estimado restante:** ~6-8 semanas para POC completo
 
 ---
 
@@ -332,6 +399,6 @@ cd ios && pod install && cd ..
 
 ---
 
-**Última actualización:** 2025-12-11 18:30
+**Última actualización:** 2025-12-11 21:00
 **Actualizado por:** Claude Code Assistant
-**Próxima revisión:** Cuando se complete Fase 0.5
+**Próxima revisión:** Cuando se complete Tap-to-Place (Fase 4)
