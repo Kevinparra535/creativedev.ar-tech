@@ -15,6 +15,10 @@ class ExpoARKitView: ExpoView {
   private var anchoredNodes: [UUID: SCNNode] = [:]
   private var currentModelNode: SCNNode?
 
+  // Pending model for tap-to-place
+  private var pendingModelPath: String?
+  private var pendingModelScale: Float = 1.0
+
   // Event emitters
   let onARInitialized = EventDispatcher()
   let onARError = EventDispatcher()
@@ -26,6 +30,7 @@ class ExpoARKitView: ExpoView {
   let onMeshAdded = EventDispatcher()
   let onMeshUpdated = EventDispatcher()
   let onMeshRemoved = EventDispatcher()
+  let onModelPlaced = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -279,6 +284,31 @@ class ExpoARKitView: ExpoView {
       print("Anchor created: \(anchor.identifier)")
       print("Raycast hit plane at: \(firstResult.worldTransform)")
       print("Plane anchor ID: \(planeAnchor.identifier)")
+
+      // If we have a pending model, load it anchored to this tap
+      if let modelPath = pendingModelPath {
+        loadModel(
+          path: modelPath,
+          scale: pendingModelScale,
+          position: [],
+          anchorToLastTap: true
+        )
+
+        // Emit event to React Native
+        onModelPlaced([
+          "success": true,
+          "anchorId": anchor.identifier.uuidString,
+          "position": [
+            "x": Double(anchor.transform.columns.3.x),
+            "y": Double(anchor.transform.columns.3.y),
+            "z": Double(anchor.transform.columns.3.z)
+          ]
+        ])
+
+        // Clear pending state
+        pendingModelPath = nil
+        pendingModelScale = 1.0
+      }
     } else {
       // Fallback for iOS < 13 (deprecated API)
       let hitTestResults = sceneView.hitTest(touchLocation, types: .existingPlane)
@@ -292,7 +322,41 @@ class ExpoARKitView: ExpoView {
       let anchor = ARAnchor(transform: firstHit.worldTransform)
       sceneView.session.add(anchor: anchor)
       modelAnchors[anchor.identifier] = anchor
+
+      // If we have a pending model, load it anchored to this tap
+      if let modelPath = pendingModelPath {
+        loadModel(
+          path: modelPath,
+          scale: pendingModelScale,
+          position: [],
+          anchorToLastTap: true
+        )
+
+        // Emit event to React Native
+        onModelPlaced([
+          "success": true,
+          "anchorId": anchor.identifier.uuidString,
+          "position": [
+            "x": Double(anchor.transform.columns.3.x),
+            "y": Double(anchor.transform.columns.3.y),
+            "z": Double(anchor.transform.columns.3.z)
+          ]
+        ])
+
+        // Clear pending state
+        pendingModelPath = nil
+        pendingModelScale = 1.0
+      }
     }
+  }
+
+  // MARK: - Tap-to-Place Model Preparation
+  func prepareModelForTapPlacement(path: String, scale: Float) {
+    pendingModelPath = path
+    pendingModelScale = scale
+
+    print("Prepared model for tap placement: \(path) at scale \(scale)")
+    print("Waiting for user to tap on a surface...")
   }
 
   // MARK: - Anchor Management

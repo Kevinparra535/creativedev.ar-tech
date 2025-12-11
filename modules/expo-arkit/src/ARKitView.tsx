@@ -5,13 +5,43 @@ import { ExpoARKitModule } from './ExpoARKitModule';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
 
+// Event types
+export interface PlaneData {
+  id: string;
+  type: string;
+  alignment: string;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+  centerZ: number;
+}
+
+export interface ModelPlacedEvent {
+  success: boolean;
+  anchorId: string;
+  position: {
+    x: number;
+    y: number;
+    z: number;
+  };
+}
+
 export interface ARKitViewProps extends ViewProps {
   onARInitialized?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
   onARError?: (event: { nativeEvent: { error: string } }) => void;
+  onModelLoaded?: (event: { nativeEvent: { success: boolean; message: string; path: string } }) => void;
+  onModelPlaced?: (event: { nativeEvent: ModelPlacedEvent }) => void;
+  onPlaneDetected?: (event: { nativeEvent: { plane: PlaneData; totalPlanes: number } }) => void;
+  onPlaneUpdated?: (event: { nativeEvent: { plane: PlaneData } }) => void;
+  onPlaneRemoved?: (event: { nativeEvent: { planeId: string; totalPlanes: number } }) => void;
 }
 
 export interface ARKitViewRef {
   addTestObject: () => void;
+  loadModel: (path: string, scale?: number, position?: number[]) => void;
+  placeModelOnTap: (path: string, scale?: number) => void;
+  removeAllAnchors: () => void;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -32,6 +62,48 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error adding test object:', error);
       }
     },
+    loadModel: async (path: string, scale: number = 1.0, position: number[] = [0, 0, -1]) => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling loadModel with viewId:', viewId, 'path:', path);
+          await ExpoARKitModule.loadModel(viewId, path, scale, position);
+          console.log('loadModel completed successfully');
+        } else {
+          console.error('viewId is null');
+        }
+      } catch (error) {
+        console.error('Error loading model:', error);
+      }
+    },
+    placeModelOnTap: async (path: string, scale: number = 1.0) => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling placeModelOnTap with viewId:', viewId, 'path:', path);
+          await ExpoARKitModule.placeModelOnTap(viewId, path, scale);
+          console.log('Model prepared for tap placement - tap on a surface to place');
+        } else {
+          console.error('viewId is null');
+        }
+      } catch (error) {
+        console.error('Error preparing model for tap placement:', error);
+      }
+    },
+    removeAllAnchors: async () => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling removeAllAnchors with viewId:', viewId);
+          await ExpoARKitModule.removeAllAnchors(viewId);
+          console.log('All anchors removed successfully');
+        } else {
+          console.error('viewId is null');
+        }
+      } catch (error) {
+        console.error('Error removing anchors:', error);
+      }
+    },
   }));
 
   return (
@@ -40,6 +112,11 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       style={[styles.container, props.style]}
       onARInitialized={props.onARInitialized}
       onARError={props.onARError}
+      onModelLoaded={props.onModelLoaded}
+      onModelPlaced={props.onModelPlaced}
+      onPlaneDetected={props.onPlaneDetected}
+      onPlaneUpdated={props.onPlaneUpdated}
+      onPlaneRemoved={props.onPlaneRemoved}
     />
   );
 });

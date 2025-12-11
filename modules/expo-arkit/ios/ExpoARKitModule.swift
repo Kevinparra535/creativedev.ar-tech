@@ -28,6 +28,28 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Module-level async function to prepare model for tap placement
+    AsyncFunction("placeModelOnTap") { (viewTag: Int, path: String, scale: Double) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.prepareModelForTapPlacement(path: path, scale: Float(scale))
+      }
+    }
+
+    // Module-level async function to remove all anchors
+    AsyncFunction("removeAllAnchors") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.removeAllAnchors()
+      }
+    }
+
     // ViewManager definition
     View(ExpoARKitView.self) {
       // Events
@@ -35,6 +57,7 @@ public class ExpoARKitModule: Module {
         "onARInitialized",
         "onARError",
         "onModelLoaded",
+        "onModelPlaced",
         "onPlaneDetected",
         "onPlaneUpdated",
         "onPlaneRemoved",
