@@ -1,495 +1,295 @@
-# AR Immersive Experience Platform
+# creativedev.ar-tech
 
-**Versión:** 1.0 POC  
-**Fecha:** Diciembre 2025  
-**Estado:** En desarrollo - Arquitectura UI-First
+**AR Immersive Interior Design Platform**
 
-Plataforma de experiencias inmersivas en AR que permite a arquitectos presentar renders 3D en escala real usando tecnología AR nativa móvil.
+Plataforma de realidad aumentada que permite a arquitectos mostrar diseños de interiores a escala real usando ARKit nativo en iOS.
 
 ---
 
-## 🎯 Concepto del Proyecto
+## Estado Actual
 
-### Caso de Uso Principal: Arquitectura
+**Fase 0.5 - ARKit Plane Detection** (En progreso)
 
-**Escenario:** Un arquitecto está remodelando un apartamento/casa
+- Expo Bare Workflow configurado
+- Módulo nativo `expo-arkit` funcional
+- ARKit plane detection implementado
+- Visualización de planos en tiempo real
+- Build iOS nativo funcional
 
-1. **Arquitecto** sube modelo 3D a escala real del diseño final
-2. **Cliente** visualiza el render 3D con AR en el espacio físico
-3. **Cliente** explora diferentes materiales y acabados en tiempo real
-4. **Cliente** camina dentro del diseño y experimenta el espacio inmersivamente
+---
+
+## Concepto del Proyecto
+
+### Caso de Uso: Visualización Arquitectónica Inmersiva
+
+Un arquitecto está remodelando un apartamento:
+
+1. Arquitecto sube modelo 3D a escala real del diseño final
+2. Cliente **escanea el espacio** con su iPhone (usando ARKit)
+3. App **detecta las superficies** (pisos, paredes, techos)
+4. Modelo 3D se **alinea con el espacio real**
+5. Cliente **camina dentro del diseño** y experimenta el espacio inmersivamente
 
 ### Diferenciador Clave
 
-A diferencia de apps como IKEA Place (colocar objetos), esta plataforma permite **sumergirse en el diseño completo** del espacio arquitectónico.
+A diferencia de apps como IKEA Place (colocar objetos), esta plataforma permite **sumergirse en el diseño completo** del espacio arquitectónico con **reemplazo de la realidad**.
 
 ---
 
-## 📊 Estado Actual del Proyecto
+## Stack Tecnológico
 
-### ✅ Phase 0 (Bare Workflow Migration) - COMPLETADO
+### Core
+- **React Native** 0.81.5 (New Architecture)
+- **Expo SDK** 54 (Bare Workflow)
+- **TypeScript** 5.9.2
 
-**RoomPlan Integration con expo-roomplan ✅**
-- ✅ Migración a Expo Bare Workflow completada
-- ✅ Integración de `expo-roomplan@1.2.1` (módulo oficial Expo)
-- ✅ Hook `useRoomPlan` implementado con API simplificada
-- ✅ RoomPlanTestScreen funcional con UI modal nativa
-- ✅ Export USDZ automático integrado
-- ✅ Sin necesidad de módulos nativos manuales (Swift/Objective-C)
+### AR Nativo
+- **ARKit** (iOS) - Módulo nativo Swift
+- **SceneKit** - Renderizado 3D nativo
+- **RoomPlan API** (iOS 16+) - Para escaneo de espacios (próximo)
 
-**Implementación Actual:**
-- Usa librería oficial `expo-roomplan` en lugar de bridge nativo manual
-- Modal UI nativa de Apple RoomPlan integrada automáticamente
-- Export parametric USDZ con un solo hook
-- Código JavaScript/TypeScript únicamente
+### Módulos Nativos
+- `expo-arkit` - Módulo custom Swift con bridge React Native
+- `expo-roomplan` 1.2.1 - Para room scanning
+- `expo-camera` - Acceso a cámara
+- `expo-sensors` - Giroscopio y acelerómetro
 
-```
-src/ui/
-├── ar/                        # Feature AR completa
-│   ├── components/            # ARCanvas, ARControls, MaterialPicker
-│   ├── hooks/                 # use3DScene, useARSession, useMaterialToggle
-│   └── utils/                 # SceneManager, geometries, materials
-├── screens/                   # HomeScreen, ARScreen
-├── navigation/                # AppNavigator, TabNavigator
-└── theme/                     # colors, fonts
-```
+---
 
-### 📝 Código 3D Anterior (Recuperable)
-
-El commit `a1bea4b` contenía una implementación funcional de sala 3D (363 líneas) que fue refactorizada. Incluía:
-
-- Sala arquitectónica completa con paredes, piso, ventana, mesa
-- Sistema de materiales intercambiables (Default, Wood, Concrete)
-- Iluminación realista y rotación de cámara
-
-Ver [docs/CODIGO_3D_ANTERIOR.md](./docs/CODIGO_3D_ANTERIOR.md) para análisis completo.
-
-## 🛠 Stack Tecnológico
-
-### Core Framework
-
-- **React Native** 0.81.5 + **Expo SDK** 54
-- **React** 19 con React Compiler experimental
-- **TypeScript** 5.9.2 (strict mode)
-- **New Architecture** de React Native habilitada
-
-### AR & Room Scanning
-
-- **expo-roomplan** 1.2.1 - RoomPlan API oficial de Apple (iOS 16+)
-- **expo-camera** ~17.0.10 - Acceso a cámara
-- **expo-sensors** ~15.0.0 - Giroscopio y acelerómetro
-
-### 3D Rendering (Futuro - Phase 1+)
-
-- **Three.js** 0.166.0 - Motor 3D (para visualización AR posterior)
-- **React Three Fiber** 8.17.10 - Integración React/Three.js
-- **expo-gl** ~16.0.8 - OpenGL context
-- **expo-three** 8.0.0 - Renderer para Expo
-
-### Navigation & UI
-
-- **React Navigation** 7 con type-safe routing
-- **expo-symbols** - SF Symbols (iOS)
-- **expo-haptics** - Feedback háptico
-- **react-native-reanimated** - Animaciones
-- **react-native-gesture-handler** - Gestos táctiles
-
-## 🚀 Instalación y Ejecución
+## Instalación
 
 ### Pre-requisitos
 
+- **macOS** con Xcode 14+
 - **Node.js** 18+
-- **npm** o yarn
-- **Expo CLI** (se instala automáticamente)
-- **Dispositivo físico** (recomendado para AR) o simulador/emulador
+- **iOS Device con LiDAR** (iPhone 12 Pro+, iPad Pro 2020+)
+- iOS 16.0+
 
-### Instalación
+### Setup
 
 ```bash
-# Navegar al proyecto
-cd creativedev.ar-tech
-
 # Instalar dependencias
 npm install
 
-# Iniciar servidor de desarrollo
+# iOS Pods
+cd ios && pod install && cd ..
+
+# Desarrollo
 npm start
+
+# Build iOS (requiere dispositivo físico para AR)
+npx expo run:ios --device
 ```
 
-### Ejecutar en Plataforma
+---
 
-```bash
-# iOS Simulator
-npm run ios
+## Progreso del Proyecto
 
-# Android Emulator
-npm run android
+### Fase 0: Setup y Validación (Completada)
 
-# Web (preview)
-npm run web
+- Migración a Expo Bare Workflow
+- Configuración de Xcode project
+- Módulo nativo Swift básico (expo-arkit)
+- Bridge React Native funcional
+- ARView con SceneKit/ARKit
+- Validación de ARKit World Tracking
+- Comunicación bidireccional (eventos y métodos)
+
+### Fase 0.5: Plane Detection (En progreso - 20%)
+
+**Implementado:**
+- Detección de planos en tiempo real
+- Visualización de mesh geometry
+- Clasificación de planos (floor, wall, ceiling, table, etc.)
+- Colores diferentes para horizontales (azul) vs verticales (naranja)
+- Compatibilidad iOS 16+ con API moderna
+
+**Archivos clave:**
+- `modules/expo-arkit/ios/Plane.swift` - Visualización de planos
+- `modules/expo-arkit/ios/ExpoARKitView.swift` - Vista ARKit
+- `modules/expo-arkit/ios/ExpoARKitModule.swift` - Bridge module
+
+**Próximo:**
+- Integrar eventos de plane detection con React Native
+- UI overlay para mostrar estadísticas de planos
+- Selección de planos con tap gestures
+
+### Fase 1: Model Loading & Alignment (Próximo)
+
+- Cargar modelos USDZ personalizados
+- Sistema de alineación con planos detectados
+- Escala automática según dimensiones reales
+- UI para ajuste manual (drag/rotate/scale)
+
+### Fase 2: Room Scanning (Futuro)
+
+- Integración completa de RoomPlan API
+- Export de geometría escaneada
+- Matching de dimensiones espacio real vs modelo
+
+### Fase 3: AR Visualization (Futuro)
+
+- Occlusion rendering
+- Reemplazo de realidad con modelo 3D
+- Navegación inmersiva (6DOF tracking)
+- Sistema de materiales intercambiables
+
+---
+
+## Estructura del Proyecto
+
 ```
-
-### Reiniciar Metro Bundler
-
-Después de cambiar `babel.config.js`, siempre reinicia con caché limpia:
-
-```bash
-npm start -- --clear
-```
-
-> **⚠️ Nota AR:** Para funcionalidad AR avanzada (ARKit/ARCore), se requiere compilar build nativa. El POC actual usa tracking básico con sensores.
-
-## 📱 Uso de la App
-
-1. Al abrir la app, navega a la tab **"AR"** en el bottom navigation
-2. Acepta los permisos de cámara cuando se soliciten
-3. Observa la habitación arquitectónica renderizada en 3D
-4. **Cambia materiales** usando los botones en la parte inferior:
-   - **Default**: Paredes blancas, piso gris claro
-   - **Madera**: Acabado en madera cálida
-   - **Concreto**: Estilo industrial con concreto
-5. La cámara rotará automáticamente para mostrar diferentes ángulos de la habitación
-
-## 📂 Estructura del Proyecto
-
-### Arquitectura UI-First
-
-El proyecto sigue un enfoque **UI-First** donde toda la lógica relacionada con AR y 3D está organizada dentro de `src/ui/ar/`:
-
-```text
 creativedev.ar-tech/
-├── src/ui/                           # Todo el código de la app
-│   ├── ar/                           # Feature AR/3D completa
-│   │   ├── components/               # Componentes específicos AR
-│   │   │   ├── ARCanvas.tsx          # Canvas 3D con GLView
-│   │   │   ├── ARControls.tsx        # Botones de control
-│   │   │   ├── MaterialPicker.tsx    # Selector de materiales
-│   │   │   └── ARPermissionPrompt.tsx
-│   │   ├── hooks/                    # Hooks específicos AR/3D
-│   │   │   ├── use3DScene.ts         # Lógica Three.js
-│   │   │   ├── useARSession.ts       # Gestión sesión AR
-│   │   │   ├── useMaterialToggle.ts  # Cambio materiales
-│   │   │   └── useDeviceOrientation.ts
-│   │   └── utils/                    # Utilidades AR/3D
-│   │       ├── SceneManager.ts       # Gestor escena Three.js
-│   │       ├── LightingSetup.ts      # Configuración luces
-│   │       ├── geometries.ts         # Crear geometrías
-│   │       └── materials.ts          # Definiciones materiales
-│   ├── screens/                      # Pantallas principales
-│   │   ├── HomeScreen.tsx
-│   │   └── ARScreen.tsx              # Pantalla AR principal
-│   ├── navigation/                   # React Navigation
-│   │   ├── AppNavigator.tsx          # Stack navigator
-│   │   ├── TabNavigator.tsx          # Bottom tabs
-│   │   └── types.ts                  # Type-safe routing
-│   └── theme/                        # Sistema de temas
-│       ├── colors.ts                 # Paleta claro/oscuro
-│       └── fonts.ts                  # Tipografías
-├── docs/                             # Documentación técnica
-│   ├── README.md                     # Índice documentación
-│   ├── ARQUITECTURA_POC.md           # Arquitectura completa
-│   ├── ARQUITECTURA_SIMPLIFICADA.md  # UI-First approach
-│   ├── PLAN_IMPLEMENTACION.md        # Roadmap 15 días
-│   ├── PLAN_AR_INMERSIVO.md          # Plan AR avanzado
-│   └── CODIGO_3D_ANTERIOR.md         # Análisis código previo
-├── assets/images/                    # Assets estáticos
-├── App.tsx                           # Componente raíz
-├── index.js                          # Entry point
-├── app.json                          # Config Expo
-├── babel.config.js                   # Module resolver + alias
-├── tsconfig.json                     # TypeScript + paths
-├── eslint.config.js                  # ESLint flat config
-├── .prettierrc                       # Code formatting
-└── package.json                      # Dependencias
+├── modules/
+│   └── expo-arkit/              # Módulo nativo ARKit
+│       ├── ios/
+│       │   ├── ExpoARKitModule.swift    # Module bridge
+│       │   ├── ExpoARKitView.swift      # ARKit view
+│       │   └── Plane.swift              # Plane visualization
+│       ├── src/
+│       │   └── ExpoARKitView.tsx        # React component
+│       └── expo-module.config.json
+├── src/
+│   └── ui/
+│       ├── ar/                  # AR feature components
+│       │   ├── components/
+│       │   │   ├── ARKitView.tsx
+│       │   │   └── index.ts
+│       │   └── hooks/
+│       │       └── useARKit.ts
+│       └── screens/
+│           └── ARTestScreen.tsx  # Pantalla de prueba AR
+├── ios/                         # Xcode project
+├── docs/                        # Documentación técnica
+│   ├── PLAN_AR_INMERSIVO.md    # Visión completa del proyecto
+│   ├── PLANE_DETECTION_PLAN.md # Plan de detección de planos
+│   └── BUILD_INSTRUCTIONS.md   # Instrucciones de build
+└── BUILD_INSTRUCTIONS.md       # Quick start guide
 ```
 
-## 🔑 Archivos Clave
+---
 
-### AR/3D Feature (`src/ui/ar/`)
+## Comandos Principales
 
-**Components:**
-
-- `ARCanvas.tsx` - Renderiza escena 3D con GLView + expo-three
-- `ARControls.tsx` - Botones para iniciar/detener AR
-- `MaterialPicker.tsx` - Selector de materiales (Default/Wood/Concrete)
-- `ARPermissionPrompt.tsx` - Manejo de permisos de cámara
-
-**Hooks:**
-
-- `use3DScene.ts` - Encapsula lógica Three.js (scene, camera, renderer)
-- `useARSession.ts` - Gestiona ciclo de vida AR (start/stop)
-- `useMaterialToggle.ts` - Estado y cambio de materiales
-- `useDeviceOrientation.ts` - Tracking con expo-sensors
-
-**Utils:**
-
-- `SceneManager.ts` - Clase principal para gestionar THREE.Scene
-- `LightingSetup.ts` - Configuración de luces (ambient, directional)
-- `geometries.ts` - Funciones para crear paredes, piso, muebles
-- `materials.ts` - Definiciones de materiales PBR
-
-### Navigation (`src/ui/navigation/`)
-
-- `AppNavigator.tsx` - Root stack navigator
-- `TabNavigator.tsx` - Bottom tabs (Home, AR)
-- `types.ts` - Type-safe navigation params
-
-### Theme (`src/ui/theme/`)
-
-- `colors.ts` - Paleta de colores con soporte dark mode
-- `fonts.ts` - Sistema de tipografías
-
-### Config Files
-
-- `babel.config.js` - Module resolver para alias `@/`
-- `tsconfig.json` - Paths mapping para imports absolutos
-- `eslint.config.js` - ESLint v9 flat config + Prettier
-- `.prettierrc` - Reglas de formato de código
-
-## 📍 Importaciones con Alias
-
-El proyecto usa alias `@/` para importaciones absolutas desde `src/`:
-
-```typescript
-// ✅ Correcto - Usando alias
-import { ThemedText } from '@/ui/components/ThemedText';
-import { Colors } from '@/ui/theme/colors';
-import { useColorScheme } from '@/core/hooks/use-color-scheme';
-
-// ❌ Evitar - Rutas relativas complejas
-import { ThemedText } from '../../../ui/components/ThemedText';
-```
-
-**Alias disponibles:**
-
-- `@/ui/*` - UI components, screens, navigation, theme
-- `@/domain/*` - Business entities and use cases
-- `@/data/*` - Repositories and data sources
-- `@/core/*` - Shared hooks, utils, constants
-
-## 🎨 Sistema de Materiales
-
-Los materiales usan `THREE.MeshStandardMaterial` con propiedades PBR (Physically Based Rendering):
-
-| Material | Paredes | Piso | Características |
-|----------|---------|------|----------------|
-| **Default** | #F5F5F5 | #CCCCCC | Blanco hueso, estilo minimalista |
-| **Wood** | #D4A574 | #8B4513 | Tonos cálidos, acabado rústico |
-| **Concrete** | #808080 | #606060 | Gris industrial, textura áspera |
-
-**Propiedades:**
-
-- `roughness`: 0.7-0.95 (controla reflectividad)
-- `metalness`: 0-0.2 (aspecto metálico)
-- Iluminación realista con luces ambient + directional
-
-## 🗺 Roadmap de Implementación
-
-### Fase 1: Foundation (Días 1-3)
-
-- ✅ Estructura base Expo + React Navigation
-- 🔄 Recuperar código 3D anterior (commit a1bea4b)
-- 🔄 Refactorizar en arquitectura modular UI-First
-- 🔄 Implementar ARScreen con renderizado 3D básico
-- **Output:** Sala 3D renderizando con toggle de materiales
-
-### Fase 2: AR Integration (Días 4-7)
-
-- ⏳ Integrar expo-camera como fondo AR
-- ⏳ Implementar tracking básico con expo-sensors
-- ⏳ Agregar controles AR (start/stop)
-- ⏳ Gestos táctiles (pinch, rotate, pan)
-- **Output:** AR activo con anclaje básico de escena
-
-### Fase 3: Features Profesionales (Días 8-12)
-
-- ⏳ Sistema de mediciones (tap dos puntos)
-- ⏳ Modo día/noche (cambio de iluminación)
-- ⏳ Capturas de pantalla
-- ⏳ Variantes de diseño (comparar versiones)
-- **Output:** Herramientas premium funcionales
-
-### Fase 4: Polish + Testing (Días 13-15)
-
-- ⏳ Onboarding UX (tutorial de gestos)
-- ⏳ Optimización de performance (lazy loading, caché)
-- ⏳ Testing en dispositivos reales (iOS + Android)
-- ⏳ Demo content (2-3 proyectos de ejemplo)
-- **Output:** POC demo-ready
-
-**Leyenda:** ✅ Completado | 🔄 En progreso | ⏳ Pendiente
-
-### AR Avanzado (Futuro)
-
-Para experiencia AR inmersiva completa (reemplazo de realidad):
-
-- Migrar a Expo Bare Workflow
-- Implementar ARKit (iOS) o ARCore (Android)
-- Room scanning con RoomPlan API (iOS 16+)
-- Spatial alignment y occlusion rendering
-- Ver [docs/PLAN_AR_INMERSIVO.md](./docs/PLAN_AR_INMERSIVO.md)
-
-## 🔧 Comandos Útiles
-
-### Development
+### Desarrollo
 
 ```bash
-# Iniciar dev server
+# Iniciar Metro bundler
 npm start
 
-# Limpiar caché Metro
+# Build en dispositivo iOS
+npx expo run:ios --device
+
+# Limpiar y rebuild
 npm start -- --clear
-
-# Ejecutar en plataformas específicas
-npm run ios
-npm run android
-npm run web
+npx expo run:ios --device
 ```
 
-### Code Quality
+### Testing
 
 ```bash
-# Ejecutar linter
-npm run lint
+# Ver logs del dispositivo
+# Xcode > Window > Devices and Simulators > Select Device > Open Console
 
-# Auto-fix problemas
-npm run lint -- --fix
-
-# Formatear código (Prettier automático en ESLint)
+# Matar procesos
+lsof -ti:8081 | xargs kill -9
+killall node
 ```
-
-### Git - Recuperar Código Anterior
-
-```bash
-# Ver código 3D anterior (commit a1bea4b)
-git show a1bea4b:app/\(tabs\)/ar-view.tsx
-
-# Recuperar en archivo temporal
-git show a1bea4b:app/\(tabs\)/ar-view.tsx > temp-ar-view.tsx
-
-# Ver cambios del refactor
-git show dc5e662 --stat
-```
-
-### Build Nativo (Producción)
-
-Para AR avanzado con ARKit/ARCore:
-
-```bash
-# Configurar EAS
-eas login
-eas build:configure
-
-# Build iOS
-eas build --platform ios
-
-# Build Android
-eas build --platform android
-```
-
-> **Nota:** Se requiere cuenta Expo y configuración de `eas.json`
-
-## 🎯 Diferenciadores Clave
-
-### vs IKEA Place / ARki / Fologram
-
-**Esta plataforma se diferencia por:**
-
-1. **Experiencia inmersiva completa**
-   - No solo "colocar objetos"
-   - Sumergirse en el diseño arquitectónico completo
-   - Reemplazo de la realidad con el render 3D
-
-2. **Cambio de materiales instantáneo**
-   - Sin recargar modelos
-   - Toggle en tiempo real
-   - Comparación visual inmediata
-
-3. **Arquitectura modular y escalable**
-   - Código organizado en capas
-   - Fácil agregar nuevos materiales/geometrías
-   - Preparado para backend futuro
-
-4. **Zero backend inicial**
-   - Todo el render en cliente
-   - Ideal para POC y demos
-   - Migrable a CMS arquitectónico
-
-5. **UI minimalista**
-   - Enfocada en la experiencia, no en herramientas complejas
-   - Gestos intuitivos
-   - Perfecto para presentaciones a clientes
 
 ---
 
-## 📄 Licencia
-
-Este es un proyecto POC privado. Todos los derechos reservados.
-
----
-
-**Última actualización:** Diciembre 2025  
-**Versión:** 1.0 POC
-
-## 📚 Documentación Técnica
-
-La carpeta `docs/` contiene documentación completa del proyecto:
+## Documentación
 
 ### Documentos Principales
 
-1. **[docs/README.md](./docs/README.md)** - Índice de toda la documentación
-2. **[docs/ARQUITECTURA_POC.md](./docs/ARQUITECTURA_POC.md)** - Arquitectura técnica completa
-   - Stack tecnológico detallado
-   - Estructura de carpetas propuesta
-   - Flujo de datos
-   - Roadmap de features
-   - Métricas de éxito
+- **[BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md)** - Guía rápida de build y testing
+- **[docs/PLAN_AR_INMERSIVO.md](docs/PLAN_AR_INMERSIVO.md)** - Visión completa del POC
+- **[docs/PLANE_DETECTION_PLAN.md](docs/PLANE_DETECTION_PLAN.md)** - Plan técnico de plane detection
+- **[docs/ARKIT_IMPLEMENTATION.md](docs/ARKIT_IMPLEMENTATION.md)** - Detalles de implementación ARKit
 
-3. **[docs/ARQUITECTURA_SIMPLIFICADA.md](./docs/ARQUITECTURA_SIMPLIFICADA.md)** - UI-First Approach
-   - Decisión arquitectónica actual
-   - Separación de responsabilidades
-   - Ejemplos de código por capa
+### Estado de Fase 0
 
-4. **[docs/PLAN_IMPLEMENTACION.md](./docs/PLAN_IMPLEMENTACION.md)** - Guía paso a paso
-   - 4 fases de 15 días
-   - Tareas diarias detalladas
-   - Código de ejemplo
-   - Checklists de verificación
-
-5. **[docs/PLAN_AR_INMERSIVO.md](./docs/PLAN_AR_INMERSIVO.md)** - AR Avanzado
-   - Room scanning
-   - Spatial alignment
-   - Occlusion rendering
-   - Análisis técnico ARKit/ARCore
-
-6. **[docs/CODIGO_3D_ANTERIOR.md](./docs/CODIGO_3D_ANTERIOR.md)** - Código 3D Previo
-   - Análisis del commit a1bea4b (363 líneas)
-   - Especificaciones de geometrías
-   - Sistema de materiales original
-   - Guía de refactorización
-
-### Cómo Usar la Documentación
-
-**Desarrolladores:** Sigue [PLAN_IMPLEMENTACION.md](./docs/PLAN_IMPLEMENTACION.md) paso a paso
-
-**Arquitectos:** Revisa [ARQUITECTURA_POC.md](./docs/ARQUITECTURA_POC.md) para decisiones técnicas
-
-**Product Owners:** Lee roadmap y métricas de éxito en los docs principales
-
-- Tipos en `navigation/types.ts`
-
-### Sistema de Temas
-
-Los componentes se adaptan automáticamente a modo claro/oscuro:
-
-- Colores: `src/ui/theme/colors.ts`
-- Fuentes: `src/ui/theme/fonts.ts`
-- Componentes temáticos: `ThemedText`, `ThemedView`
-
-## 📄 Licencia
-
-Proyecto POC privado - CreativeDev.ar
+Ver [docs/FASE_0_RESUMEN_FINAL.md](docs/FASE_0_RESUMEN_FINAL.md) para:
+- Resumen de lo implementado
+- Arquitectura del módulo nativo
+- Próximos pasos
 
 ---
 
-**Desarrollado con** ❤️ **usando Expo + Three.js + React Navigation**
+## Requisitos Técnicos
+
+### Hardware Obligatorio
+
+- **iPhone/iPad con LiDAR**:
+  - iPhone 12 Pro, 13 Pro, 14 Pro, 15 Pro
+  - iPad Pro (2020 o posterior)
+- **iOS 16.0+** (para RoomPlan API en futuro)
+
+### Desarrollo
+
+- macOS con Xcode 14+
+- Apple Developer Account (para testing en dispositivo)
+- Conocimientos básicos de:
+  - Swift (para módulos nativos)
+  - ARKit (world tracking, anchors)
+  - React Native bridge pattern
+
+---
+
+## Últimas Actualizaciones
+
+### 2025-12-11
+
+**Plane Detection Build Fix**
+- Corregidos errores de compilación en `Plane.swift`
+- Implementada función helper `classificationString(for:)` para convertir enum a String
+- Implementada función `getPlaneExtent(from:)` compatible con iOS 16+
+- Reemplazadas APIs deprecated (`anchor.extent` → `anchor.planeExtent`)
+- Build exitoso en iOS
+
+**Archivos modificados:**
+- `modules/expo-arkit/ios/Plane.swift` - Visualización de planos compatible iOS 16+
+
+### 2025-12-10
+
+**Fase 0 Completada**
+- Módulo nativo expo-arkit funcional
+- ARKit + SceneKit integrados
+- Bridge React Native ↔ Swift operativo
+- Sistema de eventos y métodos imperativo
+
+---
+
+## Roadmap
+
+| Fase | Estado | Duración | Entregable |
+|------|--------|----------|------------|
+| **Fase 0** | ✅ Completada | 2 semanas | ARKit básico funcional |
+| **Fase 0.5** | 🔨 20% | 1 semana | Plane detection completo |
+| **Fase 1** | ⏳ Pendiente | 2-3 semanas | Carga de modelos USDZ |
+| **Fase 2** | ⏳ Pendiente | 2-3 semanas | Room scanning completo |
+| **Fase 3** | ⏳ Pendiente | 3-4 semanas | AR inmersivo final |
+
+**Leyenda:** ✅ Completado | 🔨 En progreso | ⏳ Pendiente
+
+---
+
+## Recursos
+
+- [ARKit Documentation](https://developer.apple.com/documentation/arkit)
+- [RoomPlan API](https://developer.apple.com/documentation/roomplan)
+- [SceneKit Documentation](https://developer.apple.com/documentation/scenekit)
+- [Expo Bare Workflow](https://docs.expo.dev/bare/overview/)
+- [React Native Native Modules](https://reactnative.dev/docs/native-modules-ios)
+
+---
+
+## Licencia
+
+Proyecto POC privado - CreativeDev.ar
+Todos los derechos reservados.
+
+---
+
+**Última actualización:** 2025-12-11
+**Versión:** 0.5.0 (Plane Detection)

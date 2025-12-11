@@ -1,97 +1,177 @@
-# AR Immersive Experience Platform - Documentación
+# Documentación - creativedev.ar-tech
 
-**Versión:** 1.0 POC | **Estado:** Fase 0 (88% completo) | **Actualizado:** 2025-12-09
+**AR Immersive Interior Design Platform**
 
----
-
-## ⭐ START HERE
-
-**IMPORTANTE:** Comienza por [00_START_HERE.md](./00_START_HERE.md) para una guía rápida según tu rol.
+**Estado:** Fase 0.5 - Plane Detection (20%)
+**Última actualización:** 2025-12-11
 
 ---
 
-## Concepto del POC
+## Inicio Rápido
 
-Plataforma de experiencias inmersivas en AR que permite a arquitectos presentar diseños de interiores a escala real usando la cámara y el LiDAR del iPhone.
+### Para Desarrolladores
 
-**Caso de uso:** Arquitecto presenta remodelación de apartamento con un cliente. Cliente ve el diseño final superpuesto al espacio real en tiempo real.
+1. **Setup inicial:** Ver [../BUILD_INSTRUCTIONS.md](../BUILD_INSTRUCTIONS.md)
+2. **Estado actual:** Ver [CURRENT_STATE.md](./CURRENT_STATE.md)
+3. **Próximos pasos:** Ver [PLANE_DETECTION_PLAN.md](./PLANE_DETECTION_PLAN.md)
 
-### Stack Tecnológico (Actual)
+### Para Product/Tech Leads
 
-- **Framework:** React Native 0.81.5 + Expo 54.0.27 (Bare Workflow)
-- **AR Core:** RoomPlan API (iOS 16+) para escaneo + ARKit para tracking
-- **RoomPlan Integration:** `expo-roomplan@1.2.1` (en vez de módulos nativos manuales)
-- **State Management:** React Hooks con hook `useRoomPlan` simplificado (async/await)
-- **Navigation:** React Navigation 7
-- **Language:** TypeScript 5.9.2 (strict mode)
-
-### Arquitectura Actual
-
-```
-React Native App
-    ├─ RoomPlanTestScreen (UI simplificada)
-    │   └─ useRoomPlan (expo-roomplan) → startRoomPlan()
-    │
-    ├─ Expo Modules (autolinked)
-    │   └─ expo-roomplan (scan modal + export automático)
-    │
-    └─ iOS Native APIs (gestionadas por expo-roomplan)
-        ├─ RoomPlan Framework (LiDAR scanning)
-        └─ ARKit (6DOF tracking)
-```
+- **Visión completa:** [PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)
+- **Roadmap por fases:** Ver sección "Plan de Implementación" en PLAN_AR_INMERSIVO.md
 
 ---
 
-## Estado Actual del Proyecto
+## Estado del Proyecto
 
-### ✅ Fase 0 - COMPLETADA
+### Completado (Fase 0)
 
-- ✅ Migración a Expo Bare Workflow
-- ✅ Integración de `expo-roomplan@1.2.1` (módulo oficial Expo)
-- ✅ RoomPlan API funcionando (escaneo LiDAR + export USDZ automático)
-- ✅ Hook `useRoomPlan` con API simplificada (async/await)
-- ✅ RoomPlanTestScreen con UI modal nativa de Apple
-- ✅ Export parametric USDZ integrado
-- ✅ TypeScript strict mode sin errores
-- ✅ ESLint clean
+- Expo Bare Workflow configurado
+- Módulo nativo `expo-arkit` funcional (Swift)
+- Bridge React Native ↔ Swift operativo
+- ARKit + SceneKit integrados
+- Sistema de eventos bidireccional
 
-### 🚀 Próximo (Fase 1) - Documentado
+### En Progreso (Fase 0.5 - 20%)
 
-- Cargar modelos 3D del arquitecto (USDZ/glTF)
-- Visualizar modelos en preview interactivo
-- Alinear modelo 3D con escaneo de RoomPlan
-- Ajustar transformaciones (escala, rotación, posición)
-- UI para gestionar proyectos (modelo + escaneo + alineación)
+- **Plane Detection Implementation**
+  - ✅ Visualización de planos (Plane.swift)
+  - ✅ Clasificación de planos (floor, wall, ceiling, etc.)
+  - ✅ Compatibilidad iOS 16+ (API moderna)
+  - ⏳ Eventos hacia React Native
+  - ⏳ UI overlay con estadísticas
+  - ⏳ Selección de planos con gestos
 
-**Documentación:** Ver [FASE_1_MODEL_LOADING.md](./FASE_1_MODEL_LOADING.md) para tareas detalladas.
+### Próximo (Fase 1)
+
+- Carga de modelos USDZ personalizados
+- Sistema de alineación con planos detectados
+- UI para ajuste manual
 
 ---
 
-## 📚 Documentación Disponible
-
-Ver [00_START_HERE.md](./00_START_HERE.md) para guía rápida según tu rol.
+## Documentos Principales
 
 ### Documentación Activa
 
-- **[BUILD_AND_RUN.md](./BUILD_AND_RUN.md)** - Cómo compilar y ejecutar
-- **[FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)** - Resumen completo Fase 0 (completada)
-- **[FASE_1_MODEL_LOADING.md](./FASE_1_MODEL_LOADING.md)** - Tareas de Fase 1 (próxima)
-- **[PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md)** - Visión técnica y roadmap completo
-- **[EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md)** - Implementación actual con expo-roomplan
+| Documento | Propósito | Audiencia |
+|-----------|-----------|-----------|
+| [CURRENT_STATE.md](./CURRENT_STATE.md) | Estado actual del proyecto | Todos |
+| [BUILD_INSTRUCTIONS.md](../BUILD_INSTRUCTIONS.md) | Cómo compilar y ejecutar | Desarrolladores |
+| [PLAN_AR_INMERSIVO.md](./PLAN_AR_INMERSIVO.md) | Visión técnica completa | Tech Leads |
+| [PLANE_DETECTION_PLAN.md](./PLANE_DETECTION_PLAN.md) | Plan detallado plane detection | Desarrolladores |
+| [ARKIT_IMPLEMENTATION.md](./ARKIT_IMPLEMENTATION.md) | Detalles implementación ARKit | Desarrolladores |
+| [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md) | Resumen Fase 0 completada | Todos |
 
+### Documentación de Referencia
 
+| Documento | Propósito |
+|-----------|-----------|
+| [EXPO_ROOMPLAN_MIGRATION.md](./EXPO_ROOMPLAN_MIGRATION.md) | Integración expo-roomplan (para Fase 2) |
+| [DEBUGGING_PLANE_DETECTION.md](./DEBUGGING_PLANE_DETECTION.md) | Troubleshooting plane detection |
+
+### Documentos Obsoletos/Archivados
+
+Los siguientes documentos contienen información de arquitecturas previas que no se alinean con la implementación actual:
+
+- `ARQUITECTURA_POC.md` - Arquitectura Three.js (obsoleta)
+- `ARQUITECTURA_SIMPLIFICADA.md` - UI-First con Three.js (obsoleta)
+- `PLAN_IMPLEMENTACION.md` - Plan 15 días con Three.js (obsoleto)
+- `CODIGO_3D_ANTERIOR.md` - Código Three.js recuperable (referencia histórica)
+
+**Nota:** Estos documentos se mantienen como referencia histórica pero no reflejan la arquitectura actual basada en ARKit nativo.
 
 ---
 
-## 🚀 Quick Links
+## Arquitectura Actual
 
-- **Comenzar desarrollo:** [BUILD_AND_RUN.md](./BUILD_AND_RUN.md)
-- **Entender el proyecto:** [00_START_HERE.md](./00_START_HERE.md)
-- **Ver progreso actual:** [FASE_0_RESUMEN_FINAL.md](./FASE_0_RESUMEN_FINAL.md)
-- **Próximos pasos:** [NEXT_STEPS.md](./NEXT_STEPS.md)
+```
+React Native (Expo Bare Workflow)
+    │
+    ├─ src/ui/screens/ARTestScreen.tsx
+    │   └─ Componente ARKitView
+    │
+    ├─ modules/expo-arkit/
+    │   ├─ src/ExpoARKitView.tsx (React component)
+    │   └─ ios/
+    │       ├─ ExpoARKitModule.swift (Module bridge)
+    │       ├─ ExpoARKitView.swift (ARSCNView wrapper)
+    │       └─ Plane.swift (Plane visualization)
+    │
+    └─ iOS Native (ARKit + SceneKit)
+        ├─ ARSession (world tracking)
+        ├─ ARSCNView (AR scene view)
+        └─ Plane detection & visualization
+```
 
 ---
 
-**Última actualización:** 2025-12-09
-**Rama activa:** `feature/bare-workflow-migration`
-**Estado:** Fase 0 - 88% completo
+## Stack Tecnológico
+
+### Core
+
+- React Native 0.81.5 (New Architecture)
+- Expo SDK 54 (Bare Workflow)
+- TypeScript 5.9.2
+
+### AR Nativo
+
+- **ARKit** (iOS) - World tracking & plane detection
+- **SceneKit** - Renderizado 3D nativo
+- **Módulo expo-arkit** - Bridge Swift ↔ React Native
+
+### Futuro
+
+- RoomPlan API (iOS 16+) - Para room scanning completo (Fase 2)
+- USDZ/USD - Formato de modelos 3D nativo iOS (Fase 1)
+
+---
+
+## Roadmap
+
+| Fase | Estado | Descripción |
+|------|--------|-------------|
+| **0** | ✅ Completada | Setup ARKit básico |
+| **0.5** | 🔨 20% | Plane detection completo |
+| **1** | ⏳ Pendiente | Model loading & alignment |
+| **2** | ⏳ Pendiente | Room scanning (RoomPlan) |
+| **3** | ⏳ Pendiente | AR inmersivo final |
+
+---
+
+## Recursos Externos
+
+### Apple Documentation
+
+- [ARKit Documentation](https://developer.apple.com/documentation/arkit)
+- [SceneKit Documentation](https://developer.apple.com/documentation/scenekit)
+- [RoomPlan API](https://developer.apple.com/documentation/roomplan)
+- [Apple Sample: TrackingAndVisualizingPlanes](https://developer.apple.com/documentation/arkit/tracking_and_visualizing_planes)
+
+### Expo & React Native
+
+- [Expo Bare Workflow](https://docs.expo.dev/bare/overview/)
+- [Creating Native Modules (iOS)](https://reactnative.dev/docs/native-modules-ios)
+- [Expo Modules API](https://docs.expo.dev/modules/overview/)
+
+---
+
+## Comandos Rápidos
+
+```bash
+# Desarrollo
+npm start
+npx expo run:ios --device
+
+# Limpiar caché
+npm start -- --clear
+
+# Matar procesos
+lsof -ti:8081 | xargs kill -9
+killall node
+```
+
+---
+
+**Última actualización:** 2025-12-11
+**Versión:** 0.5.0

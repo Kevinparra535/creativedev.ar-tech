@@ -1,143 +1,55 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 
 import {
-  ARDebugOverlay,
   ARKitView,
   ARKitViewRef,
-  MeshAddedEvent,
-  MeshInfo,
-  MeshRemovedEvent,
-  MeshStatsOverlay,
-  MeshUpdatedEvent,
   PlaneDetectedEvent,
-  PlaneInfo,
-  PlaneRemovedEvent,
-  PlaneSelectedEvent,
-  PlaneStatsOverlay,
-  PlaneUpdatedEvent
+  PlaneUpdatedEvent,
+  PlaneRemovedEvent
 } from '../ar/components';
 
 export const ARTestScreen = () => {
   const arViewRef = useRef<ARKitViewRef>(null);
   const [isARReady, setIsARReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Initializing AR...');
-  const [showDebug, setShowDebug] = useState(true); // Debug overlay enabled by default
-
-  // Plane detection state
-  const [planes, setPlanes] = useState<Map<string, PlaneInfo>>(new Map());
-  const [selectedPlane, setSelectedPlane] = useState<PlaneInfo | undefined>();
-
-  // Mesh reconstruction state
-  const [meshes, setMeshes] = useState<Map<string, MeshInfo>>(new Map());
-  const [showMeshStats, setShowMeshStats] = useState(true);
-  const [meshUpdateThrottle, setMeshUpdateThrottle] = useState<NodeJS.Timeout | null>(null);
+  const [planeCount, setPlaneCount] = useState(0);
 
   const handleARInitialized = (event: { nativeEvent: { success: boolean; message: string } }) => {
     const { success, message } = event.nativeEvent;
     if (success) {
       setIsARReady(true);
-      setStatusMessage('AR Ready! Move your device to detect planes.');
+      setStatusMessage('AR Ready! Move device to detect planes.');
     } else {
       setStatusMessage(`AR Error: ${message}`);
     }
   };
 
-  // Plane detection event handlers
   const handlePlaneDetected = (event: PlaneDetectedEvent) => {
-    const { plane } = event.nativeEvent;
-    setPlanes((prevPlanes) => {
-      const newPlanes = new Map(prevPlanes);
-      newPlanes.set(plane.id, plane);
-      return newPlanes;
+    const { plane, totalPlanes } = event.nativeEvent;
+    setPlaneCount(totalPlanes);
+    console.log('✈️ Plane Detected:', {
+      id: plane.id,
+      type: plane.type,
+      alignment: plane.alignment,
+      size: `${(plane.width * 100).toFixed(0)}cm x ${(plane.height * 100).toFixed(0)}cm`,
+      totalPlanes
     });
   };
 
   const handlePlaneUpdated = (event: PlaneUpdatedEvent) => {
-    const { plane } = event.nativeEvent;
-    setPlanes((prevPlanes) => {
-      const newPlanes = new Map(prevPlanes);
-      newPlanes.set(plane.id, plane);
-      return newPlanes;
-    });
-
-    // Update selected plane if it's the one that was updated
-    if (selectedPlane && selectedPlane.id === plane.id) {
-      setSelectedPlane(plane);
-    }
+    const { plane, totalPlanes } = event.nativeEvent;
+    setPlaneCount(totalPlanes);
+    console.log('🔄 Plane Updated:', plane.id);
   };
 
   const handlePlaneRemoved = (event: PlaneRemovedEvent) => {
-    const { planeId } = event.nativeEvent;
-    setPlanes((prevPlanes) => {
-      const newPlanes = new Map(prevPlanes);
-      newPlanes.delete(planeId);
-      return newPlanes;
-    });
-
-    // Clear selection if removed plane was selected
-    if (selectedPlane && selectedPlane.id === planeId) {
-      setSelectedPlane(undefined);
-    }
+    const { planeId, totalPlanes } = event.nativeEvent;
+    setPlaneCount(totalPlanes);
+    console.log('🗑️ Plane Removed:', planeId);
   };
-
-  const handlePlaneSelected = (event: PlaneSelectedEvent) => {
-    const { plane, selected } = event.nativeEvent;
-    if (selected && plane) {
-      setSelectedPlane(plane);
-    } else {
-      setSelectedPlane(undefined);
-    }
-  };
-
-  // Mesh reconstruction event handlers
-  const handleMeshAdded = (event: MeshAddedEvent) => {
-    const { mesh } = event.nativeEvent;
-    setMeshes((prev) => {
-      const newMeshes = new Map(prev);
-      newMeshes.set(mesh.id, mesh);
-      return newMeshes;
-    });
-  };
-
-  const handleMeshUpdated = (event: MeshUpdatedEvent) => {
-    const { mesh } = event.nativeEvent;
-
-    // THROTTLING: Solo actualizar cada 500ms para evitar renders constantes
-    if (meshUpdateThrottle) {
-      clearTimeout(meshUpdateThrottle);
-    }
-
-    const timeout = setTimeout(() => {
-      setMeshes((prev) => {
-        const newMeshes = new Map(prev);
-        newMeshes.set(mesh.id, mesh);
-        return newMeshes;
-      });
-    }, 500);
-
-    setMeshUpdateThrottle(timeout);
-  };
-
-  const handleMeshRemoved = (event: MeshRemovedEvent) => {
-    const { meshId } = event.nativeEvent;
-    setMeshes((prev) => {
-      const newMeshes = new Map(prev);
-      newMeshes.delete(meshId);
-      return newMeshes;
-    });
-  };
-
-  // Cleanup effect for throttle
-  useEffect(() => {
-    return () => {
-      if (meshUpdateThrottle) {
-        clearTimeout(meshUpdateThrottle);
-      }
-    };
-  }, [meshUpdateThrottle]);
 
   const handleARError = (event: { nativeEvent: { error: string } }) => {
     const { error } = event.nativeEvent;
@@ -167,14 +79,12 @@ export const ARTestScreen = () => {
     try {
       setStatusMessage('Opening file picker...');
 
-      // Open document picker with USDZ filter
       const result = await DocumentPicker.getDocumentAsync({
         type: ['public.usdz', 'com.pixar.universal-scene-description-mobile'],
-        copyToCacheDirectory: true, // Copia archivo a directorio accesible
+        copyToCacheDirectory: true,
         multiple: false
       });
 
-      // Check if cancelled
       if (result.canceled) {
         setStatusMessage('File selection cancelled');
         return;
@@ -182,34 +92,20 @@ export const ARTestScreen = () => {
 
       const file = result.assets[0];
 
-      // Validate file extension
       if (!file.name.toLowerCase().endsWith('.usdz')) {
         Alert.alert('Invalid File Type', 'Please select a USDZ file');
         setStatusMessage('Invalid file type selected');
         return;
       }
 
-      // Load model a ESCALA 1:1 (escala real para arquitectura)
       setStatusMessage(`Loading ${file.name}...`);
-      arViewRef.current.loadModel(
-        file.uri,
-        1.0, // scale 1:1 (el modelo debe venir a escala real)
-        [0, 0, -1] // position temporal (1m en frente para testing)
-      );
+      arViewRef.current.loadModel(file.uri, 1, [0, 0, -1]);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Error', `Failed to load model: ${errorMessage}`);
       setStatusMessage(`Error: ${errorMessage}`);
     }
   };
-
-  // Calculate plane statistics
-  const totalPlanes = planes.size;
-  const horizontalPlanes = Array.from(planes.values()).filter(
-    (p) => p.alignment === 'horizontal'
-  ).length;
-  const verticalPlanes = Array.from(planes.values()).filter((p) => p.alignment === 'vertical')
-    .length;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -222,53 +118,15 @@ export const ARTestScreen = () => {
         onPlaneDetected={handlePlaneDetected}
         onPlaneUpdated={handlePlaneUpdated}
         onPlaneRemoved={handlePlaneRemoved}
-        onPlaneSelected={handlePlaneSelected}
-        onMeshAdded={handleMeshAdded}
-        onMeshUpdated={handleMeshUpdated}
-        onMeshRemoved={handleMeshRemoved}
       />
 
       <View style={styles.overlay}>
-        {/* Toggle Debug Button */}
-        <TouchableOpacity
-          style={styles.debugToggle}
-          onPress={() => setShowDebug(!showDebug)}
-        >
-          <Text style={styles.debugToggleText}>{showDebug ? '🐛 Hide Debug' : '🐛 Show Debug'}</Text>
-        </TouchableOpacity>
-
-        {/* Debug Overlay */}
-        {showDebug && (
-          <ARDebugOverlay
-            isARReady={isARReady}
-            statusMessage={statusMessage}
-            totalPlanes={totalPlanes}
-            horizontalPlanes={horizontalPlanes}
-            verticalPlanes={verticalPlanes}
-            planes={planes}
-            selectedPlane={selectedPlane}
-          />
-        )}
-
-        {/* Plane Stats Overlay (Normal View) */}
-        {!showDebug && (
-          <>
-            <View style={styles.statusContainer}>
-              <Text style={styles.statusText}>{statusMessage}</Text>
-            </View>
-
-            <PlaneStatsOverlay
-              totalPlanes={totalPlanes}
-              horizontalPlanes={horizontalPlanes}
-              verticalPlanes={verticalPlanes}
-              selectedPlane={selectedPlane}
-            />
-
-            <View style={styles.meshStatsContainer}>
-              <MeshStatsOverlay totalMeshes={meshes.size} meshes={meshes} isVisible={showMeshStats} />
-            </View>
-          </>
-        )}
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusText}>{statusMessage}</Text>
+          {planeCount > 0 && (
+            <Text style={styles.planeCountText}>Planes detected: {planeCount}</Text>
+          )}
+        </View>
 
         <View style={styles.controlsContainer}>
           <TouchableOpacity
@@ -287,21 +145,12 @@ export const ARTestScreen = () => {
             <Text style={styles.buttonText}>Import USDZ Model</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.buttonTertiary]}
-            onPress={() => setShowMeshStats(!showMeshStats)}
-          >
-            <Text style={styles.buttonText}>
-              {showMeshStats ? 'Ocultar Mallas' : 'Mostrar Mallas'}
-            </Text>
-          </TouchableOpacity>
-
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>ARKit Plane Detection</Text>
+            <Text style={styles.infoTitle}>ARKit Test</Text>
             <Text style={styles.infoText}>
-              • Move your device to detect planes{'\n'}• Planes appear in blue (horizontal) or
-              orange (vertical){'\n'}• Tap on a plane to select it (turns yellow){'\n'}• View
-              statistics in the top-right corner{'\n'}• Tap "Add Red Cube" to place test objects
+              • Move your device to initialize AR{'\n'}
+              • Tap "Add Red Cube" to place a test object{'\n'}
+              • Tap "Import USDZ Model" to load a 3D model
             </Text>
           </View>
         </View>
@@ -323,21 +172,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     pointerEvents: 'box-none'
   },
-  debugToggle: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    backgroundColor: 'rgba(255, 215, 0, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    zIndex: 1000
-  },
-  debugToggleText: {
-    color: '#000',
-    fontSize: 12,
-    fontWeight: '600'
-  },
   statusContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     padding: 16,
@@ -349,6 +183,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     textAlign: 'center'
+  },
+  planeCountText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    fontWeight: '600'
   },
   controlsContainer: {
     padding: 16,
@@ -387,13 +228,5 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     lineHeight: 20
-  },
-  meshStatsContainer: {
-    position: 'absolute',
-    bottom: 240,
-    right: 16
-  },
-  buttonTertiary: {
-    backgroundColor: '#AF52DE'
   }
 });

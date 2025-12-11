@@ -14,7 +14,4 @@ export {
   type MeshRemovedEvent
 } from './ARKitView';
 export { RoomPlanView } from './RoomPlanView';
-export { PlaneStatsOverlay } from './PlaneStatsOverlay';
-export { ARDebugOverlay } from './ARDebugOverlay';
-export { MeshStatsOverlay } from './MeshStatsOverlay';
 export { FileExportButton } from './FileExportButton';
