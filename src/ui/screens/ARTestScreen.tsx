@@ -80,7 +80,7 @@ export const ARTestScreen = () => {
       setStatusMessage('Opening file picker...');
 
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['public.usdz', 'com.pixar.universal-scene-description-mobile'],
+        type: '*/*',
         copyToCacheDirectory: true,
         multiple: false
       });

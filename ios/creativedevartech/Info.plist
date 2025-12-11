@@ -87,5 +87,36 @@
     <string>Automatic</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
+    <key>UTImportedTypeDeclarations</key>
+    <array>
+      <dict>
+        <key>UTTypeConformsTo</key>
+        <array>
+          <string>public.data</string>
+          <string>public.content</string>
+        </array>
+        <key>UTTypeDescription</key>
+        <string>Universal Scene Description</string>
+        <key>UTTypeIdentifier</key>
+        <string>com.pixar.universal-scene-description-mobile</string>
+        <key>UTTypeTagSpecification</key>
+        <dict>
+          <key>public.filename-extension</key>
+          <array>
+            <string>usdz</string>
+            <string>USDZ</string>
+          </array>
+          <key>public.mime-type</key>
+          <array>
+            <string>model/vnd.usdz+zip</string>
+            <string>model/usd</string>
+          </array>
+        </dict>
+      </dict>
+    </array>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+    <key>UISupportsDocumentBrowser</key>
+    <true/>
   </dict>
 </plist>
