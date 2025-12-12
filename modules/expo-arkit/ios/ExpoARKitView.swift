@@ -588,6 +588,184 @@ class ExpoARKitView: ExpoView {
     ]
   }
 
+  // MARK: - Model Transformation Methods
+
+  /// Update model transformation (scale, rotation, position)
+  func updateModelTransform(modelId: String, scale: [Double]?, rotation: [Double]?, position: [Double]?) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    // Update scale if provided
+    if let scaleValues = scale, scaleValues.count >= 3 {
+      node.scale = SCNVector3(
+        Float(scaleValues[0]),
+        Float(scaleValues[1]),
+        Float(scaleValues[2])
+      )
+      print("Updated scale for model \(modelId): (\(scaleValues[0]), \(scaleValues[1]), \(scaleValues[2]))")
+    }
+
+    // Update rotation (euler angles in radians) if provided
+    if let rotationValues = rotation, rotationValues.count >= 3 {
+      node.eulerAngles = SCNVector3(
+        Float(rotationValues[0]),
+        Float(rotationValues[1]),
+        Float(rotationValues[2])
+      )
+      print("Updated rotation for model \(modelId): (\(rotationValues[0]), \(rotationValues[1]), \(rotationValues[2]))")
+    }
+
+    // Update position if provided
+    if let positionValues = position, positionValues.count >= 3 {
+      node.position = SCNVector3(
+        Float(positionValues[0]),
+        Float(positionValues[1]),
+        Float(positionValues[2])
+      )
+      print("Updated position for model \(modelId): (\(positionValues[0]), \(positionValues[1]), \(positionValues[2]))")
+    }
+
+    return [
+      "success": true,
+      "modelId": modelId,
+      "message": "Model transform updated successfully"
+    ]
+  }
+
+  /// Set model scale
+  func setModelScale(modelId: String, scale: [Double]) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    guard scale.count >= 3 else {
+      return [
+        "error": "Scale must be an array of 3 values [x, y, z]",
+        "success": false
+      ]
+    }
+
+    node.scale = SCNVector3(
+      Float(scale[0]),
+      Float(scale[1]),
+      Float(scale[2])
+    )
+
+    print("Set scale for model \(modelId): (\(scale[0]), \(scale[1]), \(scale[2]))")
+
+    return [
+      "success": true,
+      "modelId": modelId,
+      "scale": scale
+    ]
+  }
+
+  /// Set model rotation (euler angles in radians)
+  func setModelRotation(modelId: String, rotation: [Double]) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    guard rotation.count >= 3 else {
+      return [
+        "error": "Rotation must be an array of 3 values [x, y, z] in radians",
+        "success": false
+      ]
+    }
+
+    node.eulerAngles = SCNVector3(
+      Float(rotation[0]),
+      Float(rotation[1]),
+      Float(rotation[2])
+    )
+
+    print("Set rotation for model \(modelId): (\(rotation[0]), \(rotation[1]), \(rotation[2]))")
+
+    return [
+      "success": true,
+      "modelId": modelId,
+      "rotation": rotation
+    ]
+  }
+
+  /// Set model position
+  func setModelPosition(modelId: String, position: [Double]) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    guard position.count >= 3 else {
+      return [
+        "error": "Position must be an array of 3 values [x, y, z]",
+        "success": false
+      ]
+    }
+
+    node.position = SCNVector3(
+      Float(position[0]),
+      Float(position[1]),
+      Float(position[2])
+    )
+
+    print("Set position for model \(modelId): (\(position[0]), \(position[1]), \(position[2]))")
+
+    return [
+      "success": true,
+      "modelId": modelId,
+      "position": position
+    ]
+  }
+
+  /// Get model transformation (scale, rotation, position)
+  func getModelTransform(modelId: String) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    let worldPosition = node.worldPosition
+
+    return [
+      "success": true,
+      "modelId": modelId,
+      "scale": [
+        "x": Double(node.scale.x),
+        "y": Double(node.scale.y),
+        "z": Double(node.scale.z)
+      ],
+      "rotation": [
+        "x": Double(node.eulerAngles.x),
+        "y": Double(node.eulerAngles.y),
+        "z": Double(node.eulerAngles.z)
+      ],
+      "position": [
+        "x": Double(worldPosition.x),
+        "y": Double(worldPosition.y),
+        "z": Double(worldPosition.z)
+      ]
+    ]
+  }
+
   // MARK: - Gesture Handlers
 
   @objc private func handleLongPress(_ sender: UILongPressGestureRecognizer) {

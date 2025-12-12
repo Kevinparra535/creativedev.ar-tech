@@ -31,6 +31,25 @@ export interface AllModelIdsResponse {
   error?: string;
 }
 
+export interface ModelTransformResponse {
+  success: boolean;
+  modelId?: string;
+  message?: string;
+  scale?: Vector3;
+  rotation?: Vector3;
+  position?: Vector3;
+  error?: string;
+}
+
+export interface ModelTransformData {
+  success: boolean;
+  modelId?: string;
+  scale?: Vector3;
+  rotation?: Vector3;
+  position?: Vector3;
+  error?: string;
+}
+
 // Define the module interface
 interface ExpoARKitModuleType {
   addTestObject(viewTag: number): Promise<void>;
@@ -41,6 +60,11 @@ interface ExpoARKitModuleType {
   setPlaneVisibility(viewTag: number, visible: boolean): Promise<void>;
   getModelDimensions(viewTag: number, modelId: string): Promise<ModelDimensionsResponse>;
   getAllModelIds(viewTag: number): Promise<AllModelIdsResponse>;
+  updateModelTransform(viewTag: number, modelId: string, scale?: number[], rotation?: number[], position?: number[]): Promise<ModelTransformResponse>;
+  setModelScale(viewTag: number, modelId: string, scale: number[]): Promise<ModelTransformResponse>;
+  setModelRotation(viewTag: number, modelId: string, rotation: number[]): Promise<ModelTransformResponse>;
+  setModelPosition(viewTag: number, modelId: string, position: number[]): Promise<ModelTransformResponse>;
+  getModelTransform(viewTag: number, modelId: string): Promise<ModelTransformData>;
 }
 
 // Get the native module and export it

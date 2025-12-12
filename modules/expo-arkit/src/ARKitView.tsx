@@ -1,7 +1,7 @@
 import React, { useRef, useImperativeHandle, forwardRef } from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
 import { ViewProps, StyleSheet, findNodeHandle } from 'react-native';
-import { ExpoARKitModule, ModelDimensionsResponse, AllModelIdsResponse } from './ExpoARKitModule';
+import { ExpoARKitModule, ModelDimensionsResponse, AllModelIdsResponse, ModelTransformResponse, ModelTransformData } from './ExpoARKitModule';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
 
@@ -48,6 +48,11 @@ export interface ARKitViewRef {
   setPlaneVisibility: (visible: boolean) => void;
   getModelDimensions: (modelId: string) => Promise<ModelDimensionsResponse>;
   getAllModelIds: () => Promise<AllModelIdsResponse>;
+  updateModelTransform: (modelId: string, scale?: number[], rotation?: number[], position?: number[]) => Promise<ModelTransformResponse>;
+  setModelScale: (modelId: string, scale: number[]) => Promise<ModelTransformResponse>;
+  setModelRotation: (modelId: string, rotation: number[]) => Promise<ModelTransformResponse>;
+  setModelPosition: (modelId: string, position: number[]) => Promise<ModelTransformResponse>;
+  getModelTransform: (modelId: string) => Promise<ModelTransformData>;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -169,6 +174,91 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         }
       } catch (error) {
         console.error('Error getting all model IDs:', error);
+        return { success: false, error: String(error) };
+      }
+    },
+    updateModelTransform: async (modelId: string, scale?: number[], rotation?: number[], position?: number[]): Promise<ModelTransformResponse> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling updateModelTransform with viewId:', viewId, 'modelId:', modelId);
+          const result = await ExpoARKitModule.updateModelTransform(viewId, modelId, scale, rotation, position);
+          console.log('Model transform updated:', result);
+          return result;
+        } else {
+          console.error('viewId is null');
+          return { success: false, error: 'viewId is null' };
+        }
+      } catch (error) {
+        console.error('Error updating model transform:', error);
+        return { success: false, error: String(error) };
+      }
+    },
+    setModelScale: async (modelId: string, scale: number[]): Promise<ModelTransformResponse> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling setModelScale with viewId:', viewId, 'modelId:', modelId, 'scale:', scale);
+          const result = await ExpoARKitModule.setModelScale(viewId, modelId, scale);
+          console.log('Model scale set:', result);
+          return result;
+        } else {
+          console.error('viewId is null');
+          return { success: false, error: 'viewId is null' };
+        }
+      } catch (error) {
+        console.error('Error setting model scale:', error);
+        return { success: false, error: String(error) };
+      }
+    },
+    setModelRotation: async (modelId: string, rotation: number[]): Promise<ModelTransformResponse> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling setModelRotation with viewId:', viewId, 'modelId:', modelId, 'rotation:', rotation);
+          const result = await ExpoARKitModule.setModelRotation(viewId, modelId, rotation);
+          console.log('Model rotation set:', result);
+          return result;
+        } else {
+          console.error('viewId is null');
+          return { success: false, error: 'viewId is null' };
+        }
+      } catch (error) {
+        console.error('Error setting model rotation:', error);
+        return { success: false, error: String(error) };
+      }
+    },
+    setModelPosition: async (modelId: string, position: number[]): Promise<ModelTransformResponse> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling setModelPosition with viewId:', viewId, 'modelId:', modelId, 'position:', position);
+          const result = await ExpoARKitModule.setModelPosition(viewId, modelId, position);
+          console.log('Model position set:', result);
+          return result;
+        } else {
+          console.error('viewId is null');
+          return { success: false, error: 'viewId is null' };
+        }
+      } catch (error) {
+        console.error('Error setting model position:', error);
+        return { success: false, error: String(error) };
+      }
+    },
+    getModelTransform: async (modelId: string): Promise<ModelTransformData> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+          console.log('Calling getModelTransform with viewId:', viewId, 'modelId:', modelId);
+          const result = await ExpoARKitModule.getModelTransform(viewId, modelId);
+          console.log('Model transform retrieved:', result);
+          return result;
+        } else {
+          console.error('viewId is null');
+          return { success: false, error: 'viewId is null' };
+        }
+      } catch (error) {
+        console.error('Error getting model transform:', error);
         return { success: false, error: String(error) };
       }
     },

@@ -110,6 +110,50 @@ export interface ARKitViewProps extends ViewProps {
   onMeshRemoved?: (event: MeshRemovedEvent) => void;
 }
 
+// Model transformation types
+export interface Vector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface ModelDimensionsResponse {
+  success: boolean;
+  modelId?: string;
+  dimensions?: { width: number; height: number; depth: number };
+  center?: Vector3;
+  position?: Vector3;
+  volume?: number;
+  scale?: Vector3;
+  error?: string;
+}
+
+export interface AllModelIdsResponse {
+  success: boolean;
+  modelIds?: string[];
+  count?: number;
+  error?: string;
+}
+
+export interface ModelTransformResponse {
+  success: boolean;
+  modelId?: string;
+  message?: string;
+  scale?: Vector3;
+  rotation?: Vector3;
+  position?: Vector3;
+  error?: string;
+}
+
+export interface ModelTransformData {
+  success: boolean;
+  modelId?: string;
+  scale?: Vector3;
+  rotation?: Vector3;
+  position?: Vector3;
+  error?: string;
+}
+
 export interface ARKitViewRef {
   addTestObject: () => void;
   loadModel: (path: string, scale?: number, position?: [number, number, number]) => void;
@@ -117,6 +161,13 @@ export interface ARKitViewRef {
   removeAllAnchors: () => void;
   undoLastModel: () => void;
   setPlaneVisibility: (visible: boolean) => void;
+  getModelDimensions: (modelId: string) => Promise<ModelDimensionsResponse>;
+  getAllModelIds: () => Promise<AllModelIdsResponse>;
+  updateModelTransform: (modelId: string, scale?: number[], rotation?: number[], position?: number[]) => Promise<ModelTransformResponse>;
+  setModelScale: (modelId: string, scale: number[]) => Promise<ModelTransformResponse>;
+  setModelRotation: (modelId: string, rotation: number[]) => Promise<ModelTransformResponse>;
+  setModelPosition: (modelId: string, position: number[]) => Promise<ModelTransformResponse>;
+  getModelTransform: (modelId: string) => Promise<ModelTransformData>;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -162,6 +213,55 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       if (viewTag) {
         ExpoARKitModule.setPlaneVisibility(viewTag, visible);
       }
+    },
+    getModelDimensions: async (modelId: string): Promise<ModelDimensionsResponse> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.getModelDimensions(viewTag, modelId);
+      }
+      return { success: false, error: 'View not found' };
+    },
+    getAllModelIds: async (): Promise<AllModelIdsResponse> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.getAllModelIds(viewTag);
+      }
+      return { success: false, error: 'View not found' };
+    },
+    updateModelTransform: async (modelId: string, scale?: number[], rotation?: number[], position?: number[]): Promise<ModelTransformResponse> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.updateModelTransform(viewTag, modelId, scale, rotation, position);
+      }
+      return { success: false, error: 'View not found' };
+    },
+    setModelScale: async (modelId: string, scale: number[]): Promise<ModelTransformResponse> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.setModelScale(viewTag, modelId, scale);
+      }
+      return { success: false, error: 'View not found' };
+    },
+    setModelRotation: async (modelId: string, rotation: number[]): Promise<ModelTransformResponse> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.setModelRotation(viewTag, modelId, rotation);
+      }
+      return { success: false, error: 'View not found' };
+    },
+    setModelPosition: async (modelId: string, position: number[]): Promise<ModelTransformResponse> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.setModelPosition(viewTag, modelId, position);
+      }
+      return { success: false, error: 'View not found' };
+    },
+    getModelTransform: async (modelId: string): Promise<ModelTransformData> => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        return await ExpoARKitModule.getModelTransform(viewTag, modelId);
+      }
+      return { success: false, error: 'View not found' };
     }
   }));
 

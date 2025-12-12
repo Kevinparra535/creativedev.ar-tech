@@ -102,6 +102,81 @@ public class ExpoARKitModule: Module {
       return result
     }
 
+    // Module-level async function to update model transformation
+    AsyncFunction("updateModelTransform") { (viewTag: Int, modelId: String, scale: [Double]?, rotation: [Double]?, position: [Double]?) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.updateModelTransform(modelId: modelId, scale: scale, rotation: rotation, position: position)
+      }
+
+      return result
+    }
+
+    // Module-level async function to set model scale
+    AsyncFunction("setModelScale") { (viewTag: Int, modelId: String, scale: [Double]) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.setModelScale(modelId: modelId, scale: scale)
+      }
+
+      return result
+    }
+
+    // Module-level async function to set model rotation
+    AsyncFunction("setModelRotation") { (viewTag: Int, modelId: String, rotation: [Double]) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.setModelRotation(modelId: modelId, rotation: rotation)
+      }
+
+      return result
+    }
+
+    // Module-level async function to set model position
+    AsyncFunction("setModelPosition") { (viewTag: Int, modelId: String, position: [Double]) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.setModelPosition(modelId: modelId, position: position)
+      }
+
+      return result
+    }
+
+    // Module-level async function to get model transformation
+    AsyncFunction("getModelTransform") { (viewTag: Int, modelId: String) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.getModelTransform(modelId: modelId)
+      }
+
+      return result
+    }
+
     // ViewManager definition
     View(ExpoARKitView.self) {
       // Events

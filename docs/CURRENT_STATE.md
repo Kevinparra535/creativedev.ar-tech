@@ -178,6 +178,23 @@ creativedev.ar-tech/
 
 ## Cambios Recientes
 
+### 2025-12-12: Fase 2 Iniciada - Bounding Box Extraction
+
+**Logros:**
+- ✅ Implementado sistema completo de bounding box extraction en Swift
+- ✅ Métodos `getBoundingBox()`, `getModelDimensions()`, `getAllModelIds()` en ExpoARKitView
+- ✅ Bridge completo a React Native con tipos TypeScript
+- ✅ Eventos `onModelLoaded` y `onModelPlaced` ahora incluyen `modelId`
+- ✅ ARKitViewRef expone métodos para obtener dimensiones de modelos
+
+**Archivos Modificados:**
+- `modules/expo-arkit/ios/ExpoARKitView.swift` - Bounding box utilities
+- `modules/expo-arkit/ios/ExpoARKitModule.swift` - AsyncFunctions nuevos
+- `modules/expo-arkit/src/ExpoARKitModule.ts` - Tipos TypeScript
+- `modules/expo-arkit/src/ARKitView.tsx` - Métodos imperativos
+
+**Estado:** Bounding box backend completo, listo para algoritmos de matching
+
 ### 2025-12-11 (Tarde): Fase 4 Completada - React Native Bridge
 
 **Logros:**
@@ -278,8 +295,17 @@ creativedev.ar-tech/
 - [x] Modal UI para seleccionar room scans
 - [ ] Sistema de alineación automática (Fase 2)
 
-### Fase 2: Model Alignment (0% ⏳)
+### Fase 2: Model Alignment (35% 🔨)
 
+- [x] **Bounding Box Extraction (Swift)** ✅
+  - Método `getBoundingBox()` para extraer dimensiones en world space
+  - Método `getModelDimensions()` retorna dimensiones completas
+  - Método `getAllModelIds()` lista todos los modelos
+  - Tracking automático de `modelId` en eventos
+- [x] **Native Bridge Integration** ✅
+  - Métodos expuestos en ExpoARKitModule
+  - TypeScript types completos (ModelDimensionsResponse, etc.)
+  - Métodos imperativos en ARKitViewRef
 - [ ] Matching automático de dimensiones (room scan vs modelo)
 - [ ] UI de ajuste manual (drag/rotate/scale modelo completo)
 - [ ] Persistencia de transformación en Spatial Anchors
@@ -455,7 +481,7 @@ cd ios && pod install && cd ..
 | **Fase 2:** Model Alignment | ⏳ Pendiente | 0% |
 | **Fase 3:** AR Inmersivo | ⏳ Pendiente | 0% |
 
-**Progreso Total del POC:** ~65% completado
+**Progreso Total del POC:** ~70% completado
 
 ### Tiempo
 

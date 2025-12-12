@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Alert, FlatList, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import Slider from '@react-native-community/slider';
 import * as DocumentPicker from 'expo-document-picker';
 
 import {
@@ -12,6 +13,7 @@ import {
   PlaneUpdatedEvent
 } from '../ar/components';
 import { useFileManager } from '../ar/hooks/useFileManager';
+import { useModelTransformation } from '../ar/hooks/useModelTransformation';
 
 export const ARTestScreen = () => {
   const arViewRef = useRef<ARKitViewRef>(null);
@@ -24,9 +26,22 @@ export const ARTestScreen = () => {
   const [isScanning, setIsScanning] = useState(true);
   const [modelCount, setModelCount] = useState(0);
   const [showRoomScanPicker, setShowRoomScanPicker] = useState(false);
+  const [showTransformControls, setShowTransformControls] = useState(false);
+  const [loadedModelIds, setLoadedModelIds] = useState<string[]>([]);
 
   // File manager hook for listing USDZ files
   const { usdzFiles, isLoading, error: fileError, listUsdzFiles, formatFileSize, formatDate } = useFileManager();
+
+  // Model transformation hook
+  const {
+    transformations,
+    selectedModelId,
+    setSelectedModelId,
+    updateScale,
+    updateRotation,
+    updatePosition,
+    getTransformation
+  } = useModelTransformation(arViewRef);
 
   const handleARInitialized = (event: { nativeEvent: { success: boolean; message: string } }) => {
     const { success, message } = event.nativeEvent;
@@ -77,11 +92,22 @@ export const ARTestScreen = () => {
     Alert.alert('ARKit Error', error);
   };
 
-  const handleModelLoaded = (event: { nativeEvent: { success: boolean; message: string; path: string } }) => {
-    const { success, message, path } = event.nativeEvent;
+  const handleModelLoaded = (event: { nativeEvent: { success: boolean; message: string; path: string; modelId?: string } }) => {
+    const { success, message, path, modelId } = event.nativeEvent;
     if (success) {
       setModelCount(prev => prev + 1);
       setStatusMessage(`Model loaded: ${path}`);
+
+      // Track loaded model ID
+      if (modelId) {
+        setLoadedModelIds(prev => [...prev, modelId]);
+        // Auto-select the first loaded model
+        if (loadedModelIds.length === 0) {
+          setSelectedModelId(modelId);
+          // Get initial transformation
+          getTransformation(modelId);
+        }
+      }
 
       // Auto-hide planes after first model is loaded
       if (modelCount === 0 && showPlanes) {
@@ -92,11 +118,22 @@ export const ARTestScreen = () => {
     }
   };
 
-  const handleModelPlaced = (event: { nativeEvent: { success: boolean; message: string; path: string } }) => {
-    const { success, message } = event.nativeEvent;
+  const handleModelPlaced = (event: { nativeEvent: { success: boolean; message: string; path: string; modelId?: string } }) => {
+    const { success, message, modelId } = event.nativeEvent;
     if (success) {
       setModelCount(prev => prev + 1);
       setStatusMessage('Model placed successfully! Tap to place another or switch to Camera mode.');
+
+      // Track loaded model ID
+      if (modelId) {
+        setLoadedModelIds(prev => [...prev, modelId]);
+        // Auto-select the first loaded model
+        if (loadedModelIds.length === 0) {
+          setSelectedModelId(modelId);
+          // Get initial transformation
+          getTransformation(modelId);
+        }
+      }
 
       // Auto-hide planes after first model is placed
       if (modelCount === 0 && showPlanes) {
@@ -171,8 +208,9 @@ export const ARTestScreen = () => {
   const handleClearAllModels = () => {
     if (arViewRef.current) {
       arViewRef.current.removeAllAnchors();
-      setPendingModelPath(null);
       setModelCount(0);
+      setLoadedModelIds([]);
+      setSelectedModelId(null);
       setStatusMessage('All models cleared');
       Alert.alert('Models Cleared', 'All AR models have been removed from the scene');
     }
@@ -182,7 +220,71 @@ export const ARTestScreen = () => {
     if (arViewRef.current && modelCount > 0) {
       arViewRef.current.undoLastModel();
       setModelCount(prev => prev - 1);
+      // Remove last model ID
+      setLoadedModelIds(prev => prev.slice(0, -1));
       setStatusMessage('Last model removed');
+    }
+  };
+
+  const handleOpenTransformControls = () => {
+    if (loadedModelIds.length === 0) {
+      Alert.alert('No Models', 'Load a model first to use transformation controls');
+      return;
+    }
+    setShowTransformControls(true);
+  };
+
+  const handleScaleChange = async (axis: 'x' | 'y' | 'z', value: number) => {
+    if (!selectedModelId) return;
+
+    const currentTransform = transformations[selectedModelId];
+    const newScale = {
+      x: currentTransform?.scale?.x ?? 1,
+      y: currentTransform?.scale?.y ?? 1,
+      z: currentTransform?.scale?.z ?? 1,
+      [axis]: value
+    };
+
+    try {
+      await updateScale(selectedModelId, newScale);
+    } catch (error) {
+      console.error('Error updating scale:', error);
+    }
+  };
+
+  const handleRotationChange = async (axis: 'x' | 'y' | 'z', value: number) => {
+    if (!selectedModelId) return;
+
+    const currentTransform = transformations[selectedModelId];
+    const newRotation = {
+      x: currentTransform?.rotation?.x ?? 0,
+      y: currentTransform?.rotation?.y ?? 0,
+      z: currentTransform?.rotation?.z ?? 0,
+      [axis]: value
+    };
+
+    try {
+      await updateRotation(selectedModelId, newRotation);
+    } catch (error) {
+      console.error('Error updating rotation:', error);
+    }
+  };
+
+  const handlePositionChange = async (axis: 'x' | 'y' | 'z', value: number) => {
+    if (!selectedModelId) return;
+
+    const currentTransform = transformations[selectedModelId];
+    const newPosition = {
+      x: currentTransform?.position?.x ?? 0,
+      y: currentTransform?.position?.y ?? 0,
+      z: currentTransform?.position?.z ?? 0,
+      [axis]: value
+    };
+
+    try {
+      await updatePosition(selectedModelId, newPosition);
+    } catch (error) {
+      console.error('Error updating position:', error);
     }
   };
 
@@ -222,7 +324,7 @@ export const ARTestScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <ARKitView
         ref={arViewRef}
         style={styles.arView}
@@ -314,8 +416,131 @@ export const ARTestScreen = () => {
           >
             <Text style={styles.buttonText}>📦 Load Room Scan</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.buttonTransform, !isARReady && styles.buttonDisabled, modelCount === 0 && styles.buttonDisabled]}
+            onPress={handleOpenTransformControls}
+            disabled={!isARReady || modelCount === 0}
+          >
+            <Text style={styles.buttonText}>🎛️ Transform Model</Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Transformation Controls Modal */}
+      <Modal
+        visible={showTransformControls}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowTransformControls(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Transform Model</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowTransformControls(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.transformScrollView}>
+              {selectedModelId && (
+                <View style={styles.transformContainer}>
+                  {/* Model Selector */}
+                  <View style={styles.transformSection}>
+                    <Text style={styles.transformSectionTitle}>Selected Model</Text>
+                    <View style={styles.modelSelectorContainer}>
+                      {loadedModelIds.map((modelId, index) => (
+                        <TouchableOpacity
+                          key={modelId}
+                          style={[
+                            styles.modelSelectorButton,
+                            selectedModelId === modelId && styles.modelSelectorButtonActive
+                          ]}
+                          onPress={() => {
+                            setSelectedModelId(modelId);
+                            getTransformation(modelId);
+                          }}
+                        >
+                          <Text style={[
+                            styles.modelSelectorText,
+                            selectedModelId === modelId && styles.modelSelectorTextActive
+                          ]}>
+                            Model {index + 1}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Scale Controls */}
+                  <View style={styles.transformSection}>
+                    <Text style={styles.transformSectionTitle}>Scale</Text>
+                    {['x', 'y', 'z'].map((axis) => (
+                      <View key={`scale-${axis}`} style={styles.sliderContainer}>
+                        <Text style={styles.sliderLabel}>{axis.toUpperCase()}: {(transformations[selectedModelId]?.scale?.[axis as 'x' | 'y' | 'z'] ?? 1).toFixed(2)}</Text>
+                        <Slider
+                          style={styles.slider}
+                          minimumValue={0.1}
+                          maximumValue={3}
+                          value={transformations[selectedModelId]?.scale?.[axis as 'x' | 'y' | 'z'] ?? 1}
+                          onValueChange={(value) => handleScaleChange(axis as 'x' | 'y' | 'z', value)}
+                          minimumTrackTintColor="#007AFF"
+                          maximumTrackTintColor="#8E8E93"
+                          thumbTintColor="#007AFF"
+                        />
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Rotation Controls */}
+                  <View style={styles.transformSection}>
+                    <Text style={styles.transformSectionTitle}>Rotation (radians)</Text>
+                    {['x', 'y', 'z'].map((axis) => (
+                      <View key={`rotation-${axis}`} style={styles.sliderContainer}>
+                        <Text style={styles.sliderLabel}>{axis.toUpperCase()}: {(transformations[selectedModelId]?.rotation?.[axis as 'x' | 'y' | 'z'] ?? 0).toFixed(2)}</Text>
+                        <Slider
+                          style={styles.slider}
+                          minimumValue={-Math.PI}
+                          maximumValue={Math.PI}
+                          value={transformations[selectedModelId]?.rotation?.[axis as 'x' | 'y' | 'z'] ?? 0}
+                          onValueChange={(value) => handleRotationChange(axis as 'x' | 'y' | 'z', value)}
+                          minimumTrackTintColor="#FF9500"
+                          maximumTrackTintColor="#8E8E93"
+                          thumbTintColor="#FF9500"
+                        />
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Position Controls */}
+                  <View style={styles.transformSection}>
+                    <Text style={styles.transformSectionTitle}>Position (meters)</Text>
+                    {['x', 'y', 'z'].map((axis) => (
+                      <View key={`position-${axis}`} style={styles.sliderContainer}>
+                        <Text style={styles.sliderLabel}>{axis.toUpperCase()}: {(transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0).toFixed(2)}</Text>
+                        <Slider
+                          style={styles.slider}
+                          minimumValue={-2}
+                          maximumValue={2}
+                          value={transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0}
+                          onValueChange={(value) => handlePositionChange(axis as 'x' | 'y' | 'z', value)}
+                          minimumTrackTintColor="#34C759"
+                          maximumTrackTintColor="#8E8E93"
+                          thumbTintColor="#34C759"
+                        />
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Room Scan Picker Modal */}
       <Modal
@@ -386,7 +611,6 @@ export const ARTestScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: Platform.OS === 'android' ? 25 : 0,
     flex: 1,
     backgroundColor: '#000'
   },
@@ -484,6 +708,9 @@ const styles = StyleSheet.create({
   },
   buttonRoomScan: {
     backgroundColor: '#AF52DE'
+  },
+  buttonTransform: {
+    backgroundColor: '#5856D6'
   },
   buttonDisabled: {
     backgroundColor: '#555',
@@ -591,5 +818,59 @@ const styles = StyleSheet.create({
   fileItemDetails: {
     color: '#8E8E93',
     fontSize: 13
+  },
+  // Transform controls styles
+  transformScrollView: {
+    maxHeight: '80%'
+  },
+  transformContainer: {
+    padding: 20
+  },
+  transformSection: {
+    marginBottom: 24
+  },
+  transformSectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12
+  },
+  modelSelectorContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  modelSelectorButton: {
+    backgroundColor: '#2C2C2E',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  modelSelectorButtonActive: {
+    backgroundColor: '#5856D6',
+    borderColor: '#fff'
+  },
+  modelSelectorText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  modelSelectorTextActive: {
+    color: '#fff'
+  },
+  sliderContainer: {
+    marginBottom: 16
+  },
+  sliderLabel: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 8,
+    fontWeight: '500'
+  },
+  slider: {
+    width: '100%',
+    height: 40
   }
 });
