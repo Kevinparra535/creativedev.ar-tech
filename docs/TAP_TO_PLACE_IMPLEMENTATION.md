@@ -3,10 +3,10 @@
 **Objetivo:** Implementar sistema de anclaje espacial para modelos USDZ usando tap gestures y ARAnchors
 
 **Fecha Inicio:** 2025-12-11
-**Fecha Fases 1-3 Completadas:** 2025-12-11
+**Fecha Fases 1-4 Completadas:** 2025-12-11
 **Duración Estimada:** 3-5 días
 **Prioridad:** ALTA (Crítico para visión del POC)
-**Estado:** Backend Swift completado (Fases 1-3), en progreso React Native Bridge (Fase 4)
+**Estado:** Backend Swift y React Native Bridge completados (Fases 1-4), pendiente UI/UX (Fase 5)
 
 ---
 
@@ -25,8 +25,8 @@ Este documento detalla la implementación del sistema tap-to-place que permite:
 ### Fase 1: Tap Gesture Detection (Swift Backend) ✅ COMPLETADA
 ### Fase 2: Hit-Testing contra Planos ✅ COMPLETADA
 ### Fase 3: Anchor Management ✅ COMPLETADA
-### Fase 4: React Native Bridge ⏳ EN PROGRESO
-### Fase 5: UI y UX
+### Fase 4: React Native Bridge ✅ COMPLETADA
+### Fase 5: UI y UX ⏳ PRÓXIMA
 ### Fase 6: Testing y Refinamiento
 
 ---
@@ -354,48 +354,39 @@ func removeAllAnchors() {
 
 ---
 
-### **FASE 4: React Native Bridge** ⏳ EN PROGRESO
+### **FASE 4: React Native Bridge** ✅ COMPLETADA
 
-#### ✅ Tarea 4.1: Exponer método placeModelOnTap() a React Native
+#### ✅ Tarea 4.1: Exponer método placeModelOnTap() a React Native - COMPLETADA
 **Archivo:** `modules/expo-arkit/ios/ExpoARKitModule.swift`
 **Descripción:** Nuevo método para colocar modelo en próximo tap
 
-**Pasos:**
+**Implementación:**
 ```swift
-// En ModuleDefinition
 AsyncFunction("placeModelOnTap") { (viewTag: Int, path: String, scale: Double) -> Void in
     DispatchQueue.main.async { [weak self] in
-        guard let view = self?.appContext?.findView(
-            withTag: viewTag,
-            ofType: ExpoARKitView.self
-        ) else {
-            print("Error: Could not find ARKit view")
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+            print("Error: Could not find ARKit view with tag \(viewTag)")
             return
         }
-
-        // Cargar modelo y esperar tap
-        view.prepareModelForTapPlacement(
-            path: path,
-            scale: Float(scale)
-        )
+        view.prepareModelForTapPlacement(path: path, scale: Float(scale))
     }
 }
 ```
 
 **Criterio de Aceptación:**
-- [ ] AsyncFunction declarado en module
-- [ ] Llama a nueva función prepareModelForTapPlacement
-- [ ] Maneja errores correctamente
+- [x] AsyncFunction declarado en module
+- [x] Llama a nueva función prepareModelForTapPlacement
+- [x] Maneja errores correctamente
 
-**Tiempo Estimado:** 30 minutos
+**Tiempo Real:** 15 minutos ✅
 
 ---
 
-#### ✅ Tarea 4.2: Implementar prepareModelForTapPlacement en Swift
+#### ✅ Tarea 4.2: Implementar prepareModelForTapPlacement en Swift - COMPLETADA
 **Archivo:** `modules/expo-arkit/ios/ExpoARKitView.swift`
 **Descripción:** Pre-carga modelo y espera tap para anclarlo
 
-**Pasos:**
+**Implementación:**
 ```swift
 private var pendingModelPath: String?
 private var pendingModelScale: Float = 1.0
@@ -403,25 +394,17 @@ private var pendingModelScale: Float = 1.0
 func prepareModelForTapPlacement(path: String, scale: Float) {
     pendingModelPath = path
     pendingModelScale = scale
-
-    // Notificar a React Native que estamos esperando tap
-    onARError(["error": "Tap on a surface to place the model"])
+    print("Prepared model for tap placement: \(path) at scale \(scale)")
+    print("Waiting for user to tap on a surface...")
 }
 
-// Modificar handleTap para usar modelo pendiente
+// handleTap modificado para usar modelo pendiente
 @objc private func handleTap(_ sender: UITapGestureRecognizer) {
     // ... hit-test code ...
 
     if let modelPath = pendingModelPath {
-        // Cargar y anclar modelo
-        loadModel(
-            path: modelPath,
-            scale: pendingModelScale,
-            position: [],
-            anchorToLastTap: true
-        )
-
-        // Limpiar estado
+        loadModel(path: modelPath, scale: pendingModelScale, position: [], anchorToLastTap: true)
+        onModelPlaced([...])  // Emite evento
         pendingModelPath = nil
         pendingModelScale = 1.0
     }
@@ -429,52 +412,51 @@ func prepareModelForTapPlacement(path: String, scale: Float) {
 ```
 
 **Criterio de Aceptación:**
-- [ ] Modelo se pre-carga (o guarda path)
-- [ ] Tap trigger coloca modelo anclado
-- [ ] Estado se limpia después de colocar
-- [ ] Evento enviado a React Native
+- [x] Modelo se pre-carga (o guarda path)
+- [x] Tap trigger coloca modelo anclado
+- [x] Estado se limpia después de colocar
+- [x] Evento enviado a React Native
 
-**Tiempo Estimado:** 1 hora
+**Tiempo Real:** 30 minutos ✅ (Ya estaba implementado)
 
 ---
 
-#### ✅ Tarea 4.3: Exponer método removeAllAnchors() a React Native
+#### ✅ Tarea 4.3: Exponer método removeAllAnchors() a React Native - COMPLETADA
 **Archivo:** `modules/expo-arkit/ios/ExpoARKitModule.swift`
 **Descripción:** Permitir limpiar escena desde React Native
 
-**Pasos:**
+**Implementación:**
 ```swift
 AsyncFunction("removeAllAnchors") { (viewTag: Int) -> Void in
     DispatchQueue.main.async { [weak self] in
-        guard let view = self?.appContext?.findView(
-            withTag: viewTag,
-            ofType: ExpoARKitView.self
-        ) else { return }
-
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+            print("Error: Could not find ARKit view with tag \(viewTag)")
+            return
+        }
         view.removeAllAnchors()
     }
 }
 ```
 
 **Criterio de Aceptación:**
-- [ ] Función expuesta a React Native
-- [ ] Llama a removeAllAnchors correctamente
-- [ ] No causa crashes
+- [x] Función expuesta a React Native
+- [x] Llama a removeAllAnchors correctamente
+- [x] No causa crashes
 
-**Tiempo Estimado:** 15 minutos
+**Tiempo Real:** 10 minutos ✅
 
 ---
 
-#### ✅ Tarea 4.4: Crear evento onModelPlaced
+#### ✅ Tarea 4.4: Crear evento onModelPlaced - COMPLETADA
 **Archivo:** `modules/expo-arkit/ios/ExpoARKitView.swift` y `ExpoARKitModule.swift`
 **Descripción:** Notificar a React Native cuando modelo se ancla
 
-**Pasos:**
+**Implementación:**
 ```swift
-// ExpoARKitView.swift - agregar event dispatcher
+// ExpoARKitView.swift
 let onModelPlaced = EventDispatcher()
 
-// En handleTap, después de anclar modelo:
+// En handleTap:
 onModelPlaced([
     "success": true,
     "anchorId": anchor.identifier.uuidString,
@@ -485,88 +467,90 @@ onModelPlaced([
     ]
 ])
 
-// ExpoARKitModule.swift - registrar evento
-Events(
-    // ... eventos existentes ...
-    "onModelPlaced"
-)
+// ExpoARKitModule.swift
+Events("onARInitialized", "onARError", "onModelLoaded", "onModelPlaced", ...)
 ```
 
 **Criterio de Aceptación:**
-- [ ] Evento onModelPlaced definido
-- [ ] Emite datos del anchor (ID, posición)
-- [ ] React Native puede recibir evento
+- [x] Evento onModelPlaced definido
+- [x] Emite datos del anchor (ID, posición)
+- [x] React Native puede recibir evento
 
-**Tiempo Estimado:** 30 minutos
+**Tiempo Real:** 20 minutos ✅
 
 ---
 
-#### ✅ Tarea 4.5: Actualizar tipos TypeScript
-**Archivo:** `modules/expo-arkit/src/ARKitView.tsx` o `src/ui/ar/components/ARKitView.tsx`
+#### ✅ Tarea 4.5: Actualizar tipos TypeScript - COMPLETADA
+**Archivo:** `modules/expo-arkit/src/ARKitView.tsx` y `ExpoARKitModule.ts`
 **Descripción:** Agregar tipos para nuevos métodos y eventos
 
-**Pasos:**
+**Implementación:**
 ```typescript
-// Agregar a ARKitViewProps
-export interface ARKitViewProps extends ViewProps {
-    // ... props existentes ...
-    onModelPlaced?: (event: {
-        nativeEvent: {
-            success: boolean;
-            anchorId: string;
-            position: { x: number; y: number; z: number };
-        };
-    }) => void;
+// ExpoARKitModule.ts
+interface ExpoARKitModuleType {
+  addTestObject(viewTag: number): Promise<void>;
+  loadModel(viewTag: number, path: string, scale: number, position: number[]): Promise<void>;
+  placeModelOnTap(viewTag: number, path: string, scale: number): Promise<void>;
+  removeAllAnchors(viewTag: number): Promise<void>;
 }
 
-// Agregar a ARKitViewRef
+// ARKitView.tsx
+export interface ARKitViewProps extends ViewProps {
+  onModelPlaced?: (event: { nativeEvent: ModelPlacedEvent }) => void;
+  // ... otros eventos ...
+}
+
 export interface ARKitViewRef {
-    // ... métodos existentes ...
-    placeModelOnTap: (path: string, scale?: number) => void;
-    removeAllAnchors: () => void;
+  placeModelOnTap: (path: string, scale?: number) => void;
+  removeAllAnchors: () => void;
+  loadModel: (path: string, scale?: number, position?: number[]) => void;
 }
 ```
 
 **Criterio de Aceptación:**
-- [ ] Tipos TypeScript correctos
-- [ ] Autocomplete funciona en editor
-- [ ] No hay errores de tipo
+- [x] Tipos TypeScript correctos
+- [x] Autocomplete funciona en editor
+- [x] No hay errores de tipo
 
-**Tiempo Estimado:** 30 minutos
+**Tiempo Real:** 25 minutos ✅
 
 ---
 
-#### ✅ Tarea 4.6: Implementar métodos imperativos en ARKitView
-**Archivo:** `src/ui/ar/components/ARKitView.tsx`
+#### ✅ Tarea 4.6: Implementar métodos imperativos en ARKitView - COMPLETADA
+**Archivo:** `modules/expo-arkit/src/ARKitView.tsx`
 **Descripción:** Exponer placeModelOnTap y removeAllAnchors a React
 
-**Pasos:**
+**Implementación:**
 ```typescript
 useImperativeHandle(ref, () => ({
-    // ... métodos existentes ...
-
-    placeModelOnTap: (path: string, scale: number = 1) => {
-        const viewTag = findNodeHandle(nativeRef.current);
-        if (viewTag) {
-            ExpoARKitModule.placeModelOnTap(viewTag, path, scale);
+    addTestObject: async () => { ... },
+    loadModel: async (path: string, scale = 1.0, position = [0, 0, -1]) => {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+            await ExpoARKitModule.loadModel(viewId, path, scale, position);
         }
     },
-
-    removeAllAnchors: () => {
-        const viewTag = findNodeHandle(nativeRef.current);
-        if (viewTag) {
-            ExpoARKitModule.removeAllAnchors(viewTag);
+    placeModelOnTap: async (path: string, scale = 1.0) => {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+            await ExpoARKitModule.placeModelOnTap(viewId, path, scale);
         }
-    }
+    },
+    removeAllAnchors: async () => {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId !== null) {
+            await ExpoARKitModule.removeAllAnchors(viewId);
+        }
+    },
 }));
 ```
 
 **Criterio de Aceptación:**
-- [ ] Métodos disponibles vía ref
-- [ ] Pasan viewTag correctamente
-- [ ] TypeScript no muestra errores
+- [x] Métodos disponibles vía ref
+- [x] Pasan viewTag correctamente
+- [x] TypeScript no muestra errores
 
-**Tiempo Estimado:** 30 minutos
+**Tiempo Real:** 20 minutos ✅
 
 ---
 

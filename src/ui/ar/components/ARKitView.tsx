@@ -98,6 +98,9 @@ export interface ARKitViewProps extends ViewProps {
   onModelLoaded?: (event: {
     nativeEvent: { success: boolean; message: string; path: string };
   }) => void;
+  onModelPlaced?: (event: {
+    nativeEvent: { success: boolean; message: string; path: string };
+  }) => void;
   onPlaneDetected?: (event: PlaneDetectedEvent) => void;
   onPlaneUpdated?: (event: PlaneUpdatedEvent) => void;
   onPlaneRemoved?: (event: PlaneRemovedEvent) => void;
@@ -110,6 +113,10 @@ export interface ARKitViewProps extends ViewProps {
 export interface ARKitViewRef {
   addTestObject: () => void;
   loadModel: (path: string, scale?: number, position?: [number, number, number]) => void;
+  placeModelOnTap: (path: string, scale?: number) => void;
+  removeAllAnchors: () => void;
+  undoLastModel: () => void;
+  setPlaneVisibility: (visible: boolean) => void;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -131,6 +138,30 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       if (viewTag) {
         ExpoARKitModule.loadModel(viewTag, path, scale, position);
       }
+    },
+    placeModelOnTap: (path: string, scale: number = 1) => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        ExpoARKitModule.placeModelOnTap(viewTag, path, scale);
+      }
+    },
+    removeAllAnchors: () => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        ExpoARKitModule.removeAllAnchors(viewTag);
+      }
+    },
+    undoLastModel: () => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        ExpoARKitModule.undoLastModel(viewTag);
+      }
+    },
+    setPlaneVisibility: (visible: boolean) => {
+      const viewTag = findNodeHandle(nativeRef.current);
+      if (viewTag) {
+        ExpoARKitModule.setPlaneVisibility(viewTag, visible);
+      }
     }
   }));
 
@@ -141,6 +172,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       onARInitialized={props.onARInitialized}
       onARError={props.onARError}
       onModelLoaded={props.onModelLoaded}
+      onModelPlaced={props.onModelPlaced}
       onPlaneDetected={props.onPlaneDetected}
       onPlaneUpdated={props.onPlaneUpdated}
       onPlaneRemoved={props.onPlaneRemoved}

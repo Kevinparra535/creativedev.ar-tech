@@ -1,14 +1,15 @@
 import React, { useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import * as DocumentPicker from 'expo-document-picker';
 
 import {
   ARKitView,
   ARKitViewRef,
   PlaneDetectedEvent,
-  PlaneUpdatedEvent,
-  PlaneRemovedEvent
+  PlaneRemovedEvent,
+  PlaneUpdatedEvent
 } from '../ar/components';
 
 export const ARTestScreen = () => {
@@ -16,12 +17,18 @@ export const ARTestScreen = () => {
   const [isARReady, setIsARReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Initializing AR...');
   const [planeCount, setPlaneCount] = useState(0);
+  const [isTapMode, setIsTapMode] = useState(false);
+  const [pendingModelPath, setPendingModelPath] = useState<string | null>(null);
+  const [showPlanes, setShowPlanes] = useState(true);
+  const [isScanning, setIsScanning] = useState(true);
+  const [modelCount, setModelCount] = useState(0);
 
   const handleARInitialized = (event: { nativeEvent: { success: boolean; message: string } }) => {
     const { success, message } = event.nativeEvent;
     if (success) {
       setIsARReady(true);
-      setStatusMessage('AR Ready! Move device to detect planes.');
+      setStatusMessage('Scanning... Move your device slowly to detect surfaces');
+      setIsScanning(true);
     } else {
       setStatusMessage(`AR Error: ${message}`);
     }
@@ -30,6 +37,13 @@ export const ARTestScreen = () => {
   const handlePlaneDetected = (event: PlaneDetectedEvent) => {
     const { plane, totalPlanes } = event.nativeEvent;
     setPlaneCount(totalPlanes);
+
+    // End scanning phase after detecting first plane
+    if (isScanning && totalPlanes >= 1) {
+      setIsScanning(false);
+      setStatusMessage('Surfaces detected! Ready to place models.');
+    }
+
     console.log('✈️ Plane Detected:', {
       id: plane.id,
       type: plane.type,
@@ -61,8 +75,33 @@ export const ARTestScreen = () => {
   const handleModelLoaded = (event: { nativeEvent: { success: boolean; message: string; path: string } }) => {
     const { success, message, path } = event.nativeEvent;
     if (success) {
+      setModelCount(prev => prev + 1);
       setStatusMessage(`Model loaded: ${path}`);
+
+      // Auto-hide planes after first model is loaded
+      if (modelCount === 0 && showPlanes) {
+        handleTogglePlanes();
+      }
+
       Alert.alert('Model Loaded', message);
+    }
+  };
+
+  const handleModelPlaced = (event: { nativeEvent: { success: boolean; message: string; path: string } }) => {
+    const { success, message } = event.nativeEvent;
+    if (success) {
+      setModelCount(prev => prev + 1);
+      setStatusMessage('Model placed successfully! Tap to place another or switch to Camera mode.');
+
+      // Auto-hide planes after first model is placed
+      if (modelCount === 0 && showPlanes) {
+        handleTogglePlanes();
+      }
+
+      Alert.alert('Model Placed', message);
+    } else {
+      setStatusMessage('Failed to place model');
+      Alert.alert('Placement Error', message);
     }
   };
 
@@ -98,8 +137,14 @@ export const ARTestScreen = () => {
         return;
       }
 
-      setStatusMessage(`Loading ${file.name}...`);
-      arViewRef.current.loadModel(file.uri, 1, [0, 0, -1]);
+      if (isTapMode) {
+        setStatusMessage('Tap mode ready! Tap on a plane to place the model.');
+        setPendingModelPath(file.uri);
+        arViewRef.current.placeModelOnTap(file.uri, 1);
+      } else {
+        setStatusMessage(`Loading ${file.name}...`);
+        arViewRef.current.loadModel(file.uri, 1, [0, 0, -1]);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       Alert.alert('Error', `Failed to load model: ${errorMessage}`);
@@ -107,14 +152,53 @@ export const ARTestScreen = () => {
     }
   };
 
+  const handleToggleMode = () => {
+    const newMode = !isTapMode;
+    setIsTapMode(newMode);
+    if (newMode) {
+      setStatusMessage('Tap mode activated. Import a model and tap on a plane to place it.');
+    } else {
+      setStatusMessage('Camera mode activated. Models will appear in front of the camera.');
+      setPendingModelPath(null);
+    }
+  };
+
+  const handleClearAllModels = () => {
+    if (arViewRef.current) {
+      arViewRef.current.removeAllAnchors();
+      setPendingModelPath(null);
+      setModelCount(0);
+      setStatusMessage('All models cleared');
+      Alert.alert('Models Cleared', 'All AR models have been removed from the scene');
+    }
+  };
+
+  const handleUndo = () => {
+    if (arViewRef.current && modelCount > 0) {
+      arViewRef.current.undoLastModel();
+      setModelCount(prev => prev - 1);
+      setStatusMessage('Last model removed');
+    }
+  };
+
+  const handleTogglePlanes = () => {
+    if (arViewRef.current) {
+      const newVisibility = !showPlanes;
+      setShowPlanes(newVisibility);
+      arViewRef.current.setPlaneVisibility(newVisibility);
+      setStatusMessage(newVisibility ? 'Plane visualization enabled' : 'Plane visualization disabled');
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <ARKitView
         ref={arViewRef}
         style={styles.arView}
         onARInitialized={handleARInitialized}
         onARError={handleARError}
         onModelLoaded={handleModelLoaded}
+        onModelPlaced={handleModelPlaced}
         onPlaneDetected={handlePlaneDetected}
         onPlaneUpdated={handlePlaneUpdated}
         onPlaneRemoved={handlePlaneRemoved}
@@ -123,19 +207,66 @@ export const ARTestScreen = () => {
       <View style={styles.overlay}>
         <View style={styles.statusContainer}>
           <Text style={styles.statusText}>{statusMessage}</Text>
-          {planeCount > 0 && (
-            <Text style={styles.planeCountText}>Planes detected: {planeCount}</Text>
+          {isScanning && (
+            <Text style={styles.scanningText}>Scanning for surfaces...</Text>
+          )}
+          {planeCount > 0 && !isScanning && (
+            <Text style={styles.planeCountText}>Surfaces detected: {planeCount}</Text>
+          )}
+          {modelCount > 0 && (
+            <Text style={styles.modelCountText}>Models: {modelCount}</Text>
+          )}
+          {isTapMode && (
+            <View style={styles.tapModeIndicator}>
+              <Text style={styles.tapModeText}>TAP MODE ACTIVE</Text>
+            </View>
           )}
         </View>
 
         <View style={styles.controlsContainer}>
-          <TouchableOpacity
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.buttonToggle, isTapMode && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+              onPress={handleToggleMode}
+              disabled={!isARReady}
+            >
+              <Text style={styles.buttonText}>{isTapMode ? 'Camera Mode' : 'Tap Mode'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.buttonInfo, showPlanes && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+              onPress={handleTogglePlanes}
+              disabled={!isARReady}
+            >
+              <Text style={styles.buttonText}>{showPlanes ? 'Hide Planes' : 'Show Planes'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.buttonWarning, !isARReady && styles.buttonDisabled, modelCount === 0 && styles.buttonDisabled]}
+              onPress={handleUndo}
+              disabled={!isARReady || modelCount === 0}
+            >
+              <Text style={styles.buttonText}>Undo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.buttonDanger, !isARReady && styles.buttonDisabled]}
+              onPress={handleClearAllModels}
+              disabled={!isARReady}
+            >
+              <Text style={styles.buttonText}>Clear All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* <TouchableOpacity
             style={[styles.button, !isARReady && styles.buttonDisabled]}
             onPress={handleAddTestObject}
             disabled={!isARReady}
           >
             <Text style={styles.buttonText}>Add Red Cube</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity
             style={[styles.button, styles.buttonSecondary, !isARReady && styles.buttonDisabled]}
@@ -144,15 +275,6 @@ export const ARTestScreen = () => {
           >
             <Text style={styles.buttonText}>Import USDZ Model</Text>
           </TouchableOpacity>
-
-          <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>ARKit Test</Text>
-            <Text style={styles.infoText}>
-              • Move your device to initialize AR{'\n'}
-              • Tap "Add Red Cube" to place a test object{'\n'}
-              • Tap "Import USDZ Model" to load a 3D model
-            </Text>
-          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -161,6 +283,7 @@ export const ARTestScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: Platform.OS === 'android' ? 25 : 0,
     flex: 1,
     backgroundColor: '#000'
   },
@@ -191,9 +314,42 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '600'
   },
+  scanningText: {
+    color: '#FF9500',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    fontWeight: '600',
+    fontStyle: 'italic'
+  },
+  modelCountText: {
+    color: '#5AC8FA',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    fontWeight: '600'
+  },
+  tapModeIndicator: {
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 149, 0, 0.9)',
+    borderRadius: 4,
+    alignSelf: 'center'
+  },
+  tapModeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1
+  },
   controlsContainer: {
     padding: 16,
     gap: 16
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12
   },
   button: {
     backgroundColor: '#007AFF',
@@ -203,6 +359,25 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: {
     backgroundColor: '#34C759'
+  },
+  buttonToggle: {
+    flex: 1,
+    backgroundColor: '#5856D6'
+  },
+  buttonToggleActive: {
+    backgroundColor: '#FF9500'
+  },
+  buttonDanger: {
+    flex: 1,
+    backgroundColor: '#FF3B30'
+  },
+  buttonWarning: {
+    flex: 1,
+    backgroundColor: '#FF9500'
+  },
+  buttonInfo: {
+    flex: 1,
+    backgroundColor: '#5AC8FA'
   },
   buttonDisabled: {
     backgroundColor: '#555',

@@ -50,6 +50,28 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Module-level async function to undo last model
+    AsyncFunction("undoLastModel") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.undoLastModel()
+      }
+    }
+
+    // Module-level async function to set plane visibility
+    AsyncFunction("setPlaneVisibility") { (viewTag: Int, visible: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setPlaneVisibility(visible)
+      }
+    }
+
     // ViewManager definition
     View(ExpoARKitView.self) {
       // Events

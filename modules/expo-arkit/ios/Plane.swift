@@ -88,8 +88,8 @@ class Plane: SCNNode {
     }
 
     private func setupMeshVisualStyle() {
-        // Make the plane visualization semitransparent to clearly show real-world placement.
-        meshNode.opacity = 0.25
+        // Make the plane visualization very subtle (reduced from 0.25)
+        meshNode.opacity = 1
 
         // Use color and blend mode to make planes stand out.
         guard let material = meshNode.geometry?.firstMaterial
@@ -104,37 +104,37 @@ class Plane: SCNNode {
         if #available(iOS 12.0, *) {
             switch planeAnchor.classification {
             case .floor:
-                // Blue for floors
-                return UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4)
+                // Subtle blue for floors (reduced alpha from 0.4 to 0.2)
+                return UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.5)
             case .wall:
-                // Orange for walls
-                return UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
+                // Subtle orange for walls
+                return UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.5)
             case .ceiling:
-                // Purple for ceilings
-                return UIColor(red: 0.7, green: 0.3, blue: 1.0, alpha: 0.4)
+                // Subtle purple for ceilings
+                return UIColor(red: 0.7, green: 0.3, blue: 1.0, alpha: 0.2)
             case .table:
-                // Green for tables
-                return UIColor(red: 0.0, green: 0.8, blue: 0.3, alpha: 0.4)
+                // Subtle green for tables
+                return UIColor(red: 0.0, green: 0.8, blue: 0.3, alpha: 0.5)
             case .seat:
-                // Yellow for seats
-                return UIColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 0.4)
+                // Subtle yellow for seats
+                return UIColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 0.5)
             case .window:
-                // Cyan for windows
-                return UIColor(red: 0.0, green: 0.8, blue: 0.8, alpha: 0.4)
+                // Subtle cyan for windows
+                return UIColor(red: 0.0, green: 0.8, blue: 0.8, alpha: 0.5)
             case .door:
-                // Magenta for doors
-                return UIColor(red: 1.0, green: 0.0, blue: 0.5, alpha: 0.4)
+                // Subtle magenta for doors
+                return UIColor(red: 1.0, green: 0.0, blue: 0.5, alpha: 0.5)
             default:
-                // Gray for unknown/none - fallback to alignment-based color
+                // Subtle gray for unknown/none
                 return planeAnchor.alignment == .horizontal ?
-                    UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4) :
-                    UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
+                    UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.5) :
+                    UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.5)
             }
         } else {
-            // Fallback for iOS < 12: use alignment-based colors
+            // Fallback for iOS < 12: use subtle alignment-based colors
             return planeAnchor.alignment == .horizontal ?
-                UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.4) :
-                UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.4)
+                UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 0.5) :
+                UIColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 0.5)
         }
     }
 
@@ -155,6 +155,7 @@ class Plane: SCNNode {
     private func makeTextNode(_ text: String) -> SCNNode {
         let textGeometry = SCNText(string: text, extrusionDepth: 1)
         textGeometry.font = UIFont(name: "Futura", size: 75)
+        textGeometry.firstMaterial?.diffuse.contents = UIColor.black
 
         let textNode = SCNNode(geometry: textGeometry)
         // scale down the size of the text

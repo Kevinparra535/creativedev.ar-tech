@@ -105,8 +105,15 @@ El proyecto ha avanzado significativamente. Hemos completado:
 - Actualización automática de anchors cuando ARKit los refina
 - Método `removeAllAnchors()` para limpiar escena completa
 
+✅ **Fase 4: React Native Bridge**
+- Método `placeModelOnTap()` expuesto a React Native
+- Método `removeAllAnchors()` expuesto a React Native
+- Evento `onModelPlaced` registrado y emitido
+- Tipos TypeScript completos (ExpoARKitModule.ts)
+- Métodos imperativos en ARKitView.tsx (placeModelOnTap, removeAllAnchors, loadModel)
+- Interfaces de eventos (PlaneData, ModelPlacedEvent)
+
 ⏳ **Por Implementar (Tap-to-Place)**
-- Fase 4: React Native Bridge (exponer métodos a RN)
 - Fase 5: UI y UX (botones, indicadores, feedback)
 - Fase 6: Testing y refinamiento
 
@@ -141,7 +148,25 @@ creativedev.ar-tech/
 
 ---
 
-## Cambios Recientes (2025-12-11)
+## Cambios Recientes
+
+### 2025-12-11 (Tarde): Fase 4 Completada - React Native Bridge
+
+**Logros:**
+- ✅ Expuesto método `placeModelOnTap()` a React Native
+- ✅ Expuesto método `removeAllAnchors()` a React Native
+- ✅ Registrado evento `onModelPlaced` en ExpoARKitModule
+- ✅ Actualizado tipos TypeScript completos
+- ✅ Implementados métodos imperativos en ARKitView.tsx
+
+**Archivos Modificados:**
+- `modules/expo-arkit/ios/ExpoARKitModule.swift` - Agregados AsyncFunctions
+- `modules/expo-arkit/src/ExpoARKitModule.ts` - Tipos TypeScript actualizados
+- `modules/expo-arkit/src/ARKitView.tsx` - Métodos imperativos y props de eventos
+
+**Estado:** Tap-to-Place backend completamente funcional desde React Native
+
+### 2025-12-11 (Mañana): Build Fix - Plane.swift
 
 ### Build Fix: Plane.swift
 
@@ -207,12 +232,12 @@ creativedev.ar-tech/
 - [x] Posicionamiento relativo a cámara
 - [x] Sistema de escalado
 
-### Tap-to-Place Backend (75% 🔨)
+### Tap-to-Place Backend (90% 🔨)
 
 - [x] **Fase 1**: Tap Gesture Detection (100%)
 - [x] **Fase 2**: Hit-Testing contra Planos (100%)
 - [x] **Fase 3**: Anchor Management (100%)
-- [ ] **Fase 4**: React Native Bridge (0%)
+- [x] **Fase 4**: React Native Bridge (100%)
 - [ ] **Fase 5**: UI y UX (0%)
 - [ ] **Fase 6**: Testing y Refinamiento (0%)
 
