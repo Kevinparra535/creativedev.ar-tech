@@ -1,20 +1,22 @@
 # Estado Actual del Proyecto
 
-**Fecha:** 2025-12-11
-**Versión:** 0.7.0
-**Fase:** Tap-to-Place Implementation (Backend Swift 100% completo)
+**Fecha:** 2025-12-12
+**Versión:** 1.2.0
+**Fase:** Model Manipulation Complete + Room Scanning Implementado
 
 ---
 
 ## Resumen Ejecutivo
 
-El proyecto ha avanzado significativamente. Hemos completado:
+El proyecto ha completado las fases fundamentales del POC:
 - ✅ Fase 0: Setup básico de ARKit
 - ✅ Fase 0.5: Plane Detection con visualización y eventos
-- ✅ Fase 0.8: Model Loading básico (USDZ)
-- ✅ **Tap-to-Place Backend (Fases 1-3)**: Sistema completo de anclaje espacial en Swift
+- ✅ Fase 1: Model Loading, Tap-to-Place y Manipulación de Modelos
+- ✅ **Fase 1.5: Room Scanning** (vía expo-roomplan 1.2.1)
 
-**Último logro:** Backend Swift completo para tap-to-place con gesture detection, hit-testing y anchor management
+**Progreso del POC:** ~60% completado
+
+**Último logro:** Sistema completo de gestos táctiles, undo/redo, y room scanning funcional
 
 ---
 
@@ -81,41 +83,67 @@ El proyecto ha avanzado significativamente. Hemos completado:
 - Posicionamiento relativo a cámara actual
 - Evento `onModelLoaded` hacia React Native
 
-### Tap-to-Place (Backend Swift - Completada ✅)
+### Fase 1: Model Manipulation (Completada ✅)
 
-✅ **Fase 1: Tap Gesture Detection**
-- UITapGestureRecognizer agregado a ARSCNView
-- Handler `handleTap()` implementado
-- Validación de inicialización AR
-- No interfiere con gestures existentes de SceneKit
+✅ **Tap-to-Place System**
+- UITapGestureRecognizer con raycast preciso
+- Hit-testing contra planos (iOS 13+ API moderna)
+- Dos modos: Camera Mode y Tap-to-Place Mode
+- Anchor management completo con UUID tracking
+- Evento `onModelPlaced` con datos de posición
 
-✅ **Fase 2: Hit-Testing contra Planos**
-- Raycast API moderno (iOS 13+) para hit-testing
-- Fallback a hitTest deprecated para iOS < 13
-- Detección de intersección con planos existentes
-- Validación de ARPlaneAnchor
-- Filtrado opcional por clasificación de plano
-- Manejo de errores descriptivos
+✅ **Gesture System (Manipulación Táctil)**
+- **Long Press:** Selección/deselección de modelos (0.5s)
+- **Pan Gesture:** Mover modelos sobre planos detectados
+- **Rotation Gesture:** Rotar modelos en eje Y (dos dedos)
+- **Pinch Gesture:** Escalar modelos proporcionalmente
+- Feedback visual con outline azul al seleccionar
 
-✅ **Fase 3: Anchor Management**
-- Sistema de gestión de anchors (`modelAnchors: [UUID: ARAnchor]`)
-- Mapeo de nodos anclados (`anchoredNodes: [UUID: SCNNode]`)
-- Creación y registro de ARAnchor en punto de tap
-- Método `loadModel()` extendido con parámetro `anchorToLastTap`
-- Actualización automática de anchors cuando ARKit los refina
-- Método `removeAllAnchors()` para limpiar escena completa
+✅ **Model History & Undo System**
+- Sistema de historial ordenado de modelos
+- `undoLastModel()` - Eliminar último modelo colocado
+- `removeAllAnchors()` - Limpiar toda la escena
+- Contador de modelos en tiempo real
 
-✅ **Fase 4: React Native Bridge**
-- Método `placeModelOnTap()` expuesto a React Native
-- Método `removeAllAnchors()` expuesto a React Native
-- Evento `onModelPlaced` registrado y emitido
-- Tipos TypeScript completos (ExpoARKitModule.ts)
-- Métodos imperativos en ARKitView.tsx (placeModelOnTap, removeAllAnchors, loadModel)
-- Interfaces de eventos (PlaneData, ModelPlacedEvent)
+✅ **React Native Bridge**
+- Métodos: `loadModel()`, `placeModelOnTap()`, `removeAllAnchors()`, `undoLastModel()`
+- Eventos: `onModelLoaded`, `onModelPlaced`
+- Tipos TypeScript completos
+- Métodos imperativos vía useImperativeHandle
 
-⏳ **Por Implementar (Tap-to-Place)**
-- Fase 5: UI y UX (botones, indicadores, feedback)
-- Fase 6: Testing y refinamiento
+### Fase 1.5: Room Scanning (Completada ✅)
+
+✅ **expo-roomplan Integration**
+- Wrapper hook `useRoomPlan()` implementado
+- `RoomPlanTestScreen` con UI completa
+- Integración con Apple RoomPlan SDK (iOS 17.0+)
+- Export automático a USDZ (Parametric mode)
+- UI con instrucciones y manejo de errores
+
+✅ **Funcionalidades**
+- Escaneo completo de habitaciones con LiDAR
+- Detección automática de paredes, piso, ventanas, puertas
+- Export de geometría escaneada como USDZ
+- Preview de modelo escaneado
+- File location tracking
+
+**Archivos:**
+- `src/ui/screens/RoomPlanTestScreen.tsx` - UI de scanning
+- `src/ui/ar/hooks/useRoomPlan.ts` - Hook wrapper con retorno de file path
+- `src/ui/ar/hooks/useFileManager.ts` - Hook para listar archivos USDZ
+- `src/ui/ar/components/RoomPlanView.tsx` - Componente wrapper
+- `src/ui/screens/ARTestScreen.tsx` - Integración con botón y modal de room scans
+
+✅ **Room Scanning Completado**
+- Botón "Load Room Scan" en ARTestScreen
+- Modal con lista de archivos USDZ guardados
+- Carga de modelos escaneados en AR view (Camera Mode y Tap-to-Place Mode)
+- File manager con preview de metadata (tamaño, fecha)
+
+⏳ **Por Implementar (Fase 2)**
+- Sistema de alineación automática de modelos con room scan
+- Auto-scaling basado en dimensiones del modelo
+- Persistencia de transformaciones
 
 ---
 
@@ -218,95 +246,113 @@ creativedev.ar-tech/
 ### Fase 0.5: Plane Detection (100% ✅)
 
 - [x] Visualización de planos (Plane.swift)
-- [x] Clasificación de planos
+- [x] Clasificación de planos (floor, wall, ceiling, table, seat, window, door)
 - [x] Compatibilidad iOS 16+
 - [x] Eventos React Native (onPlaneDetected, onPlaneUpdated, onPlaneRemoved)
 - [x] Renderizado con colores por clasificación
-- [x] ARSessionDelegate implementado
+- [x] Control de visibilidad (toggle show/hide)
+- [x] Auto-ocultación al colocar modelos
 
-### Fase 0.8: Model Loading (100% ✅)
+### Fase 1: Model Manipulation (100% ✅)
 
-- [x] Carga de USDZ desde filesystem
-- [x] Soporte para file:// URLs y paths absolutos
-- [x] Security-scoped resource access
-- [x] Posicionamiento relativo a cámara
-- [x] Sistema de escalado
+- [x] Carga de USDZ desde filesystem (DocumentPicker)
+- [x] Tap-to-Place con raycast a planos
+- [x] Camera Mode (colocación relativa a cámara)
+- [x] Sistema de gestos (Long Press, Pan, Rotation, Pinch)
+- [x] Feedback visual de selección (outline)
+- [x] Anchor management con UUID tracking
+- [x] Sistema de Undo/Redo
+- [x] Contador de modelos en tiempo real
+- [x] Fix de transparencia en modelos 3D
+- [x] React Native bridge completo
 
-### Tap-to-Place Backend (90% 🔨)
+### Fase 1.5: Room Scanning (100% ✅)
 
-- [x] **Fase 1**: Tap Gesture Detection (100%)
-- [x] **Fase 2**: Hit-Testing contra Planos (100%)
-- [x] **Fase 3**: Anchor Management (100%)
-- [x] **Fase 4**: React Native Bridge (100%)
-- [ ] **Fase 5**: UI y UX (0%)
-- [ ] **Fase 6**: Testing y Refinamiento (0%)
+- [x] Integración expo-roomplan (v1.2.1)
+- [x] UI de room scanning (RoomPlanTestScreen)
+- [x] Export de geometría escaneada (USDZ Parametric)
+- [x] Hook wrapper (useRoomPlan) con retorno de file path
+- [x] Integración con ARTestScreen
+- [x] Cargar modelo escaneado en AR view
+- [x] File manager para listar USDZ files
+- [x] Modal UI para seleccionar room scans
+- [ ] Sistema de alineación automática (Fase 2)
 
-### Room Scanning (0% ⏳)
+### Fase 2: Model Alignment (0% ⏳)
 
-- [ ] Integración RoomPlan API
-- [ ] Export de geometría escaneada
-- [ ] Matching automático de dimensiones
-- [ ] UI de room scanning
+- [ ] Matching automático de dimensiones (room scan vs modelo)
+- [ ] UI de ajuste manual (drag/rotate/scale modelo completo)
+- [ ] Persistencia de transformación en Spatial Anchors
+- [ ] Validación de escala metros reales
 
-### AR Inmersivo (0% ⏳)
+### Fase 3: AR Inmersivo (0% ⏳)
 
-- [ ] Occlusion rendering
-- [ ] Reemplazo de realidad
-- [ ] Sistema de materiales
-- [ ] Navegación inmersiva
+- [ ] Occlusion rendering (depth-based)
+- [ ] Reemplazo de realidad (ocultar cámara real)
+- [ ] Navegación inmersiva mejorada (6DOF)
+- [ ] Sistema de materiales intercambiables
+- [ ] Portal mode (solo modelo, sin realidad)
 
 ---
 
 ## Próximos Pasos Inmediatos
 
-### 1. Completar Tap-to-Place (Fases 4-6)
+### 1. Implementar Model Alignment (Fase 2) 🔴
 
-**Prioridad:** Alta
-**Duración estimada:** 2-3 días
+**Prioridad:** ALTA
+**Duración estimada:** 2-3 semanas
+
+**Objetivo:** Alinear el modelo 3D del arquitecto con el room scan
 
 **Tareas:**
-1. **Fase 4: React Native Bridge**
-   - Exponer `placeModelOnTap()` a React Native
-   - Implementar `prepareModelForTapPlacement()` en Swift
-   - Exponer `removeAllAnchors()` a React Native
-   - Crear evento `onModelPlaced`
-   - Actualizar tipos TypeScript
-   - Implementar métodos imperativos en ARKitView
+1. **Dimension Matching**
+   - Algoritmo de matching dimensiones (room scan vs modelo arquitecto)
+   - Validación de escala (metros reales)
+   - Auto-scaling basado en dimensiones
 
-2. **Fase 5: UI y UX**
-   - Actualizar ARTestScreen con modo tap-to-place
-   - Agregar botón "Clear Models"
-   - Implementar handler onModelPlaced
-   - Agregar indicador visual de "tap mode activo"
+2. **Manual Adjustment UI**
+   - Controles de transformación (position, rotation, scale)
+   - Sliders para ajuste fino
+   - Vista de comparación (overlay)
+   - Guardar transformación en Spatial Anchor
 
-3. **Fase 6: Testing**
-   - Testing en dispositivo real
-   - Edge cases
-   - Performance
+3. **Persistence**
+   - Guardar alineación entre sesiones
+   - Cargar configuración guardada
+   - Múltiples configuraciones por proyecto
 
-**Referencia:** [TAP_TO_PLACE_IMPLEMENTATION.md](./TAP_TO_PLACE_IMPLEMENTATION.md)
+### 3. AR Inmersivo - Occlusion & Reality Replacement (Fase 3) 🟡
 
-### 2. Testing en Dispositivo Real
+**Prioridad:** Media (después de Fase 2)
+**Duración estimada:** 3-4 semanas
 
-**Prioridad:** Media
-**Requisitos:** iPhone con LiDAR (12 Pro+)
+**Objetivo:** Reemplazo completo de realidad con modelo 3D
 
-**Verificar:**
-- Detección de planos horizontales (piso, mesa)
-- Detección de planos verticales (paredes)
-- Clasificación correcta
-- Performance con 10+ planos
-- Selección de planos funcional
+**Tareas:**
+1. **Occlusion Rendering**
+   - Custom shader para ocultar cámara real
+   - Depth buffer de ARKit
+   - Renderizar solo modelo 3D
 
-### 3. Documentación
+2. **Navigation System**
+   - 6DOF tracking mejorado
+   - Collision detection opcional
+   - Smooth camera movement
 
-**Prioridad:** Media
+3. **Materials System** (Nice-to-have)
+   - Intercambio de materiales en tiempo real
+   - UI de selección de variantes
+   - Preview de cambios
 
-**Actualizar:**
-- [x] README.md principal
-- [x] docs/README.md
-- [x] docs/CURRENT_STATE.md (este documento)
-- [ ] Agregar screenshots/videos de plane detection
+### 4. Testing y Refinamiento 🟢
+
+**Prioridad:** Baja (continuo)
+
+**Áreas:**
+- Testing en dispositivo real (iPhone 14 Pro Max)
+- Performance optimization
+- Edge cases y error handling
+- UX improvements
 
 ---
 
@@ -390,21 +436,34 @@ cd ios && pod install && cd ..
 
 ### Código
 
-- **Líneas de Swift (módulo nativo):** ~600
-- **Líneas de TypeScript/React:** ~300
+- **Líneas de Swift (módulo nativo):** ~1,100 (ExpoARKitView: 787, ExpoARKitModule: 93, Plane: 220)
+- **Líneas de TypeScript/React:** ~1,000+
 - **Archivos Swift:** 3
-- **Archivos TypeScript:** 5
+- **Archivos TypeScript:** 10+
+- **Eventos AR definidos:** 10 (onARInitialized, onPlaneDetected, onModelPlaced, etc.)
+- **Métodos expuestos a RN:** 6 (addTestObject, loadModel, placeModelOnTap, removeAllAnchors, undoLastModel, setPlaneVisibility)
+- **Gesture Handlers:** 5 (tap, long-press, pan, rotation, pinch)
 
-### Fases
+### Fases del POC
 
-- **Completadas:** 3 (Fase 0, 0.5, 0.8 + Tap-to-Place Backend)
-- **En progreso:** 1 (Tap-to-Place - React Native Bridge)
-- **Pendientes:** 2 (Room Scanning, AR Inmersivo)
+| Fase | Estado | Progreso |
+|------|--------|----------|
+| **Fase 0:** Setup ARKit | ✅ Completa | 100% |
+| **Fase 0.5:** Plane Detection | ✅ Completa | 100% |
+| **Fase 1:** Model Manipulation | ✅ Completa | 100% |
+| **Fase 1.5:** Room Scanning | ✅ Completa | 100% |
+| **Fase 2:** Model Alignment | ⏳ Pendiente | 0% |
+| **Fase 3:** AR Inmersivo | ⏳ Pendiente | 0% |
+
+**Progreso Total del POC:** ~65% completado
 
 ### Tiempo
 
-- **Invertido:** ~4 semanas
-- **Estimado restante:** ~6-8 semanas para POC completo
+- **Invertido:** ~5-6 semanas
+- **Estimado restante:** ~5-7 semanas para POC completo
+  - Fase 1.5 (completar): 3-5 días
+  - Fase 2: 2-3 semanas
+  - Fase 3: 3-4 semanas
 
 ---
 
@@ -424,6 +483,6 @@ cd ios && pod install && cd ..
 
 ---
 
-**Última actualización:** 2025-12-11 21:00
+**Última actualización:** 2025-12-12 (Fase 1.5 completada)
 **Actualizado por:** Claude Code Assistant
-**Próxima revisión:** Cuando se complete Tap-to-Place (Fase 4)
+**Próxima revisión:** Al iniciar Fase 2 (Model Alignment)

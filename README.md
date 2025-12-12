@@ -95,44 +95,71 @@ npx expo run:ios --device
 - Validación de ARKit World Tracking
 - Comunicación bidireccional (eventos y métodos)
 
-### Fase 0.5: Plane Detection (En progreso - 20%)
+### Fase 0.5: Plane Detection (Completada ✅)
 
 **Implementado:**
-- Detección de planos en tiempo real
-- Visualización de mesh geometry
-- Clasificación de planos (floor, wall, ceiling, table, etc.)
-- Colores diferentes para horizontales (azul) vs verticales (naranja)
-- Compatibilidad iOS 16+ con API moderna
+- ✅ Detección de planos en tiempo real (horizontal y vertical)
+- ✅ Visualización de mesh geometry con clasificación
+- ✅ Colores personalizables según tipo de superficie
+- ✅ Eventos de plane detection en React Native
+- ✅ UI overlay con estadísticas de planos
+- ✅ Fase de escaneo con feedback visual
+- ✅ Control de visibilidad de planos
+- ✅ Auto-ocultación al colocar modelos
+
+### Fase 1: Model Loading & Manipulation (Completada ✅)
+
+**Implementado:**
+- ✅ Carga de modelos USDZ personalizados
+- ✅ Dos modos de colocación: Camera y Tap-to-Place
+- ✅ Sistema de gestos táctiles:
+  - Long Press: Selección de modelos
+  - Pan: Mover modelos sobre planos
+  - Rotation: Rotar modelos (dos dedos)
+  - Pinch: Escalar modelos
+- ✅ Feedback visual de selección (outline azul)
+- ✅ Sistema de Undo para eliminar último modelo
+- ✅ Clear All para limpiar escena completa
+- ✅ Contador de modelos en tiempo real
+- ✅ Fix de transparencia en modelos 3D
+- ✅ Anchoring automático a planos detectados
 
 **Archivos clave:**
 - `modules/expo-arkit/ios/Plane.swift` - Visualización de planos
-- `modules/expo-arkit/ios/ExpoARKitView.swift` - Vista ARKit
+- `modules/expo-arkit/ios/ExpoARKitView.swift` - Vista ARKit con gestos
 - `modules/expo-arkit/ios/ExpoARKitModule.swift` - Bridge module
+- `src/ui/screens/ARTestScreen.tsx` - UI completa de AR
+- `src/ui/ar/components/ARKitView.tsx` - Componente React
 
-**Próximo:**
-- Integrar eventos de plane detection con React Native
-- UI overlay para mostrar estadísticas de planos
-- Selección de planos con tap gestures
+### Fase 1.5: Room Scanning (Completada ✅ - 85%)
 
-### Fase 1: Model Loading & Alignment (Próximo)
+**Implementado:**
+- ✅ Integración expo-roomplan v1.2.1
+- ✅ RoomPlanTestScreen con UI completa
+- ✅ Hook useRoomPlan para scanning
+- ✅ Export automático a USDZ (Parametric mode)
+- ✅ Manejo de estados y errores
+- ✅ File location tracking
 
-- Cargar modelos USDZ personalizados
-- Sistema de alineación con planos detectados
-- Escala automática según dimensiones reales
-- UI para ajuste manual (drag/rotate/scale)
+**Pendiente:**
+- Integración con ARTestScreen (cargar modelo escaneado)
+- File picker para seleccionar scans guardados
+- Sistema de alineación automática
 
-### Fase 2: Room Scanning (Futuro)
+### Fase 2: Model Alignment (Próximo - 0%)
 
-- Integración completa de RoomPlan API
-- Export de geometría escaneada
-- Matching de dimensiones espacio real vs modelo
+- Matching automático de dimensiones (room scan vs modelo arquitecto)
+- UI de ajuste manual (drag/rotate/scale)
+- Persistencia de transformación en Spatial Anchors
+- Validación de escala metros reales
 
-### Fase 3: AR Visualization (Futuro)
+### Fase 3: AR Inmersivo (Futuro - 0%)
 
-- Occlusion rendering
+- Occlusion rendering (depth-based)
 - Reemplazo de realidad con modelo 3D
-- Navegación inmersiva (6DOF tracking)
+- Navegación inmersiva mejorada (6DOF tracking)
 - Sistema de materiales intercambiables
+- Portal mode (solo modelo, sin realidad)
 
 ---
 
@@ -203,6 +230,7 @@ killall node
 ### Documentos Principales
 
 - **[BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md)** - Guía rápida de build y testing
+- **[docs/ARKIT_FEATURES.md](docs/ARKIT_FEATURES.md)** - 📚 **NUEVO:** Documentación completa de características
 - **[docs/PLAN_AR_INMERSIVO.md](docs/PLAN_AR_INMERSIVO.md)** - Visión completa del POC
 - **[docs/PLANE_DETECTION_PLAN.md](docs/PLANE_DETECTION_PLAN.md)** - Plan técnico de plane detection
 - **[docs/ARKIT_IMPLEMENTATION.md](docs/ARKIT_IMPLEMENTATION.md)** - Detalles de implementación ARKit
@@ -238,6 +266,33 @@ Ver [docs/FASE_0_RESUMEN_FINAL.md](docs/FASE_0_RESUMEN_FINAL.md) para:
 
 ## Últimas Actualizaciones
 
+### 2025-12-12 (Actualización)
+
+**✨ Documentación Actualizada - Estado Real del Proyecto**
+
+**Fases Completadas:**
+- ✅ Fase 0: Setup ARKit completo
+- ✅ Fase 0.5: Plane Detection (clasificación, visualización, eventos)
+- ✅ Fase 1: Model Manipulation (gestos, tap-to-place, undo/redo)
+- ✅ Fase 1.5: Room Scanning (85% - vía expo-roomplan v1.2.1)
+
+**Características Implementadas:**
+- ✅ Gestos táctiles completos (Long Press, Pan, Rotation, Pinch)
+- ✅ Sistema de Undo/Clear All para gestión de modelos
+- ✅ Dos modos de colocación: Camera y Tap-to-Place
+- ✅ Control de visibilidad de planos con auto-ocultación
+- ✅ Room scanning con export USDZ
+- ✅ 10 eventos AR (onPlaneDetected, onModelPlaced, etc.)
+- ✅ 6 métodos nativos expuestos a React Native
+
+**Documentación Actualizada:**
+- 📚 `docs/CURRENT_STATE.md` - Refleja estado real (60% POC completo)
+- 📚 `docs/PLAN_AR_INMERSIVO.md` - Fase 1 marcada como completa
+- 📚 `docs/ARKIT_FEATURES.md` - Documentación completa de características
+- 📚 README.md - Progreso y roadmap actualizados
+
+**Próximo Paso:** Completar integración room scan con AR view (Fase 1.5 → 100%)
+
 ### 2025-12-11
 
 **Plane Detection Build Fix**
@@ -246,9 +301,6 @@ Ver [docs/FASE_0_RESUMEN_FINAL.md](docs/FASE_0_RESUMEN_FINAL.md) para:
 - Implementada función `getPlaneExtent(from:)` compatible con iOS 16+
 - Reemplazadas APIs deprecated (`anchor.extent` → `anchor.planeExtent`)
 - Build exitoso en iOS
-
-**Archivos modificados:**
-- `modules/expo-arkit/ios/Plane.swift` - Visualización de planos compatible iOS 16+
 
 ### 2025-12-10
 
@@ -265,12 +317,15 @@ Ver [docs/FASE_0_RESUMEN_FINAL.md](docs/FASE_0_RESUMEN_FINAL.md) para:
 | Fase | Estado | Duración | Entregable |
 |------|--------|----------|------------|
 | **Fase 0** | ✅ Completada | 2 semanas | ARKit básico funcional |
-| **Fase 0.5** | 🔨 20% | 1 semana | Plane detection completo |
-| **Fase 1** | ⏳ Pendiente | 2-3 semanas | Carga de modelos USDZ |
-| **Fase 2** | ⏳ Pendiente | 2-3 semanas | Room scanning completo |
+| **Fase 0.5** | ✅ Completada | 1 semana | Plane detection completo |
+| **Fase 1** | ✅ Completada | 1 semana | Carga y manipulación de modelos |
+| **Fase 1.5** | 🔨 En progreso | 3-5 días | Room scanning (85% completo) |
+| **Fase 2** | ⏳ Pendiente | 2-3 semanas | Model alignment completo |
 | **Fase 3** | ⏳ Pendiente | 3-4 semanas | AR inmersivo final |
 
 **Leyenda:** ✅ Completado | 🔨 En progreso | ⏳ Pendiente
+
+### Progreso Actual: Fase 1.5 🔨 (60% del POC completado)
 
 ---
 
@@ -291,5 +346,33 @@ Todos los derechos reservados.
 
 ---
 
-**Última actualización:** 2025-12-11
-**Versión:** 0.5.0 (Plane Detection)
+## Características Destacadas
+
+### 🎮 Interacción Intuitiva
+- **Gestos táctiles** naturales para manipular objetos 3D
+- **Selección visual** con feedback inmediato
+- **Dos modos** de colocación para máxima flexibilidad
+
+### 🎨 Experiencia Visual
+- **Planos coloreados** según clasificación de superficie
+- **Auto-ocultación** de planos al colocar modelos
+- **Transparencia optimizada** de modelos 3D
+- **Outline de selección** para claridad visual
+
+### ⚡ Gestión Eficiente
+- **Sistema de Undo** para corrección rápida
+- **Historial de modelos** ordenado
+- **Contador en tiempo real** de objetos en escena
+- **Clear All** para reset instantáneo
+
+### 📐 Precisión ARKit
+- **Detección de planos** en tiempo real
+- **Clasificación inteligente** de superficies
+- **Anchoring automático** a planos reales
+- **Raycast preciso** para colocación
+
+---
+
+**Última actualización:** 2025-12-12
+**Versión:** 1.2.0 (Model Manipulation + Room Scanning)
+**Progreso del POC:** 60% completado

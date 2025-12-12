@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import * as DocumentPicker from 'expo-document-picker';
@@ -11,6 +11,7 @@ import {
   PlaneRemovedEvent,
   PlaneUpdatedEvent
 } from '../ar/components';
+import { useFileManager } from '../ar/hooks/useFileManager';
 
 export const ARTestScreen = () => {
   const arViewRef = useRef<ARKitViewRef>(null);
@@ -22,6 +23,10 @@ export const ARTestScreen = () => {
   const [showPlanes, setShowPlanes] = useState(true);
   const [isScanning, setIsScanning] = useState(true);
   const [modelCount, setModelCount] = useState(0);
+  const [showRoomScanPicker, setShowRoomScanPicker] = useState(false);
+
+  // File manager hook for listing USDZ files
+  const { usdzFiles, isLoading, error: fileError, listUsdzFiles, formatFileSize, formatDate } = useFileManager();
 
   const handleARInitialized = (event: { nativeEvent: { success: boolean; message: string } }) => {
     const { success, message } = event.nativeEvent;
@@ -190,6 +195,32 @@ export const ARTestScreen = () => {
     }
   };
 
+  const handleOpenRoomScanPicker = () => {
+    listUsdzFiles(); // Refresh the list
+    setShowRoomScanPicker(true);
+  };
+
+  const handleLoadRoomScan = (fileUri: string, fileName: string) => {
+    if (!arViewRef.current) return;
+
+    try {
+      setShowRoomScanPicker(false);
+      setStatusMessage(`Loading room scan: ${fileName}...`);
+
+      if (isTapMode) {
+        setStatusMessage('Tap mode ready! Tap on a plane to place the room scan.');
+        setPendingModelPath(fileUri);
+        arViewRef.current.placeModelOnTap(fileUri, 1);
+      } else {
+        arViewRef.current.loadModel(fileUri, 1, [0, 0, -1]);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Error', `Failed to load room scan: ${errorMessage}`);
+      setStatusMessage(`Error: ${errorMessage}`);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <ARKitView
@@ -275,8 +306,80 @@ export const ARTestScreen = () => {
           >
             <Text style={styles.buttonText}>Import USDZ Model</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.buttonRoomScan, !isARReady && styles.buttonDisabled]}
+            onPress={handleOpenRoomScanPicker}
+            disabled={!isARReady}
+          >
+            <Text style={styles.buttonText}>📦 Load Room Scan</Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Room Scan Picker Modal */}
+      <Modal
+        visible={showRoomScanPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowRoomScanPicker(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Room Scan</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowRoomScanPicker(false)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isLoading && (
+              <View style={styles.modalMessageContainer}>
+                <Text style={styles.modalMessageText}>Loading files...</Text>
+              </View>
+            )}
+
+            {fileError && (
+              <View style={styles.modalMessageContainer}>
+                <Text style={styles.modalErrorText}>Error: {fileError}</Text>
+              </View>
+            )}
+
+            {!isLoading && !fileError && usdzFiles.length === 0 && (
+              <View style={styles.modalMessageContainer}>
+                <Text style={styles.modalMessageText}>No room scans found.</Text>
+                <Text style={styles.modalHintText}>
+                  Create a room scan first using the Room Plan Test screen.
+                </Text>
+              </View>
+            )}
+
+            {!isLoading && usdzFiles.length > 0 && (
+              <FlatList
+                data={usdzFiles}
+                keyExtractor={(item) => item.uri}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.fileItem}
+                    onPress={() => handleLoadRoomScan(item.uri, item.name)}
+                  >
+                    <View style={styles.fileItemContent}>
+                      <Text style={styles.fileItemName}>📁 {item.name}</Text>
+                      <Text style={styles.fileItemDetails}>
+                        {formatFileSize(item.size)} • {formatDate(item.modificationTime)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+                contentContainerStyle={styles.fileList}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -379,6 +482,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#5AC8FA'
   },
+  buttonRoomScan: {
+    backgroundColor: '#AF52DE'
+  },
   buttonDisabled: {
     backgroundColor: '#555',
     opacity: 0.5
@@ -403,5 +509,87 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     lineHeight: 20
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end'
+  },
+  modalContent: {
+    backgroundColor: '#1C1C1E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    minHeight: 300
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E'
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold'
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold'
+  },
+  modalMessageContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  modalMessageText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    textAlign: 'center'
+  },
+  modalErrorText: {
+    color: '#FF3B30',
+    fontSize: 16,
+    textAlign: 'center'
+  },
+  modalHintText: {
+    color: '#636366',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8
+  },
+  fileList: {
+    padding: 16
+  },
+  fileItem: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden'
+  },
+  fileItemContent: {
+    padding: 16
+  },
+  fileItemName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4
+  },
+  fileItemDetails: {
+    color: '#8E8E93',
+    fontSize: 13
   }
 });

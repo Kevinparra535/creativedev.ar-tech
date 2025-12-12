@@ -72,6 +72,36 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Module-level async function to get model dimensions
+    AsyncFunction("getModelDimensions") { (viewTag: Int, modelId: String) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.getModelDimensions(for: modelId)
+      }
+
+      return result
+    }
+
+    // Module-level async function to get all loaded model IDs
+    AsyncFunction("getAllModelIds") { (viewTag: Int) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = ["error": "Could not find ARKit view with tag \(viewTag)", "success": false]
+          return
+        }
+        result = view.getAllModelIds()
+      }
+
+      return result
+    }
+
     // ViewManager definition
     View(ExpoARKitView.self) {
       // Events

@@ -291,11 +291,12 @@ class ExpoARKitView: ExpoView {
       // Add to scene
       self.sceneView.scene.rootNode.addChildNode(modelNode)
 
-      // Notify success
+      // Notify success with model ID
       self.onModelLoaded([
         "success": true,
         "message": "Model loaded successfully",
-        "path": path
+        "path": path,
+        "modelId": modelAnchor?.identifier.uuidString ?? ""
       ])
     }
   }
@@ -362,12 +363,14 @@ class ExpoARKitView: ExpoView {
         // Emit event to React Native
         onModelPlaced([
           "success": true,
+          "modelId": anchor.identifier.uuidString,
           "anchorId": anchor.identifier.uuidString,
           "position": [
             "x": Double(anchor.transform.columns.3.x),
             "y": Double(anchor.transform.columns.3.y),
             "z": Double(anchor.transform.columns.3.z)
-          ]
+          ],
+          "path": modelPath
         ])
 
         // Clear pending state
@@ -400,12 +403,14 @@ class ExpoARKitView: ExpoView {
         // Emit event to React Native
         onModelPlaced([
           "success": true,
+          "modelId": anchor.identifier.uuidString,
           "anchorId": anchor.identifier.uuidString,
           "position": [
             "x": Double(anchor.transform.columns.3.x),
             "y": Double(anchor.transform.columns.3.y),
             "z": Double(anchor.transform.columns.3.z)
-          ]
+          ],
+          "path": modelPath
         ])
 
         // Clear pending state
@@ -488,6 +493,99 @@ class ExpoARKitView: ExpoView {
     }
 
     print("Plane visibility set to: \(visible)")
+  }
+
+  // MARK: - Bounding Box & Model Dimensions
+
+  /// Extract bounding box dimensions from a SceneKit node
+  /// Returns min, max, center, and size in world space (accounting for transforms)
+  private func getBoundingBox(for node: SCNNode) -> (min: SCNVector3, max: SCNVector3, center: SCNVector3, size: SCNVector3) {
+    // Get the local bounding box
+    let (localMin, localMax) = node.boundingBox
+
+    // Convert to world space to account for scale/rotation/position
+    let worldMin = node.convertPosition(localMin, to: nil)
+    let worldMax = node.convertPosition(localMax, to: nil)
+
+    // Calculate actual dimensions in world space
+    let width = abs(worldMax.x - worldMin.x)
+    let height = abs(worldMax.y - worldMin.y)
+    let depth = abs(worldMax.z - worldMin.z)
+    let size = SCNVector3(width, height, depth)
+
+    // Calculate center point
+    let centerX = (worldMin.x + worldMax.x) / 2
+    let centerY = (worldMin.y + worldMax.y) / 2
+    let centerZ = (worldMin.z + worldMax.z) / 2
+    let center = SCNVector3(centerX, centerY, centerZ)
+
+    return (worldMin, worldMax, center, size)
+  }
+
+  /// Get model dimensions and metadata for a given model ID (UUID)
+  /// Returns dictionary with dimensions, center, volume, and position
+  func getModelDimensions(for modelId: String) -> [String: Any] {
+    // Find the node by UUID
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    // Get bounding box information
+    let bbox = getBoundingBox(for: node)
+
+    // Calculate volume (in cubic meters if model is real-world scale)
+    let volume = bbox.size.x * bbox.size.y * bbox.size.z
+
+    // Get world position
+    let worldPosition = node.worldPosition
+
+    let result: [String: Any] = [
+      "success": true,
+      "modelId": modelId,
+      "dimensions": [
+        "width": Double(bbox.size.x),
+        "height": Double(bbox.size.y),
+        "depth": Double(bbox.size.z)
+      ],
+      "center": [
+        "x": Double(bbox.center.x),
+        "y": Double(bbox.center.y),
+        "z": Double(bbox.center.z)
+      ],
+      "position": [
+        "x": Double(worldPosition.x),
+        "y": Double(worldPosition.y),
+        "z": Double(worldPosition.z)
+      ],
+      "volume": Double(volume),
+      "scale": [
+        "x": Double(node.scale.x),
+        "y": Double(node.scale.y),
+        "z": Double(node.scale.z)
+      ]
+    ]
+
+    print("📏 Model Dimensions for \(modelId):")
+    print("   Size: \(bbox.size.x)m x \(bbox.size.y)m x \(bbox.size.z)m")
+    print("   Volume: \(volume) m³")
+    print("   Center: (\(bbox.center.x), \(bbox.center.y), \(bbox.center.z))")
+
+    return result
+  }
+
+  /// Get list of all loaded model IDs
+  func getAllModelIds() -> [String: Any] {
+    let modelIds = anchoredNodes.keys.map { $0.uuidString }
+
+    return [
+      "success": true,
+      "modelIds": modelIds,
+      "count": modelIds.count
+    ]
   }
 
   // MARK: - Gesture Handlers
