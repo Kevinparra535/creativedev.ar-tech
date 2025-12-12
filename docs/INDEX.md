@@ -1,8 +1,8 @@
 # 📚 Documentación - Índice Consolidado
 
-**Última actualización:** 2025-12-09  
-**Total de documentos:** 5 archivos  
-**Estado:** Fase 0 - 100% completo
+**Última actualización:** 2025-12-12
+**Total de documentos:** 8 archivos
+**Estado:** Fase 0 - 100% completo + Exportación USDZ implementada
 
 ---
 
@@ -65,6 +65,9 @@
 | **FASE_1_MODEL_LOADING.md** | 16KB | Roadmap Fase 1 | Quieres saber próximas tareas |
 | **PLAN_AR_INMERSIVO.md** | 16KB | Arquitectura | Quieres entender la visión técnica |
 | **EXPO_ROOMPLAN_MIGRATION.md** | 12KB | Implementación | Entender approach expo-roomplan |
+| **ARKIT_IMPLEMENTATION.md** | 8KB | Implementación ARKit | Entender módulos nativos y funcionalidades |
+| **FILE_EXPORT_GUIDE.md** | 10KB | Exportación de archivos | Aprender a exportar modelos USDZ |
+| **EJEMPLO_EXPORTACION.md** | 14KB | Ejemplos de código | Ver ejemplos de exportación e integración |
 
 ---
 
@@ -99,13 +102,13 @@ Los siguientes archivos fueron eliminados por estar obsoletos o redundantes:
 
 ## 📊 Estadísticas
 
-- **Total de documentos activos:** 6
-- **Total de líneas de documentación:** ~1300 líneas
+- **Total de documentos activos:** 9
+- **Total de líneas de documentación:** ~1900 líneas
 - **Documentos operacionales:** 1 (BUILD_AND_RUN)
 - **Documentos de arquitectura:** 1 (PLAN_AR_INMERSIVO)
 - **Documentos de status:** 1 (FASE_0_RESUMEN_FINAL)
 - **Documentos de roadmap:** 1 (FASE_1_MODEL_LOADING)
-- **Documentos de guía:** 1 (EXPO_ROOMPLAN_MIGRATION)
+- **Documentos de guía:** 4 (EXPO_ROOMPLAN_MIGRATION, FILE_EXPORT_GUIDE, EJEMPLO_EXPORTACION, ARKIT_IMPLEMENTATION)
 - **Documentos de overview:** 2 (00_START_HERE, README)
 
 ---
@@ -142,7 +145,8 @@ BUILD_AND_RUN.md
 
 1. ✅ **Documentación consolidada** - Estructura lista
 2. ✅ **Fase 0 completada** - expo-roomplan integrado
-3. 🎯 **Iniciar Fase 1** - Model loading & alignment
+3. ✅ **Exportación USDZ** - Share Sheet nativo implementado
+4. 🎯 **Iniciar Fase 1** - Model loading & alignment
 
 ---
 

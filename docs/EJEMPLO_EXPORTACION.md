@@ -344,12 +344,147 @@ export function ARTestScreenWithExport() {
 }
 ```
 
+## Ejemplo 8: Usar Share Sheet Nativo (Nuevo - 2025-12-12)
+
+La forma más sencilla de compartir archivos USDZ es usar el Share Sheet nativo de React Native:
+
+```tsx
+import { Share, Alert } from 'react-native';
+
+async function shareRoomScan(fileUri: string, fileName: string) {
+  try {
+    await Share.share({
+      url: fileUri,
+      title: 'Export Room Scan',
+      message: `Sharing ${fileName}`
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    Alert.alert('Export Error', `Failed to share file: ${errorMessage}`);
+  }
+}
+
+// Uso en un componente
+function ShareButton({ fileUri, fileName }: { fileUri: string; fileName: string }) {
+  return (
+    <TouchableOpacity
+      style={{
+        padding: 16,
+        backgroundColor: '#007AFF',
+        borderRadius: 12,
+        alignItems: 'center',
+      }}
+      onPress={() => shareRoomScan(fileUri, fileName)}
+    >
+      <Text style={{ color: 'white', fontSize: 24 }}>↗️</Text>
+    </TouchableOpacity>
+  );
+}
+```
+
+### Ventajas del Share Sheet Nativo
+
+1. **Sin Configuración**: No requiere permisos adicionales ni módulos nativos
+2. **Múltiples Destinos**: Funciona con AirDrop, Messages, Mail, Files, iCloud, etc.
+3. **UX Nativa**: Los usuarios ya conocen esta interfaz
+4. **Rápido**: No requiere copiar archivos, comparte directamente la URL
+
+### Integración en Room Scan Picker
+
+Ejemplo completo de cómo se integra en el ARTestScreen:
+
+```tsx
+import { Share, FlatList, View, Text, TouchableOpacity } from 'react-native';
+
+function RoomScanPickerWithShare() {
+  const handleExportRoomScan = async (fileUri: string, fileName: string) => {
+    try {
+      await Share.share({
+        url: fileUri,
+        title: 'Export Room Scan',
+        message: `Sharing ${fileName}`
+      });
+    } catch (error) {
+      Alert.alert('Export Error', `Failed to share file`);
+    }
+  };
+
+  return (
+    <FlatList
+      data={usdzFiles}
+      renderItem={({ item }) => (
+        <View style={styles.fileItem}>
+          {/* Load button */}
+          <TouchableOpacity
+            style={styles.fileItemContent}
+            onPress={() => handleLoadRoomScan(item.uri, item.name)}
+          >
+            <View style={styles.fileItemInfo}>
+              <Text style={styles.fileItemName}>📁 {item.name}</Text>
+              <Text style={styles.fileItemDetails}>
+                {formatFileSize(item.size)} • {formatDate(item.modificationTime)}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Export button */}
+          <TouchableOpacity
+            style={styles.fileItemExportButton}
+            onPress={() => handleExportRoomScan(item.uri, item.name)}
+          >
+            <Text style={styles.fileItemExportIcon}>↗️</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  fileItem: {
+    backgroundColor: '#2C2C2E',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  fileItemContent: {
+    flex: 1,
+    padding: 16
+  },
+  fileItemExportButton: {
+    padding: 16,
+    backgroundColor: '#007AFF',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 60
+  },
+  fileItemExportIcon: {
+    fontSize: 24
+  }
+});
+```
+
 ## Resumen de Pasos para el Usuario
 
+### Opción 1: Exportar a Archivos
 1. **Exportar**: Toca el botón "Exportar a Archivos"
 2. **Abrir Archivos**: Abre la app "Archivos" en tu iPhone
 3. **Navegar**: Ve a "En mi iPhone" > "creativedev.ar-tech"
 4. **Visualizar**: Toca el archivo .usdz para verlo en AR con Quick Look
+
+### Opción 2: Compartir con Share Sheet (Nuevo)
+1. **Compartir**: Toca el botón ↗️ en cualquier archivo
+2. **Elegir Destino**: Se abre el Share Sheet nativo de iOS
+3. **Seleccionar**:
+   - AirDrop para enviar a otro dispositivo
+   - Messages para compartir por mensaje
+   - Mail para enviar por correo
+   - "Guardar en Archivos" para guardar en iCloud o local
+4. **Confirmar**: El archivo se comparte/guarda automáticamente
 
 ## Formatos Recomendados
 

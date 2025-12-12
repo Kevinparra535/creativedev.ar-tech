@@ -152,6 +152,48 @@ npx expo run:ios
 4. ✅ Eventos de estado (inicialización/errores)
 5. ✅ Comunicación bidireccional React Native ↔ Swift
 6. ✅ Sistema de referencias imperativas (ref) funcional
+7. ✅ Exportación de modelos USDZ con Share Sheet nativo de iOS
+8. ✅ Gestión de archivos USDZ con explorador integrado
+
+### Funcionalidad de Exportación
+
+#### Compartir Modelos USDZ
+
+La aplicación ahora incluye un sistema completo de exportación y compartición de modelos USDZ:
+
+**Características:**
+- **Share Sheet Nativo**: Usa el Share Sheet de iOS para compartir archivos
+- **UI Integrada**: Botón de exportación en cada archivo del Room Scan Picker
+- **Múltiples Destinos**:
+  - AirDrop
+  - Messages
+  - Mail
+  - Guardar en Files
+  - iCloud Drive
+  - Cualquier app compatible con USDZ
+
+**Implementación en ARTestScreen:**
+
+```tsx
+const handleExportRoomScan = async (fileUri: string, fileName: string) => {
+  try {
+    await Share.share({
+      url: fileUri,
+      title: 'Export Room Scan',
+      message: `Sharing ${fileName}`
+    });
+  } catch (error) {
+    Alert.alert('Export Error', `Failed to share file: ${errorMessage}`);
+  }
+};
+```
+
+**UI:**
+- Botón con ícono ↗️ en cada item del file picker
+- Color azul (#007AFF) siguiendo design system de iOS
+- Ubicado en el lado derecho del item para fácil acceso
+
+**Ver:** [src/ui/screens/ARTestScreen.tsx:326-337](../../src/ui/screens/ARTestScreen.tsx#L326-L337)
 
 ### Próximos Pasos (Fase 1)
 
@@ -160,6 +202,7 @@ npx expo run:ios
 - [ ] Gestión de anclajes (anchors)
 - [ ] Interacción con objetos (tap, drag)
 - [ ] Persistencia de escena AR
+- [x] ✅ Exportación y compartición de modelos USDZ
 
 ## Troubleshooting
 

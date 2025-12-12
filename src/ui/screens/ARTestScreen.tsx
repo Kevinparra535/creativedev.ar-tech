@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Alert, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Slider from '@react-native-community/slider';
@@ -323,8 +323,21 @@ export const ARTestScreen = () => {
     }
   };
 
+  const handleExportRoomScan = async (fileUri: string, fileName: string) => {
+    try {
+      await Share.share({
+        url: fileUri,
+        title: 'Export Room Scan',
+        message: `Sharing ${fileName}`
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Export Error', `Failed to share file: ${errorMessage}`);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <ARKitView
         ref={arViewRef}
         style={styles.arView}
@@ -427,38 +440,52 @@ export const ARTestScreen = () => {
         </View>
       </View>
 
-      {/* Transformation Controls Modal */}
+      {/* Transformation Controls - Compact Bottom Sheet */}
       <Modal
         visible={showTransformControls}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowTransformControls(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Transform Model</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowTransformControls(false)}
-              >
-                <Text style={styles.modalCloseText}>✕</Text>
-              </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.transformOverlay}
+          activeOpacity={1}
+          onPress={() => setShowTransformControls(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={styles.transformPanel}
+          >
+            {/* Header */}
+            <View style={styles.transformHeader}>
+              <View style={styles.transformDragIndicator} />
+              <View style={styles.transformHeaderContent}>
+                <Text style={styles.transformTitle}>Transform</Text>
+                <TouchableOpacity
+                  style={styles.transformCloseButton}
+                  onPress={() => setShowTransformControls(false)}
+                >
+                  <Text style={styles.transformCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <ScrollView style={styles.transformScrollView}>
+            <ScrollView
+              style={styles.transformScrollView}
+              showsVerticalScrollIndicator={false}
+            >
               {selectedModelId && (
-                <View style={styles.transformContainer}>
-                  {/* Model Selector */}
-                  <View style={styles.transformSection}>
-                    <Text style={styles.transformSectionTitle}>Selected Model</Text>
-                    <View style={styles.modelSelectorContainer}>
+                <View style={styles.transformContent}>
+                  {/* Model Selector - Compact */}
+                  {loadedModelIds.length > 1 && (
+                    <View style={styles.compactModelSelector}>
                       {loadedModelIds.map((modelId, index) => (
                         <TouchableOpacity
                           key={modelId}
                           style={[
-                            styles.modelSelectorButton,
-                            selectedModelId === modelId && styles.modelSelectorButtonActive
+                            styles.compactModelButton,
+                            selectedModelId === modelId && styles.compactModelButtonActive
                           ]}
                           onPress={() => {
                             setSelectedModelId(modelId);
@@ -466,80 +493,89 @@ export const ARTestScreen = () => {
                           }}
                         >
                           <Text style={[
-                            styles.modelSelectorText,
-                            selectedModelId === modelId && styles.modelSelectorTextActive
+                            styles.compactModelText,
+                            selectedModelId === modelId && styles.compactModelTextActive
                           ]}>
-                            Model {index + 1}
+                            {index + 1}
                           </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
+                  )}
+
+                  {/* Compact Scale Control */}
+                  <View style={styles.compactSection}>
+                    <Text style={styles.compactSectionTitle}>Scale</Text>
+                    <View style={styles.compactSlider}>
+                      <Text style={styles.compactLabel}>Uniform</Text>
+                      <Slider
+                        style={styles.compactSliderControl}
+                        minimumValue={0.1}
+                        maximumValue={3}
+                        value={transformations[selectedModelId]?.scale?.x ?? 1}
+                        onValueChange={(value) => {
+                          handleScaleChange('x', value);
+                          handleScaleChange('y', value);
+                          handleScaleChange('z', value);
+                        }}
+                        minimumTrackTintColor="#007AFF"
+                        maximumTrackTintColor="#3A3A3C"
+                        thumbTintColor="#007AFF"
+                      />
+                      <Text style={styles.compactValue}>
+                        {(transformations[selectedModelId]?.scale?.x ?? 1).toFixed(1)}
+                      </Text>
+                    </View>
                   </View>
 
-                  {/* Scale Controls */}
-                  <View style={styles.transformSection}>
-                    <Text style={styles.transformSectionTitle}>Scale</Text>
-                    {['x', 'y', 'z'].map((axis) => (
-                      <View key={`scale-${axis}`} style={styles.sliderContainer}>
-                        <Text style={styles.sliderLabel}>{axis.toUpperCase()}: {(transformations[selectedModelId]?.scale?.[axis as 'x' | 'y' | 'z'] ?? 1).toFixed(2)}</Text>
-                        <Slider
-                          style={styles.slider}
-                          minimumValue={0.1}
-                          maximumValue={3}
-                          value={transformations[selectedModelId]?.scale?.[axis as 'x' | 'y' | 'z'] ?? 1}
-                          onValueChange={(value) => handleScaleChange(axis as 'x' | 'y' | 'z', value)}
-                          minimumTrackTintColor="#007AFF"
-                          maximumTrackTintColor="#8E8E93"
-                          thumbTintColor="#007AFF"
-                        />
-                      </View>
-                    ))}
+                  {/* Compact Rotation Control */}
+                  <View style={styles.compactSection}>
+                    <Text style={styles.compactSectionTitle}>Rotation</Text>
+                    <View style={styles.compactSlider}>
+                      <Text style={styles.compactLabel}>Y</Text>
+                      <Slider
+                        style={styles.compactSliderControl}
+                        minimumValue={-Math.PI}
+                        maximumValue={Math.PI}
+                        value={transformations[selectedModelId]?.rotation?.y ?? 0}
+                        onValueChange={(value) => handleRotationChange('y', value)}
+                        minimumTrackTintColor="#FF9500"
+                        maximumTrackTintColor="#3A3A3C"
+                        thumbTintColor="#FF9500"
+                      />
+                      <Text style={styles.compactValue}>
+                        {Math.round(((transformations[selectedModelId]?.rotation?.y ?? 0) * 180) / Math.PI)}°
+                      </Text>
+                    </View>
                   </View>
 
-                  {/* Rotation Controls */}
-                  <View style={styles.transformSection}>
-                    <Text style={styles.transformSectionTitle}>Rotation (radians)</Text>
+                  {/* Compact Position Controls */}
+                  <View style={styles.compactSection}>
+                    <Text style={styles.compactSectionTitle}>Position</Text>
                     {['x', 'y', 'z'].map((axis) => (
-                      <View key={`rotation-${axis}`} style={styles.sliderContainer}>
-                        <Text style={styles.sliderLabel}>{axis.toUpperCase()}: {(transformations[selectedModelId]?.rotation?.[axis as 'x' | 'y' | 'z'] ?? 0).toFixed(2)}</Text>
+                      <View key={`pos-${axis}`} style={styles.compactSlider}>
+                        <Text style={styles.compactLabel}>{axis.toUpperCase()}</Text>
                         <Slider
-                          style={styles.slider}
-                          minimumValue={-Math.PI}
-                          maximumValue={Math.PI}
-                          value={transformations[selectedModelId]?.rotation?.[axis as 'x' | 'y' | 'z'] ?? 0}
-                          onValueChange={(value) => handleRotationChange(axis as 'x' | 'y' | 'z', value)}
-                          minimumTrackTintColor="#FF9500"
-                          maximumTrackTintColor="#8E8E93"
-                          thumbTintColor="#FF9500"
-                        />
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Position Controls */}
-                  <View style={styles.transformSection}>
-                    <Text style={styles.transformSectionTitle}>Position (meters)</Text>
-                    {['x', 'y', 'z'].map((axis) => (
-                      <View key={`position-${axis}`} style={styles.sliderContainer}>
-                        <Text style={styles.sliderLabel}>{axis.toUpperCase()}: {(transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0).toFixed(2)}</Text>
-                        <Slider
-                          style={styles.slider}
+                          style={styles.compactSliderControl}
                           minimumValue={-2}
                           maximumValue={2}
                           value={transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0}
                           onValueChange={(value) => handlePositionChange(axis as 'x' | 'y' | 'z', value)}
                           minimumTrackTintColor="#34C759"
-                          maximumTrackTintColor="#8E8E93"
+                          maximumTrackTintColor="#3A3A3C"
                           thumbTintColor="#34C759"
                         />
+                        <Text style={styles.compactValue}>
+                          {(transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0).toFixed(1)}
+                        </Text>
                       </View>
                     ))}
                   </View>
                 </View>
               )}
             </ScrollView>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Room Scan Picker Modal */}
@@ -587,17 +623,25 @@ export const ARTestScreen = () => {
                 data={usdzFiles}
                 keyExtractor={(item) => item.uri}
                 renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.fileItem}
-                    onPress={() => handleLoadRoomScan(item.uri, item.name)}
-                  >
-                    <View style={styles.fileItemContent}>
-                      <Text style={styles.fileItemName}>📁 {item.name}</Text>
-                      <Text style={styles.fileItemDetails}>
-                        {formatFileSize(item.size)} • {formatDate(item.modificationTime)}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+                  <View style={styles.fileItem}>
+                    <TouchableOpacity
+                      style={styles.fileItemContent}
+                      onPress={() => handleLoadRoomScan(item.uri, item.name)}
+                    >
+                      <View style={styles.fileItemInfo}>
+                        <Text style={styles.fileItemName}>📁 {item.name}</Text>
+                        <Text style={styles.fileItemDetails}>
+                          {formatFileSize(item.size)} • {formatDate(item.modificationTime)}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.fileItemExportButton}
+                      onPress={() => handleExportRoomScan(item.uri, item.name)}
+                    >
+                      <Text style={styles.fileItemExportIcon}>↗️</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
                 contentContainerStyle={styles.fileList}
               />
@@ -804,10 +848,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#2C2C2E',
     borderRadius: 12,
     marginBottom: 12,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   fileItemContent: {
+    flex: 1,
     padding: 16
+  },
+  fileItemInfo: {
+    flex: 1
   },
   fileItemName: {
     color: '#fff',
@@ -819,10 +869,144 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     fontSize: 13
   },
-  // Transform controls styles
-  transformScrollView: {
-    maxHeight: '80%'
+  fileItemExportButton: {
+    padding: 16,
+    backgroundColor: '#007AFF',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 60
   },
+  fileItemExportIcon: {
+    fontSize: 24
+  },
+  // Transform controls styles - Compact Design
+  transformOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end'
+  },
+  transformPanel: {
+    backgroundColor: '#1C1C1E',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '50%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8
+  },
+  transformHeader: {
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E'
+  },
+  transformDragIndicator: {
+    width: 36,
+    height: 4,
+    backgroundColor: '#48484A',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 12
+  },
+  transformHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20
+  },
+  transformTitle: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600'
+  },
+  transformCloseButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  transformCloseText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  transformScrollView: {
+    maxHeight: '100%'
+  },
+  transformContent: {
+    padding: 20,
+    paddingBottom: 40
+  },
+  compactModelSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E'
+  },
+  compactModelButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2C2C2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  compactModelButtonActive: {
+    backgroundColor: '#5856D6',
+    borderColor: '#fff'
+  },
+  compactModelText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600'
+  },
+  compactModelTextActive: {
+    color: '#fff'
+  },
+  compactSection: {
+    marginBottom: 20
+  },
+  compactSectionTitle: {
+    color: '#8E8E93',
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12
+  },
+  compactSlider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  compactLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    width: 60
+  },
+  compactSliderControl: {
+    flex: 1,
+    marginHorizontal: 12
+  },
+  compactValue: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '600',
+    width: 50,
+    textAlign: 'right'
+  },
+  // Old transform styles (keep for compatibility)
   transformContainer: {
     padding: 20
   },

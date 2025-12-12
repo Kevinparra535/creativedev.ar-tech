@@ -241,6 +241,143 @@ Si obtienes un error como "ExpoFileExport is not defined":
 - Asegúrate de que el path sea absoluto, no relativo
 - Revisa los permisos de la app en Configuración > Archivos
 
+## Share Sheet Nativo (Actualización 2025-12-12)
+
+### Nueva Funcionalidad: Compartir Archivos USDZ
+
+Se ha agregado integración con el Share Sheet nativo de iOS para compartir archivos USDZ directamente desde la aplicación.
+
+#### Uso en ARTestScreen
+
+El ARTestScreen ahora incluye un botón de exportación en cada archivo del Room Scan Picker:
+
+```tsx
+import { Share } from 'react-native';
+
+const handleExportRoomScan = async (fileUri: string, fileName: string) => {
+  try {
+    await Share.share({
+      url: fileUri,
+      title: 'Export Room Scan',
+      message: `Sharing ${fileName}`
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    Alert.alert('Export Error', `Failed to share file: ${errorMessage}`);
+  }
+};
+```
+
+#### Características
+
+- **Share Sheet Nativo**: Abre el compartidor nativo de iOS
+- **Múltiples Destinos**:
+  - AirDrop
+  - Messages
+  - Mail
+  - Guardar en Files
+  - iCloud Drive
+  - Cualquier app compatible con archivos USDZ
+- **UI Integrada**: Botón con ícono ↗️ en cada file item
+- **Sin Configuración Adicional**: Usa el API nativo de React Native
+
+#### Estructura de UI
+
+El Room Scan Picker ahora tiene dos áreas clickeables por cada archivo:
+
+1. **Área Principal (izquierda)**: Carga el modelo en la vista AR
+2. **Botón Azul (derecha)**: Abre el Share Sheet para exportar
+
+```tsx
+<View style={styles.fileItem}>
+  <TouchableOpacity onPress={() => handleLoadRoomScan(...)}>
+    <View style={styles.fileItemInfo}>
+      <Text>📁 {item.name}</Text>
+      <Text>{formatFileSize(item.size)}</Text>
+    </View>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={styles.fileItemExportButton}
+    onPress={() => handleExportRoomScan(item.uri, item.name)}
+  >
+    <Text style={styles.fileItemExportIcon}>↗️</Text>
+  </TouchableOpacity>
+</View>
+```
+
+#### Estilos
+
+```typescript
+fileItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#2C2C2E',
+  borderRadius: 12,
+}
+
+fileItemExportButton: {
+  padding: 16,
+  backgroundColor: '#007AFF',
+  borderTopRightRadius: 12,
+  borderBottomRightRadius: 12,
+  minWidth: 60,
+}
+
+fileItemExportIcon: {
+  fontSize: 24,
+}
+```
+
+#### Flujo del Usuario
+
+1. Usuario abre el Room Scan Picker
+2. Ve la lista de archivos USDZ guardados
+3. Toca el botón ↗️ en cualquier archivo
+4. Se abre el Share Sheet nativo de iOS
+5. Elige destino (AirDrop, Files, Mail, etc.)
+6. El archivo se comparte/guarda
+
+#### Ejemplo Completo de Integración
+
+```tsx
+import React from 'react';
+import { Share, Alert, FlatList, View, Text, TouchableOpacity } from 'react-native';
+
+function RoomScanExporter() {
+  const handleShare = async (fileUri: string, fileName: string) => {
+    try {
+      await Share.share({
+        url: fileUri,
+        title: 'Room Scan Export',
+        message: `Sharing ${fileName}`
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to share file');
+    }
+  };
+
+  return (
+    <FlatList
+      data={usdzFiles}
+      renderItem={({ item }) => (
+        <View style={{ flexDirection: 'row' }}>
+          {/* Load button */}
+          <TouchableOpacity onPress={() => loadModel(item.uri)}>
+            <Text>Load {item.name}</Text>
+          </TouchableOpacity>
+
+          {/* Share button */}
+          <TouchableOpacity onPress={() => handleShare(item.uri, item.name)}>
+            <Text>↗️</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    />
+  );
+}
+```
+
 ## Próximos Pasos
 
 Posibles mejoras futuras:
@@ -248,5 +385,5 @@ Posibles mejoras futuras:
 1. Exportar meshes directamente a USDZ
 2. Agregar previsualizaciones de modelos 3D antes de exportar
 3. Soporte para exportar múltiples archivos a la vez
-4. Integración con iCloud Drive
+4. ~~Integración con Share Sheet nativo~~ ✅ Completado
 5. Compresión automática de archivos grandes
