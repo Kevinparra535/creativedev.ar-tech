@@ -43,13 +43,33 @@ class SceneKitPreviewView: ExpoView {
   private var highlightOverlay: SCNNode?
   private var gridRootNode: SCNNode?
 
-  // Initial camera setup
+  // Camera control state
   private var initialCameraDistance: Float = 3.0
   private var cameraDistance: Float = 3.0
-  private var cameraRotation: simd_float2 = simd_float2(0, 0) // x: horizontal, y: vertical
-
-  // Pan gesture tracking
-  private var lastPanLocation: CGPoint = .zero
+  private var minCameraDistance: Float = 0.5
+  private var maxCameraDistance: Float = 10.0
+  
+  // Orbit rotation (in radians)
+  private var cameraOrbitY: Float = 0.0       // Horizontal rotation (azimuth)
+  private var cameraOrbitX: Float = 0.6       // Vertical rotation (elevation, ~35° above horizon)
+  private var minOrbitX: Float = -Float.pi/2 + 0.1  // Don't go straight down
+  private var maxOrbitX: Float = Float.pi/2 - 0.1   // Don't go straight up
+  
+  // Camera pan offset (for two-finger pan)
+  private var cameraPanOffset: SCNVector3 = SCNVector3(0, 0, 0)
+  
+  // Model rotation state (Apple Quick Look style - rotate model, not camera)
+  private var modelRotationY: Float = 0.0  // Horizontal rotation of model
+  private var modelRotationX: Float = 0.0  // Vertical tilt of model
+  
+  // Momentum/inertia for smooth gestures
+  private var rotationVelocity: CGPoint = .zero
+  private var momentumTimer: Timer?
+  
+  // Visual helpers
+  private var showBoundingBox: Bool = false
+  private var boundingBoxNode: SCNNode?
+  private var showGrid: Bool = true
 
   // Event dispatchers (siguiendo patrón existente)
   let onPreviewModelLoaded = EventDispatcher()
@@ -57,6 +77,7 @@ class SceneKitPreviewView: ExpoView {
   let onPreviewWallDeselected = EventDispatcher()
   let onPreviewLoadError = EventDispatcher()
   let onPreviewTapFeedback = EventDispatcher()
+  let onPreviewCameraChanged = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -84,8 +105,8 @@ class SceneKitPreviewView: ExpoView {
     // Better rendering quality
     sceneView.antialiasingMode = .multisampling4X
 
-    // Background color
-    sceneView.backgroundColor = UIColor.systemBackground
+    // Background color - Blender-style neutral gray
+    sceneView.backgroundColor = UIColor(red: 0.24, green: 0.24, blue: 0.24, alpha: 1.0)
 
     // Allow user interaction
     sceneView.allowsCameraControl = false // We'll implement custom controls
@@ -122,21 +143,47 @@ class SceneKitPreviewView: ExpoView {
   }
 
   private func setupGestureRecognizers() {
-    // Tap gesture for wall selection
+    // Single tap for wall selection
     let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapForWallSelection(_:)))
     sceneView.addGestureRecognizer(tapGesture)
+    
+    // Double tap for reset view
+    let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTapForReset(_:)))
+    doubleTapGesture.numberOfTapsRequired = 2
+    sceneView.addGestureRecognizer(doubleTapGesture)
+    
+    // Single tap should wait for double tap to fail
+    tapGesture.require(toFail: doubleTapGesture)
 
-    // Pan gesture for camera rotation
-    let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanForCameraRotation(_:)))
-    panGesture.maximumNumberOfTouches = 1
+    // One-finger pan: Rotate MODEL horizontally (Apple Quick Look style)
+    let rotateGesture = UIPanGestureRecognizer(target: self, action: #selector(handleModelRotation(_:)))
+    rotateGesture.minimumNumberOfTouches = 1
+    rotateGesture.maximumNumberOfTouches = 1
+    sceneView.addGestureRecognizer(rotateGesture)
+    
+    // Two-finger pan: Pan camera position
+    let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handleCameraPan(_:)))
+    panGesture.minimumNumberOfTouches = 2
+    panGesture.maximumNumberOfTouches = 2
     sceneView.addGestureRecognizer(panGesture)
+    
+    // Two-finger rotation: Tilt/roll model (advanced gesture)
+    let rotationGesture = UIRotationGestureRecognizer(target: self, action: #selector(handleModelTilt(_:)))
+    sceneView.addGestureRecognizer(rotationGesture)
+    
+    // Allow simultaneous pan and rotation with 2 fingers
+    panGesture.delegate = self
+    rotationGesture.delegate = self
 
-    // Prefer tap over accidental tiny pans
-    panGesture.require(toFail: tapGesture)
+    // Prefer taps over accidental tiny pans
+    rotateGesture.require(toFail: tapGesture)
 
     // Pinch gesture for zoom
-    let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchForZoom(_:)))
+    let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchZoom(_:)))
     sceneView.addGestureRecognizer(pinchGesture)
+    
+    // Allow simultaneous pinch and pan/rotation
+    pinchGesture.delegate = self
   }
 
   private func setupGrid() {
@@ -154,6 +201,7 @@ class SceneKitPreviewView: ExpoView {
 
     sceneView.scene?.rootNode.addChildNode(grid)
     gridRootNode = grid
+    grid.isHidden = !showGrid
   }
 
   private func makeGridLines(size: Float, step: Float, color: UIColor) -> SCNNode {
@@ -301,6 +349,23 @@ class SceneKitPreviewView: ExpoView {
 
           print("✅ Model loaded successfully")
           print("   Dimensions: \(dimensions.x)m x \(dimensions.y)m x \(dimensions.z)m")
+
+          // Reset camera to default position and fit model to view
+          self.cameraOrbitY = 0.0
+          self.cameraOrbitX = 0.6  // ~35° above horizon (Blender-style)
+          self.cameraPanOffset = SCNVector3(0, 0, 0)
+          
+          // Calculate optimal camera distance for the scaled model
+          let fov = self.cameraNode.camera?.fieldOfView ?? 60.0
+          let fovRadians = Float(fov) * Float.pi / 180.0
+          let maxDim = max(dimensions.x, max(dimensions.y, dimensions.z))
+          let optimalDistance = (maxDim / 2.0) / tan(fovRadians / 2.0) * 1.3
+          self.cameraDistance = max(self.minCameraDistance, min(self.maxCameraDistance, optimalDistance))
+          
+          self.updateCameraTransform()
+          self.emitCameraState()
+          
+          print("📷 Camera positioned at distance: \(self.cameraDistance)m")
 
           // Notify React Native with a small delay to ensure component is mounted
           DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -641,64 +706,316 @@ class SceneKitPreviewView: ExpoView {
   }
 
   // MARK: - Camera Controls
-
-  @objc private func handlePanForCameraRotation(_ gesture: UIPanGestureRecognizer) {
-    let location = gesture.location(in: sceneView)
-
+  // MARK: - Advanced Gesture Handlers (Apple Quick Look Style)
+  
+  /// One-finger pan: Rotate MODEL around Y-axis (turntable style)
+  @objc private func handleModelRotation(_ gesture: UIPanGestureRecognizer) {
+    guard let model = modelNode else { return }
+    
+    let translation = gesture.translation(in: sceneView)
+    let velocity = gesture.velocity(in: sceneView)
+    
+    switch gesture.state {
+    case .changed:
+      // Rotate model horizontally (turntable)
+      let sensitivity: Float = 0.01
+      modelRotationY += Float(translation.x) * sensitivity
+      
+      // Apply rotation to model
+      model.eulerAngles.y = modelRotationY
+      
+      // Store velocity for momentum
+      rotationVelocity = CGPoint(x: velocity.x * 0.001, y: velocity.y * 0.001)
+      
+      gesture.setTranslation(.zero, in: sceneView)
+      
+    case .ended, .cancelled:
+      // Apply momentum/inertia if velocity is significant
+      if abs(rotationVelocity.x) > 0.1 {
+        startMomentumAnimation()
+      }
+      
+    default:
+      break
+    }
+  }
+  
+  /// Two-finger rotation: Tilt/roll model (advanced gesture)
+  @objc private func handleModelTilt(_ gesture: UIRotationGestureRecognizer) {
+    guard let model = modelNode else { return }
+    
+    switch gesture.state {
+    case .changed:
+      // Tilt model around X-axis based on rotation
+      let tiltSensitivity: Float = 0.3
+      modelRotationX += Float(gesture.rotation) * tiltSensitivity
+      
+      // Clamp tilt to reasonable range (-30° to +30°)
+      let maxTilt: Float = Float.pi / 6  // 30 degrees
+      modelRotationX = max(-maxTilt, min(maxTilt, modelRotationX))
+      
+      model.eulerAngles.x = modelRotationX
+      
+      gesture.rotation = 0
+      
+    default:
+      break
+    }
+  }
+  
+  /// Two-finger pan: Translate camera position
+  @objc private func handleCameraPan(_ gesture: UIPanGestureRecognizer) {
+    let translation = gesture.translation(in: sceneView)
+    
+    switch gesture.state {
+    case .changed:
+      // Sensitivity scales with distance (pan faster when zoomed out)
+      let sensitivity = cameraDistance * 0.0015
+      
+      // Get camera's right and up vectors
+      let cameraTransform = cameraNode.simdTransform
+      let right = simd_float3(cameraTransform.columns.0.x, cameraTransform.columns.0.y, cameraTransform.columns.0.z)
+      let up = simd_float3(cameraTransform.columns.1.x, cameraTransform.columns.1.y, cameraTransform.columns.1.z)
+      
+      // Calculate offset in world space
+      let offsetX = right * Float(-translation.x) * sensitivity
+      let offsetY = up * Float(translation.y) * sensitivity
+      
+      let currentOffset = simd_float3(cameraPanOffset.x, cameraPanOffset.y, cameraPanOffset.z)
+      let newOffset = currentOffset + offsetX + offsetY
+      cameraPanOffset = SCNVector3(newOffset.x, newOffset.y, newOffset.z)
+      
+      updateCameraTransform()
+      gesture.setTranslation(.zero, in: sceneView)
+      
+    default:
+      break
+    }
+  }
+  
+  /// Pinch gesture: Zoom in/out (smooth and responsive)
+  @objc private func handlePinchZoom(_ gesture: UIPinchGestureRecognizer) {
     switch gesture.state {
     case .began:
-      lastPanLocation = location
-
-    case .changed:
-      let delta = CGPoint(
-        x: location.x - lastPanLocation.x,
-        y: location.y - lastPanLocation.y
-      )
-      lastPanLocation = location
-
-      // Update camera rotation
-      // Horizontal pan = rotate around Y axis
-      // Vertical pan = rotate around X axis (pitch)
-      let sensitivity: Float = 0.005
-      cameraRotation.x += Float(delta.x) * sensitivity
-      cameraRotation.y -= Float(delta.y) * sensitivity
-
-      // Clamp vertical rotation to avoid flipping
-      cameraRotation.y = max(-Float.pi / 2, min(Float.pi / 2, cameraRotation.y))
-
-      updateCameraPosition()
-
-    default:
-      break
-    }
-  }
-
-  @objc private func handlePinchForZoom(_ gesture: UIPinchGestureRecognizer) {
-    switch gesture.state {
+      // Stop any momentum animation when user interacts
+      stopMomentumAnimation()
+      
     case .changed:
       let scale = Float(gesture.scale)
-      cameraDistance /= scale
-
-      // Clamp distance
-      cameraDistance = max(0.5, min(10.0, cameraDistance))
-
-      updateCameraPosition()
-
+      
+      // Smoother zoom with dampening
+      let zoomFactor = 1.0 + (scale - 1.0) * 0.5
+      cameraDistance /= zoomFactor
+      
+      // Clamp to limits
+      cameraDistance = max(minCameraDistance, min(maxCameraDistance, cameraDistance))
+      
+      updateCameraTransform()
+      emitCameraState()
       gesture.scale = 1.0
-
+      
     default:
       break
     }
   }
+  
+  /// Momentum animation for natural inertia after gesture ends
+  private func startMomentumAnimation() {
+    stopMomentumAnimation()
+    
+    momentumTimer = Timer.scheduledTimer(withTimeInterval: 1.0/60.0, repeats: true) { [weak self] _ in
+      guard let self = self, let model = self.modelNode else { return }
+      
+      // Apply velocity to rotation
+      self.modelRotationY += Float(self.rotationVelocity.x)
+      model.eulerAngles.y = self.modelRotationY
+      
+      // Decay velocity (friction)
+      self.rotationVelocity.x *= 0.95
+      
+      // Stop when velocity is negligible
+      if abs(self.rotationVelocity.x) < 0.01 {
+        self.stopMomentumAnimation()
+      }
+    }
+  }
+  
+  private func stopMomentumAnimation() {
+    momentumTimer?.invalidate()
+    momentumTimer = nil
+    rotationVelocity = .zero
+  }
+  
+  /// Double-tap: Reset camera to default view
+  @objc private func handleDoubleTapForReset(_ gesture: UITapGestureRecognizer) {
+    resetCamera()
+  }
+  
+  /// Update camera position and orientation based on orbit angles and distance
+  private func updateCameraTransform() {
+    // Calculate position using spherical coordinates (orbit)
+    let x = cameraDistance * cos(cameraOrbitX) * sin(cameraOrbitY)
+    let y = cameraDistance * sin(cameraOrbitX)
+    let z = cameraDistance * cos(cameraOrbitX) * cos(cameraOrbitY)
+    
+    cameraNode.position = SCNVector3(x, y, z) + cameraPanOffset
+    
+    // Look at origin (with pan offset applied to both position and target)
+    let target = SCNVector3(0, 0, 0) + cameraPanOffset
+    cameraNode.look(at: target)
+  }
+  
+  /// Emit camera state to React Native for UI feedback
+  private func emitCameraState() {
+    onPreviewCameraChanged([
+      "distance": cameraDistance,
+      "azimuth": cameraOrbitY * 180 / Float.pi, // degrees
+      "elevation": cameraOrbitX * 180 / Float.pi, // degrees
+      "minDistance": minCameraDistance,
+      "maxDistance": maxCameraDistance
+    ])
+  }
+  
+  // MARK: - Public Camera API
+  
+  func resetCamera() {
+    cameraDistance = initialCameraDistance
+    cameraOrbitY = 0.0
+    cameraOrbitX = 0.6  // ~35° above horizon (Blender-style)
+    cameraPanOffset = SCNVector3(0, 0, 0)
 
-  private func updateCameraPosition() {
-    // Calculate camera position using spherical coordinates
-    let x = cameraDistance * cos(cameraRotation.y) * sin(cameraRotation.x)
-    let y = cameraDistance * sin(cameraRotation.y)
-    let z = cameraDistance * cos(cameraRotation.y) * cos(cameraRotation.x)
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.3
+    updateCameraTransform()
+    SCNTransaction.commit()
 
-    cameraNode.position = SCNVector3(x, y, z)
-    cameraNode.look(at: SCNVector3(0, 0, 0))
+    emitCameraState()
+    print("📷 Camera reset to default view")
+  }
+  
+  func fitModelToView() {
+    guard let model = modelNode else { return }
+
+    let bbox = getWorldBoundingBox(for: model)
+    let size = bbox.max - bbox.min
+    let maxDim = max(size.x, max(size.y, size.z))
+
+    // Calculate optimal distance (add 20% padding)
+    let fov = cameraNode.camera?.fieldOfView ?? 60.0
+    let fovRadians = Float(fov) * Float.pi / 180.0
+    let optimalDistance = (maxDim / 2.0) / tan(fovRadians / 2.0) * 1.2
+
+    cameraDistance = optimalDistance
+    cameraPanOffset = SCNVector3(0, 0, 0)
+
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.3
+    updateCameraTransform()
+    SCNTransaction.commit()
+
+    emitCameraState()
+    print("📷 Model fit to view (distance: \(optimalDistance)m)")
+  }
+  
+  func toggleGrid() {
+    showGrid.toggle()
+    gridRootNode?.isHidden = !showGrid
+    print("🎯 Grid: \(showGrid ? "visible" : "hidden")")
+  }
+  
+  func toggleBoundingBox() {
+    showBoundingBox.toggle()
+
+    if showBoundingBox {
+      showModelBoundingBox()
+    } else {
+      boundingBoxNode?.removeFromParentNode()
+      boundingBoxNode = nil
+    }
+  }
+  
+  // MARK: - Preset Camera Views (Blender-style)
+  
+  func setCameraViewFront() {
+    cameraOrbitY = 0.0  // Looking straight ahead
+    cameraOrbitX = 0.0  // Level with horizon
+    cameraPanOffset = SCNVector3(0, 0, 0)
+    
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.3
+    updateCameraTransform()
+    SCNTransaction.commit()
+    
+    emitCameraState()
+    print("📷 Camera: Front view")
+  }
+  
+  func setCameraViewRight() {
+    cameraOrbitY = Float.pi / 2  // 90° right
+    cameraOrbitX = 0.0  // Level with horizon
+    cameraPanOffset = SCNVector3(0, 0, 0)
+    
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.3
+    updateCameraTransform()
+    SCNTransaction.commit()
+    
+    emitCameraState()
+    print("📷 Camera: Right view")
+  }
+  
+  func setCameraViewTop() {
+    cameraOrbitY = 0.0
+    cameraOrbitX = Float.pi / 2 - 0.1  // Almost straight down (avoid gimbal lock)
+    cameraPanOffset = SCNVector3(0, 0, 0)
+    
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.3
+    updateCameraTransform()
+    SCNTransaction.commit()
+    
+    emitCameraState()
+    print("📷 Camera: Top view")
+  }
+  
+  func setCameraViewPerspective() {
+    cameraOrbitY = Float.pi / 4  // 45° angle
+    cameraOrbitX = 0.6  // ~35° above horizon (default perspective)
+    cameraPanOffset = SCNVector3(0, 0, 0)
+    
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.3
+    updateCameraTransform()
+    SCNTransaction.commit()
+    
+    emitCameraState()
+    print("📷 Camera: Perspective view")
+  }
+  
+  private func showModelBoundingBox() {
+    guard let model = modelNode else { return }
+
+    // Remove existing bbox
+    boundingBoxNode?.removeFromParentNode()
+
+    let bbox = getWorldBoundingBox(for: model)
+    let size = bbox.max - bbox.min
+    let center = (bbox.max + bbox.min) / 2
+
+    // Create wireframe box
+    let boxGeometry = SCNBox(width: CGFloat(size.x), height: CGFloat(size.y), length: CGFloat(size.z), chamferRadius: 0)
+    let material = SCNMaterial()
+    material.diffuse.contents = UIColor.clear
+    material.emission.contents = UIColor.systemBlue.withAlphaComponent(0.8)
+    material.fillMode = .lines
+    boxGeometry.materials = [material]
+
+    let boxNode = SCNNode(geometry: boxGeometry)
+    boxNode.position = SCNVector3(center.x, center.y, center.z)
+    sceneView.scene?.rootNode.addChildNode(boxNode)
+
+    boundingBoxNode = boxNode
+    print("📦 Bounding box visible")
   }
 
   // MARK: - Public API
@@ -737,7 +1054,32 @@ extension simd_float3 {
     return simd_float3(lhs.x / rhs, lhs.y / rhs, lhs.z / rhs)
   }
 }
+// MARK: - UIGestureRecognizerDelegate
 
+extension SceneKitPreviewView: UIGestureRecognizerDelegate {
+  // Allow simultaneous gesture recognition (pinch + pan, rotation + pan)
+  func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    // Allow pinch with pan
+    if (gestureRecognizer is UIPinchGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer) ||
+       (gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UIPinchGestureRecognizer) {
+      return true
+    }
+    
+    // Allow rotation with pan (both 2-finger gestures)
+    if (gestureRecognizer is UIRotationGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer) ||
+       (gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UIRotationGestureRecognizer) {
+      // Only if both are 2-finger gestures
+      if let pan = gestureRecognizer as? UIPanGestureRecognizer, pan.minimumNumberOfTouches == 2 {
+        return true
+      }
+      if let pan = otherGestureRecognizer as? UIPanGestureRecognizer, pan.minimumNumberOfTouches == 2 {
+        return true
+      }
+    }
+    
+    return false
+  }
+}
 extension simd_float4x4 {
   func toArray() -> [[Double]] {
     return [

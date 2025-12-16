@@ -276,6 +276,91 @@ public class ExpoARKitModule: Module {
         view.deselectWall()
       }
     }
+    
+    // Module-level async function to reset camera to default view
+    AsyncFunction("resetPreviewCamera") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.resetCamera()
+      }
+    }
+    
+    // Module-level async function to fit model to view
+    AsyncFunction("fitModelToView") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.fitModelToView()
+      }
+    }
+    
+    // Module-level async function to toggle grid visibility
+    AsyncFunction("togglePreviewGrid") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.toggleGrid()
+      }
+    }
+    
+    // Module-level async function to toggle bounding box
+    AsyncFunction("togglePreviewBoundingBox") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.toggleBoundingBox()
+      }
+    }
+    
+    // Module-level async functions for preset camera views
+    AsyncFunction("setPreviewCameraViewFront") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.setCameraViewFront()
+      }
+    }
+    
+    AsyncFunction("setPreviewCameraViewRight") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.setCameraViewRight()
+      }
+    }
+    
+    AsyncFunction("setPreviewCameraViewTop") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.setCameraViewTop()
+      }
+    }
+    
+    AsyncFunction("setPreviewCameraViewPerspective") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SceneKitPreviewView.self) else {
+          print("Error: Could not find SceneKitPreviewView with tag \(viewTag)")
+          return
+        }
+        view.setCameraViewPerspective()
+      }
+    }
 
     // Module-level async function to get selected wall data
     AsyncFunction("getSelectedWallData") { (viewTag: Int) -> [String: Any]? in
@@ -487,7 +572,8 @@ public class ExpoARKitModule: Module {
         "onPreviewWallSelected",
         "onPreviewWallDeselected",
         "onPreviewLoadError",
-        "onPreviewTapFeedback"
+        "onPreviewTapFeedback",
+        "onPreviewCameraChanged"
       )
     }
 

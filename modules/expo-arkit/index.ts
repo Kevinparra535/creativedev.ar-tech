@@ -8,7 +8,7 @@ export type { ARKitViewProps, ARKitViewRef, ModelPlacedEvent, PlaneData } from '
 // Export SceneKit Preview view
 export { SceneKitPreviewView } from './src/SceneKitPreviewView';
 export type {
-    LoadErrorEvent, ModelLoadedEvent, SceneKitPreviewViewProps,
+    CameraStateEvent, LoadErrorEvent, ModelLoadedEvent, SceneKitPreviewViewProps,
     SceneKitPreviewViewRef,
     WallData
 } from './src/SceneKitPreviewView';

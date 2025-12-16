@@ -28,6 +28,14 @@ export interface LoadErrorEvent {
   path?: string;
 }
 
+export interface CameraStateEvent {
+  distance: number;
+  azimuth: number;  // degrees
+  elevation: number; // degrees
+  minDistance: number;
+  maxDistance: number;
+}
+
 // Component props
 export interface SceneKitPreviewViewProps extends ViewProps {
   onPreviewModelLoaded?: (event: { nativeEvent: ModelLoadedEvent }) => void;
@@ -35,6 +43,7 @@ export interface SceneKitPreviewViewProps extends ViewProps {
   onPreviewWallDeselected?: (event: { nativeEvent: { deselected: boolean } }) => void;
   onPreviewLoadError?: (event: { nativeEvent: LoadErrorEvent }) => void;
   onPreviewTapFeedback?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
+  onPreviewCameraChanged?: (event: { nativeEvent: CameraStateEvent }) => void;
 }
 
 // Component ref interface
@@ -42,6 +51,14 @@ export interface SceneKitPreviewViewRef {
   loadModelForPreview: (path: string) => Promise<void>;
   deselectWall: () => Promise<void>;
   getSelectedWallData: () => Promise<WallData | null>;
+  resetCamera: () => Promise<void>;
+  fitModelToView: () => Promise<void>;
+  toggleGrid: () => Promise<void>;
+  toggleBoundingBox: () => Promise<void>;
+  setCameraViewFront: () => Promise<void>;
+  setCameraViewRight: () => Promise<void>;
+  setCameraViewTop: () => Promise<void>;
+  setCameraViewPerspective: () => Promise<void>;
 }
 
 export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPreviewViewProps>(
@@ -102,6 +119,86 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
         }
       },
 
+      resetCamera: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.resetPreviewCamera(viewId);
+        } catch (error) {
+          console.error('❌ Error resetting camera:', error);
+        }
+      },
+
+      fitModelToView: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.fitModelToView(viewId);
+        } catch (error) {
+          console.error('❌ Error fitting model to view:', error);
+        }
+      },
+
+      toggleGrid: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.togglePreviewGrid(viewId);
+        } catch (error) {
+          console.error('❌ Error toggling grid:', error);
+        }
+      },
+
+      toggleBoundingBox: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.togglePreviewBoundingBox(viewId);
+        } catch (error) {
+          console.error('❌ Error toggling bounding box:', error);
+        }
+      },
+
+      setCameraViewFront: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.setPreviewCameraViewFront(viewId);
+        } catch (error) {
+          console.error('❌ Error setting front view:', error);
+        }
+      },
+
+      setCameraViewRight: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.setPreviewCameraViewRight(viewId);
+        } catch (error) {
+          console.error('❌ Error setting right view:', error);
+        }
+      },
+
+      setCameraViewTop: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.setPreviewCameraViewTop(viewId);
+        } catch (error) {
+          console.error('❌ Error setting top view:', error);
+        }
+      },
+
+      setCameraViewPerspective: async () => {
+        try {
+          const viewId = findNodeHandle(nativeRef.current);
+          if (viewId === null) return;
+          await ExpoARKitModule.setPreviewCameraViewPerspective(viewId);
+        } catch (error) {
+          console.error('❌ Error setting perspective view:', error);
+        }
+      },
+
     }));
 
     return (
@@ -113,6 +210,7 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
         onPreviewWallDeselected={props.onPreviewWallDeselected}
         onPreviewLoadError={props.onPreviewLoadError}
         onPreviewTapFeedback={props.onPreviewTapFeedback}
+        onPreviewCameraChanged={props.onPreviewCameraChanged}
       />
     );
   }

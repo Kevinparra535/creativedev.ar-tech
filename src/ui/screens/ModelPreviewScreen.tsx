@@ -15,6 +15,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as DocumentPicker from 'expo-document-picker';
 
 import {
+  CameraStateEvent,
   LoadErrorEvent,
   ModelLoadedEvent,
   SceneKitPreviewView,
@@ -26,6 +27,146 @@ import type { RootStackParamList } from '../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ModelPreview'>;
 
+type CameraChangedEvent = { nativeEvent: CameraStateEvent };
+
+const getInstructionsTitle = (modelPath: string | null, selectedWall: WallData | null) => {
+  if (!modelPath) return '1. Selecciona un modelo USDZ (.usdz)';
+  if (selectedWall) return '3. Presiona Continuar';
+  return '2. Toca una pared del modelo';
+};
+
+const getInstructionsText = (modelPath: string | null, selectedWall: WallData | null) => {
+  if (!modelPath) {
+    return 'Carga un archivo USDZ (.usdz) exportado desde SketchUp u otra aplicación de modelado 3D.';
+  }
+
+  if (selectedWall) {
+    return `Pared seleccionada: ${selectedWall.dimensions[0].toFixed(2)}m x ${selectedWall.dimensions[1].toFixed(2)}m`;
+  }
+
+  return (
+    '1 dedo: rotar vista • 2 dedos: desplazar cámara • Pinch: zoom • Doble tap: reset\n\n' +
+    'Toca una pared del modelo para seleccionarla como referencia.'
+  );
+};
+
+const CameraControlsOverlay = ({
+  cameraDistance,
+  showGrid,
+  showBoundingBox,
+  onReset,
+  onFit,
+  onToggleGrid,
+  onToggleBoundingBox,
+  onViewFront,
+  onViewRight,
+  onViewTop,
+  onViewPerspective,
+}: {
+  cameraDistance: number | null;
+  showGrid: boolean;
+  showBoundingBox: boolean;
+  onReset: () => void;
+  onFit: () => void;
+  onToggleGrid: () => void;
+  onToggleBoundingBox: () => void;
+  onViewFront: () => void;
+  onViewRight: () => void;
+  onViewTop: () => void;
+  onViewPerspective: () => void;
+}) => (
+  <View style={styles.cameraControlsOverlay}>
+    <View style={styles.cameraStatsRow}>
+      {cameraDistance !== null && (
+      <View style={styles.statBox}>
+        <Text style={styles.statLabel}>Zoom</Text>
+        <Text style={styles.statValue}>{cameraDistance.toFixed(1)}m</Text>
+      </View>
+        )}
+      <View style={styles.statBox}>
+        <Text style={styles.statLabel}>Grid</Text>
+        <Text style={styles.statValue}>{showGrid ? 'ON' : 'OFF'}</Text>
+      </View>
+      <View style={styles.statBox}>
+        <Text style={styles.statLabel}>BBox</Text>
+        <Text style={styles.statValue}>{showBoundingBox ? 'ON' : 'OFF'}</Text>
+      </View>
+    </View>
+
+    {/* View Preset Buttons (Blender-style) */}
+    <View style={styles.viewPresetsRow}>
+      <TouchableOpacity style={styles.viewButton} onPress={onViewFront}>
+        <Text style={styles.viewButtonText}>Front</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.viewButton} onPress={onViewRight}>
+        <Text style={styles.viewButtonText}>Right</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.viewButton} onPress={onViewTop}>
+        <Text style={styles.viewButtonText}>Top</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.viewButton} onPress={onViewPerspective}>
+        <Text style={styles.viewButtonText}>Persp</Text>
+      </TouchableOpacity>
+    </View>
+
+    <View style={styles.cameraButtonRow}>
+      <TouchableOpacity style={styles.camButton} onPress={onReset}>
+        <Text style={styles.camButtonText}>Reset</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.camButton} onPress={onFit}>
+        <Text style={styles.camButtonText}>Fit</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.camButton} onPress={onToggleGrid}>
+        <Text style={styles.camButtonText}>Grid</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.camButton} onPress={onToggleBoundingBox}>
+        <Text style={styles.camButtonText}>Box</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+  );
+
+const RoomJsonWallPicker = ({
+  roomJsonWalls,
+  roomJsonVersion,
+  onSelect,
+}: {
+  roomJsonWalls: WallData[];
+  roomJsonVersion: number | null;
+  onSelect: (wall: WallData) => void;
+}) => (
+  <View style={styles.roomJsonPanel}>
+    <Text style={styles.roomJsonTitle}>Selecciona pared desde Room.json (opcional)</Text>
+    <Text style={styles.roomJsonSubtitle}>Elige una pared grande para mejor estabilidad.</Text>
+    <Text style={styles.instructionsSubtle}>
+      Room.json cargado (v{roomJsonVersion ?? '—'}) • {roomJsonWalls.length} paredes
+    </Text>
+    <ScrollView style={styles.roomJsonList} contentContainerStyle={styles.roomJsonListContent}>
+      {roomJsonWalls.slice(0, 12).map((wall) => {
+          const area = wall.dimensions[0] * wall.dimensions[1];
+          const idShort = wall.wallId.split('-')[0];
+          return (
+            <TouchableOpacity
+              key={wall.wallId}
+              style={styles.roomJsonItem}
+              onPress={() => onSelect(wall)}
+            >
+              <Text style={styles.roomJsonItemTitle}>
+                Wall {idShort} • {wall.dimensions[0].toFixed(2)}m x {wall.dimensions[1].toFixed(2)}m
+              </Text>
+              <Text style={styles.roomJsonItemSubtitle}>Área: {area.toFixed(2)} m²</Text>
+            </TouchableOpacity>
+          );
+        })}
+    </ScrollView>
+    {roomJsonWalls.length > 12 && (
+    <Text style={styles.roomJsonFooter}>
+      Mostrando 12/{roomJsonWalls.length}. (Luego lo expandimos a “ver todas” si hace falta.)
+    </Text>
+      )}
+  </View>
+  );
+
 export const ModelPreviewScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const sceneViewRef = useRef<SceneKitPreviewViewRef>(null);
@@ -35,11 +176,15 @@ export const ModelPreviewScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [tapFeedback, setTapFeedback] = useState<string | null>(null);
 
-  const [roomJsonPath, setRoomJsonPath] = useState<string | null>(null);
   const [roomJsonWalls, setRoomJsonWalls] = useState<WallData[]>([]);
   const [roomJsonVersion, setRoomJsonVersion] = useState<number | null>(null);
   const [isRoomJsonLoading, setIsRoomJsonLoading] = useState(false);
   const [wallSource, setWallSource] = useState<'model' | 'roomJson' | null>(null);
+  
+  // Camera controls state
+  const [cameraDistance, setCameraDistance] = useState<number | null>(null);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showBoundingBox, setShowBoundingBox] = useState(false);
 
   // Load model when modelPath changes and component is mounted
   useEffect(() => {
@@ -133,7 +278,6 @@ export const ModelPreviewScreen = () => {
       }
 
       const { version, wallCount, walls } = await loadRoomPlanWallsFromJsonUri(file.uri);
-      setRoomJsonPath(file.uri);
       setRoomJsonWalls(walls);
       setRoomJsonVersion(typeof version === 'number' ? version : null);
 
@@ -201,6 +345,10 @@ export const ModelPreviewScreen = () => {
     }
     setTapFeedback(message);
   };
+  
+  const handleCameraChanged = (event: CameraChangedEvent) => {
+    setCameraDistance(event.nativeEvent.distance);
+  };
 
   const handleLoadError = (event: { nativeEvent: LoadErrorEvent }) => {
     const { error, message, path } = event.nativeEvent;
@@ -234,21 +382,76 @@ export const ModelPreviewScreen = () => {
     setSelectedWall(null);
     setWallSource(null);
   };
+  
+  const handleResetCamera = async () => {
+    await sceneViewRef.current?.resetCamera();
+  };
+  
+  const handleFitToView = async () => {
+    await sceneViewRef.current?.fitModelToView();
+  };
+  
+  const handleToggleGrid = async () => {
+    await sceneViewRef.current?.toggleGrid();
+    setShowGrid((prev) => !prev);
+  };
+  
+  const handleToggleBoundingBox = async () => {
+    await sceneViewRef.current?.toggleBoundingBox();
+    setShowBoundingBox((prev) => !prev);
+  };
+  
+  const handleViewFront = async () => {
+    await sceneViewRef.current?.setCameraViewFront();
+  };
+  
+  const handleViewRight = async () => {
+    await sceneViewRef.current?.setCameraViewRight();
+  };
+  
+  const handleViewTop = async () => {
+    await sceneViewRef.current?.setCameraViewTop();
+  };
+  
+  const handleViewPerspective = async () => {
+    await sceneViewRef.current?.setCameraViewPerspective();
+  };
+
+  const instructionsTitle = getInstructionsTitle(modelPath, selectedWall);
+  const instructionsText = getInstructionsText(modelPath, selectedWall);
+  const shouldShowRoomJsonPicker = !!modelPath && roomJsonWalls.length > 0 && !selectedWall;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       {/* 3D Preview View */}
       <View style={styles.previewContainer}>
         {modelPath ? (
-          <SceneKitPreviewView
-            ref={sceneViewRef}
-            style={styles.sceneView}
-            onPreviewModelLoaded={handleModelLoaded}
-            onPreviewWallSelected={handleWallSelected}
-            onPreviewWallDeselected={handleWallDeselected}
-            onPreviewLoadError={handleLoadError}
-            onPreviewTapFeedback={handleTapFeedback}
-          />
+          <>
+            <SceneKitPreviewView
+              ref={sceneViewRef}
+              style={styles.sceneView}
+              onPreviewModelLoaded={handleModelLoaded}
+              onPreviewWallSelected={handleWallSelected}
+              onPreviewWallDeselected={handleWallDeselected}
+              onPreviewLoadError={handleLoadError}
+              onPreviewTapFeedback={handleTapFeedback}
+              onPreviewCameraChanged={handleCameraChanged}
+            />
+            
+            <CameraControlsOverlay
+              cameraDistance={cameraDistance}
+              showGrid={showGrid}
+              showBoundingBox={showBoundingBox}
+              onReset={handleResetCamera}
+              onFit={handleFitToView}
+              onToggleGrid={handleToggleGrid}
+              onToggleBoundingBox={handleToggleBoundingBox}
+              onViewFront={handleViewFront}
+              onViewRight={handleViewRight}
+              onViewTop={handleViewTop}
+              onViewPerspective={handleViewPerspective}
+            />
+          </>
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
@@ -270,20 +473,8 @@ export const ModelPreviewScreen = () => {
 
       {/* Instructions Panel */}
       <View style={styles.instructionsPanel}>
-        <Text style={styles.instructionsTitle}>
-          {modelPath
-            ? selectedWall
-              ? '3. Presiona Continuar'
-              : '2. Toca una pared del modelo'
-            : '1. Selecciona un modelo USDZ (.usdz)'}
-        </Text>
-        <Text style={styles.instructionsText}>
-          {modelPath
-            ? selectedWall
-              ? `Pared seleccionada: ${selectedWall.dimensions[0].toFixed(2)}m x ${selectedWall.dimensions[1].toFixed(2)}m`
-              : 'Usa pan (arrastrar) para rotar la cámara y pinch para hacer zoom. Toca una pared del modelo para seleccionarla como referencia.'
-            : 'Carga un archivo USDZ (.usdz) exportado desde SketchUp u otra aplicación de modelado 3D.'}
-        </Text>
+        <Text style={styles.instructionsTitle}>{instructionsTitle}</Text>
+        <Text style={styles.instructionsText}>{instructionsText}</Text>
 
         {!!modelPath && (
           <TouchableOpacity
@@ -297,47 +488,17 @@ export const ModelPreviewScreen = () => {
           </TouchableOpacity>
         )}
 
-        {!!modelPath && !!roomJsonPath && !selectedWall && (
-          <Text style={styles.instructionsSubtle}>
-            Room.json cargado (v{roomJsonVersion ?? '—'}) • {roomJsonWalls.length} paredes
-          </Text>
-        )}
-
         {!!modelPath && !selectedWall && !!tapFeedback && (
           <Text style={styles.tapFeedbackText}>{tapFeedback}</Text>
         )}
       </View>
 
-      {!!modelPath && roomJsonWalls.length > 0 && !selectedWall && (
-        <View style={styles.roomJsonPanel}>
-          <Text style={styles.roomJsonTitle}>Selecciona pared desde Room.json (opcional)</Text>
-          <Text style={styles.roomJsonSubtitle}>
-            Elige una pared grande para mejor estabilidad.
-          </Text>
-          <ScrollView style={styles.roomJsonList} contentContainerStyle={styles.roomJsonListContent}>
-            {roomJsonWalls.slice(0, 12).map((wall) => {
-              const area = wall.dimensions[0] * wall.dimensions[1];
-              const idShort = wall.wallId.split('-')[0];
-              return (
-                <TouchableOpacity
-                  key={wall.wallId}
-                  style={styles.roomJsonItem}
-                  onPress={() => handleSelectRoomJsonWall(wall)}
-                >
-                  <Text style={styles.roomJsonItemTitle}>
-                    Wall {idShort} • {wall.dimensions[0].toFixed(2)}m x {wall.dimensions[1].toFixed(2)}m
-                  </Text>
-                  <Text style={styles.roomJsonItemSubtitle}>Área: {area.toFixed(2)} m²</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-          {roomJsonWalls.length > 12 && (
-            <Text style={styles.roomJsonFooter}>
-              Mostrando 12/{roomJsonWalls.length}. (Luego lo expandimos a “ver todas” si hace falta.)
-            </Text>
-          )}
-        </View>
+      {shouldShowRoomJsonPicker && (
+        <RoomJsonWallPicker
+          roomJsonWalls={roomJsonWalls}
+          roomJsonVersion={roomJsonVersion}
+          onSelect={handleSelectRoomJsonWall}
+        />
       )}
 
       {/* Wall Info (when selected) */}
@@ -435,6 +596,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFF',
     fontWeight: '500',
+  },
+  cameraControlsOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    gap: 8,
+  },
+  cameraStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  statLabel: {
+    color: '#8E8E93',
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  cameraButtonRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  viewPresetsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  viewButton: {
+    backgroundColor: 'rgba(60, 60, 67, 0.9)',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    minWidth: 48,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  viewButtonText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  camButton: {
+    backgroundColor: 'rgba(0, 122, 255, 0.9)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  camButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   instructionsPanel: {
     backgroundColor: 'rgba(28, 28, 30, 0.95)',

@@ -114,6 +114,18 @@ interface ExpoARKitModuleType {
   loadModelForPreview(viewTag: number, path: string): Promise<void>;
   deselectWall(viewTag: number): Promise<void>;
   getSelectedWallData(viewTag: number): Promise<any>;
+  
+  // SceneKit Preview camera controls
+  resetPreviewCamera(viewTag: number): Promise<void>;
+  fitModelToView(viewTag: number): Promise<void>;
+  togglePreviewGrid(viewTag: number): Promise<void>;
+  togglePreviewBoundingBox(viewTag: number): Promise<void>;
+  
+  // SceneKit Preview preset camera views
+  setPreviewCameraViewFront(viewTag: number): Promise<void>;
+  setPreviewCameraViewRight(viewTag: number): Promise<void>;
+  setPreviewCameraViewTop(viewTag: number): Promise<void>;
+  setPreviewCameraViewPerspective(viewTag: number): Promise<void>;
 
   // ARWallScanningView functions
   startWallScanning(viewTag: number): Promise<void>;
