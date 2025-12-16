@@ -24,6 +24,18 @@ class ExpoARKitView: ExpoView {
   private var pendingModelPath: String?
   private var pendingModelScale: Float = 1.0
 
+  // Deterministic tracking of the most recently created placement anchor.
+  // Dictionary iteration order is not stable; relying on `.values.last` can attach models to the wrong anchor.
+  private var lastPlacementAnchorId: UUID?
+
+  // Placement preview (reticle + confirm)
+  private var placementPreviewActive: Bool = false
+  private var placementPreviewDisplayLink: CADisplayLink?
+  private var placementReticleNode: SCNNode?
+  private var placementPreviewLastValidTransform: simd_float4x4?
+  private var placementPreviewIsValid: Bool = false
+  private var placementPreviewLastEventAt: CFTimeInterval = 0
+
   // Selected model for manipulation
   private var selectedNode: SCNNode?
 
@@ -49,6 +61,7 @@ class ExpoARKitView: ExpoView {
   let onMeshUpdated = EventDispatcher()
   let onMeshRemoved = EventDispatcher()
   let onModelPlaced = EventDispatcher()
+  let onPlacementPreviewUpdated = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -258,7 +271,7 @@ class ExpoARKitView: ExpoView {
       // Position the model based on mode
       var modelAnchor: ARAnchor?
 
-      if anchorToLastTap, let lastAnchor = Array(self.modelAnchors.values).last {
+      if anchorToLastTap, let lastId = self.lastPlacementAnchorId, let lastAnchor = self.modelAnchors[lastId] {
         // Anchored mode: use transform from the last created anchor
         modelNode.simdTransform = lastAnchor.transform
         self.anchoredNodes[lastAnchor.identifier] = modelNode
@@ -331,49 +344,95 @@ class ExpoARKitView: ExpoView {
   @objc private func handleTap(_ sender: UITapGestureRecognizer) {
     guard isInitialized else { return }
 
+    // When placement preview mode is active, we don't want taps to place models.
+    // (The UX is reticle + explicit confirm button.)
+    if placementPreviewActive {
+      return
+    }
+
+    // Only handle taps when a model is actually pending placement.
+    // This prevents accidental taps from creating random anchors and destabilizing subsequent operations.
+    guard pendingModelPath != nil else {
+      return
+    }
+
     // Get the 2D point where the user tapped
     let touchLocation = sender.location(in: sceneView)
 
     // Use modern raycast API (iOS 13+) instead of deprecated hitTest
     if #available(iOS 13.0, *) {
-      // Prefer existing plane geometry, but fall back to estimated planes for first placement.
-      func raycastFirst(allowing: ARRaycastQuery.Target) -> ARRaycastResult? {
-        guard let query = sceneView.raycastQuery(from: touchLocation, allowing: allowing, alignment: .horizontal) else {
-          return nil
-        }
-        return sceneView.session.raycast(query).first
+      let maxPlacementDistanceMeters: Float = 3.0
+
+      func distanceFromCamera(to transform: simd_float4x4) -> Float? {
+        guard let frame = sceneView.session.currentFrame else { return nil }
+        let cameraPos = simd_float3(
+          frame.camera.transform.columns.3.x,
+          frame.camera.transform.columns.3.y,
+          frame.camera.transform.columns.3.z
+        )
+        let hitPos = simd_float3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z)
+        return simd_length(hitPos - cameraPos)
       }
 
-      guard let firstResult = raycastFirst(allowing: .existingPlaneGeometry) ?? raycastFirst(allowing: .estimatedPlane) else {
-        onARError(["error": "No se encontró una superficie. Mueve el dispositivo para detectar el piso e intenta de nuevo."])
+      func isAcceptablePlaneAnchor(_ anchor: ARAnchor?) -> Bool {
+        guard let planeAnchor = anchor as? ARPlaneAnchor else {
+          // Estimated plane (no anchor). Accept only if we still have no detected planes.
+          return detectedPlanesCount == 0
+        }
+
+        // Prefer floor / none only (reject tables, seats, etc.)
+        if #available(iOS 12.0, *) {
+          switch planeAnchor.classification {
+          case .floor, .none:
+            return true
+          @unknown default:
+            return false
+          }
+        }
+
+        return true
+      }
+
+      func bestRaycastResult(allowing target: ARRaycastQuery.Target) -> ARRaycastResult? {
+        guard let query = sceneView.raycastQuery(from: touchLocation, allowing: target, alignment: .horizontal) else {
+          return nil
+        }
+
+        let results = sceneView.session.raycast(query)
+        for result in results {
+          guard isAcceptablePlaneAnchor(result.anchor) else { continue }
+          if let d = distanceFromCamera(to: result.worldTransform), d > maxPlacementDistanceMeters {
+            continue
+          }
+          return result
+        }
+        return nil
+      }
+
+      // Prefer real plane geometry. Only allow estimated plane when we still haven't detected any planes.
+      let existing = bestRaycastResult(allowing: .existingPlaneGeometry)
+      let estimated = (detectedPlanesCount == 0) ? bestRaycastResult(allowing: .estimatedPlane) : nil
+
+      guard let best = existing ?? estimated else {
+        onARError(["error": "No se encontró un piso estable cerca. Mueve el dispositivo para detectar el piso y toca más cerca."])
         return
       }
 
-      let planeAnchor = firstResult.anchor as? ARPlaneAnchor
-
-      // Optional: Filter by plane type (only available when we hit a real plane anchor).
+      let planeAnchor = best.anchor as? ARPlaneAnchor
       if #available(iOS 12.0, *), let planeAnchor {
-        // Log plane classification for debugging
-        let classification = planeAnchor.classification
-        print("Plane classification: \(classification)")
-
-        // Currently accepting all plane types for flexibility
-        // Uncomment below to restrict to floor only:
-        // guard planeAnchor.classification == .floor else {
-        //   onARError(["error": "Please tap on the floor"])
-        //   return
-        // }
+        print("Plane classification: \(planeAnchor.classification)")
       }
 
       // Create and add ARAnchor at the raycast location
-      let anchor = ARAnchor(transform: firstResult.worldTransform)
+      let anchor = ARAnchor(transform: best.worldTransform)
       sceneView.session.add(anchor: anchor)
 
       // Save reference to the anchor
       modelAnchors[anchor.identifier] = anchor
+      lastPlacementAnchorId = anchor.identifier
 
       print("Anchor created: \(anchor.identifier)")
-      print("Raycast hit plane at: \(firstResult.worldTransform)")
+      print("Raycast hit plane at: \(best.worldTransform)")
       if let planeAnchor {
         print("Plane anchor ID: \(planeAnchor.identifier)")
       } else {
@@ -419,6 +478,7 @@ class ExpoARKitView: ExpoView {
       let anchor = ARAnchor(transform: firstHit.worldTransform)
       sceneView.session.add(anchor: anchor)
       modelAnchors[anchor.identifier] = anchor
+      lastPlacementAnchorId = anchor.identifier
 
       // If we have a pending model, load it anchored to this tap
       if let modelPath = pendingModelPath {
@@ -458,8 +518,200 @@ class ExpoARKitView: ExpoView {
     print("Waiting for user to tap on a surface...")
   }
 
+  // MARK: - Placement Preview (Reticle + Confirm)
+  func startPlacementPreview(path: String, scale: Float) {
+    pendingModelPath = path
+    pendingModelScale = scale
+
+    placementPreviewActive = true
+    placementPreviewIsValid = false
+    placementPreviewLastValidTransform = nil
+    placementPreviewLastEventAt = 0
+
+    ensurePlacementReticleNode()
+    placementReticleNode?.isHidden = true
+
+    startPlacementPreviewDisplayLink()
+  }
+
+  func stopPlacementPreview() {
+    placementPreviewActive = false
+    placementPreviewIsValid = false
+    placementPreviewLastValidTransform = nil
+    placementReticleNode?.isHidden = true
+    stopPlacementPreviewDisplayLink()
+
+    // Let RN disable the confirm button.
+    onPlacementPreviewUpdated([
+      "valid": false
+    ])
+  }
+
+  func confirmPlacement() {
+    guard placementPreviewActive else {
+      onARError(["error": "Placement preview no está activo"]) 
+      return
+    }
+    guard placementPreviewIsValid, let transform = placementPreviewLastValidTransform else {
+      onARError(["error": "No hay una superficie válida para colocar. Mueve el dispositivo y apunta al piso."])
+      return
+    }
+    guard let modelPath = pendingModelPath else {
+      onARError(["error": "No hay modelo pendiente para colocar"]) 
+      return
+    }
+
+    let anchor = ARAnchor(transform: transform)
+    sceneView.session.add(anchor: anchor)
+    modelAnchors[anchor.identifier] = anchor
+    lastPlacementAnchorId = anchor.identifier
+
+    loadModel(
+      path: modelPath,
+      scale: pendingModelScale,
+      position: [],
+      anchorToLastTap: true
+    )
+
+    onModelPlaced([
+      "success": true,
+      "modelId": anchor.identifier.uuidString,
+      "anchorId": anchor.identifier.uuidString,
+      "position": [
+        "x": Double(anchor.transform.columns.3.x),
+        "y": Double(anchor.transform.columns.3.y),
+        "z": Double(anchor.transform.columns.3.z)
+      ],
+      "path": modelPath
+    ])
+
+    pendingModelPath = nil
+    pendingModelScale = 1.0
+    stopPlacementPreview()
+  }
+
+  private func ensurePlacementReticleNode() {
+    if placementReticleNode != nil { return }
+
+    let ring = SCNTorus(ringRadius: 0.065, pipeRadius: 0.0025)
+    let material = SCNMaterial()
+    material.diffuse.contents = UIColor.systemYellow
+    material.emission.contents = UIColor.systemYellow.withAlphaComponent(0.35)
+    material.lightingModel = .physicallyBased
+    ring.materials = [material]
+
+    let node = SCNNode(geometry: ring)
+    node.eulerAngles.x = -.pi / 2
+    node.isHidden = true
+
+    placementReticleNode = node
+    sceneView.scene.rootNode.addChildNode(node)
+  }
+
+  private func startPlacementPreviewDisplayLink() {
+    if placementPreviewDisplayLink != nil { return }
+    let link = CADisplayLink(target: self, selector: #selector(tickPlacementPreview))
+    if #available(iOS 15.0, *) {
+      link.preferredFrameRateRange = CAFrameRateRange(minimum: 15, maximum: 30, preferred: 30)
+    } else {
+      link.preferredFramesPerSecond = 30
+    }
+    link.add(to: .main, forMode: .common)
+    placementPreviewDisplayLink = link
+  }
+
+  private func stopPlacementPreviewDisplayLink() {
+    placementPreviewDisplayLink?.invalidate()
+    placementPreviewDisplayLink = nil
+  }
+
+  @objc private func tickPlacementPreview() {
+    guard placementPreviewActive else { return }
+    guard isInitialized else { return }
+    guard #available(iOS 13.0, *) else { return }
+
+    let centerPoint = CGPoint(x: sceneView.bounds.midX, y: sceneView.bounds.midY)
+
+    func raycastFirst(allowing: ARRaycastQuery.Target) -> ARRaycastResult? {
+      guard let query = sceneView.raycastQuery(from: centerPoint, allowing: allowing, alignment: .horizontal) else {
+        return nil
+      }
+      return sceneView.session.raycast(query).first
+    }
+
+    let resultExisting = raycastFirst(allowing: .existingPlaneGeometry)
+    let resultEstimated = resultExisting == nil ? raycastFirst(allowing: .estimatedPlane) : nil
+    let hit = resultExisting ?? resultEstimated
+    let isEstimated = (resultExisting == nil)
+
+    guard let hit else {
+      updatePlacementPreview(valid: false, transform: nil, distance: nil, isEstimated: nil)
+      return
+    }
+
+    var distanceValue: Float? = nil
+    if let frame = sceneView.session.currentFrame {
+      let cameraPos = simd_make_float3(frame.camera.transform.columns.3)
+      let hitPos = simd_make_float3(hit.worldTransform.columns.3)
+      distanceValue = simd_length(hitPos - cameraPos)
+
+      // Distance gate to prevent placing very far away
+      if let distanceValue, distanceValue > 3.0 {
+        updatePlacementPreview(valid: false, transform: nil, distance: distanceValue, isEstimated: isEstimated)
+        return
+      }
+    }
+
+    updatePlacementPreview(valid: true, transform: hit.worldTransform, distance: distanceValue, isEstimated: isEstimated)
+  }
+
+  private func updatePlacementPreview(valid: Bool, transform: simd_float4x4?, distance: Float?, isEstimated: Bool?) {
+    let didChangeValid = (valid != placementPreviewIsValid)
+    placementPreviewIsValid = valid
+
+    if valid, var t = transform {
+      // Small lift to avoid z-fighting
+      t.columns.3.y += 0.001
+      placementPreviewLastValidTransform = t
+      placementReticleNode?.simdTransform = t
+      placementReticleNode?.isHidden = false
+    } else {
+      placementPreviewLastValidTransform = nil
+      placementReticleNode?.isHidden = true
+    }
+
+    // Throttle events to RN
+    let now = CACurrentMediaTime()
+    if !didChangeValid && (now - placementPreviewLastEventAt) < 0.25 {
+      return
+    }
+    placementPreviewLastEventAt = now
+
+    var payload: [String: Any] = [
+      "valid": valid
+    ]
+
+    if let distance {
+      payload["distance"] = Double(distance)
+    }
+    if let isEstimated {
+      payload["isEstimated"] = isEstimated
+    }
+    if valid, let t = transform {
+      payload["position"] = [
+        "x": Double(t.columns.3.x),
+        "y": Double(t.columns.3.y),
+        "z": Double(t.columns.3.z)
+      ]
+    }
+
+    onPlacementPreviewUpdated(payload)
+  }
+
   // MARK: - Anchor Management
   func removeAllAnchors() {
+    stopPlacementPreview()
+
     // Remove all anchored nodes from the scene
     for (_, node) in anchoredNodes {
       node.removeFromParentNode()
@@ -476,6 +728,7 @@ class ExpoARKitView: ExpoView {
     modelHistory.removeAll()
     currentModelNode = nil
     selectedNode = nil
+    lastPlacementAnchorId = nil
 
     removeAlignmentDebugOverlay()
     alignmentDebugEnabled = false
@@ -1143,6 +1396,7 @@ class ExpoARKitView: ExpoView {
 
   // Cleanup
   deinit {
+    stopPlacementPreviewDisplayLink()
     sceneView?.session.pause()
   }
 

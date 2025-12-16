@@ -39,6 +39,37 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Placement preview (reticle + confirm)
+    AsyncFunction("startPlacementPreview") { (viewTag: Int, path: String, scale: Double) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.startPlacementPreview(path: path, scale: Float(scale))
+      }
+    }
+
+    AsyncFunction("stopPlacementPreview") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.stopPlacementPreview()
+      }
+    }
+
+    AsyncFunction("confirmPlacement") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.confirmPlacement()
+      }
+    }
+
     // Module-level async function to remove all anchors
     AsyncFunction("removeAllAnchors") { (viewTag: Int) -> Void in
       DispatchQueue.main.async { [weak self] in
@@ -390,6 +421,7 @@ public class ExpoARKitModule: Module {
         "onARError",
         "onModelLoaded",
         "onModelPlaced",
+        "onPlacementPreviewUpdated",
         "onPlaneDetected",
         "onPlaneUpdated",
         "onPlaneRemoved",

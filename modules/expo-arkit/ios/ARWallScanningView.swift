@@ -241,16 +241,31 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     
     // Get transform
     let transform = anchor.transform
-    let center = simd_float3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z)
+
+    // ARPlaneAnchor.center is in the anchor's local space; convert to world space
+    let localCenter = simd_float4(anchor.center.x, anchor.center.y, anchor.center.z, 1)
+    let worldCenter4 = transform * localCenter
+    let center = simd_float3(worldCenter4.x, worldCenter4.y, worldCenter4.z)
     
-    // Get normal (perpendicular to the plane)
-    // For ARPlaneAnchor, the normal is the Y-axis of the transform
+    // ARPlaneAnchor plane is defined in the anchor's X-Z plane; the plane normal is the anchor's Y axis.
+    // This holds for both horizontal and vertical plane anchors (ARKit rotates the anchor's coordinate system).
     let rawNormal = simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)
     guard simd_length(rawNormal) > 0.0001 else {
       print("⚠️ Invalid plane normal (zero length)")
       return nil
     }
-    let normal = simd_normalize(rawNormal)
+
+    var normal = simd_normalize(rawNormal)
+
+    // Make normal direction stable: point it roughly toward the camera if possible
+    if let frame = sceneView.session.currentFrame {
+      let camT = frame.camera.transform
+      let camPos = simd_float3(camT.columns.3.x, camT.columns.3.y, camT.columns.3.z)
+      let toCam = camPos - center
+      if simd_dot(normal, toCam) < 0 {
+        normal = -normal
+      }
+    }
 
     guard normal.x.isFinite, normal.y.isFinite, normal.z.isFinite,
           center.x.isFinite, center.y.isFinite, center.z.isFinite else {
@@ -396,13 +411,14 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     plane.materials = [material]
     
     let planeNode = SCNNode(geometry: plane)
-    
-    // ARPlaneAnchor's transform already includes rotation
-    // We just need to position it at the anchor's center
-    planeNode.simdPosition = simd_float3(0, 0, 0)
-    
-    // Rotate to face the normal (plane is in XY, needs to be perpendicular)
+
+    // ARPlaneAnchor's extent is in X-Z, while SCNPlane lies in X-Y by default.
+    // Rotate it so the geometry matches ARKit's plane coordinate space.
     planeNode.eulerAngles.x = -.pi / 2
+
+    // This node is attached under the anchor's node, so its local origin is the anchor.
+    // Offset the plane geometry to match the anchor's center in local space.
+    planeNode.simdPosition = anchor.center
     
     return planeNode
   }
@@ -414,8 +430,8 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     plane.width = CGFloat(extent.width)
     plane.height = CGFloat(extent.height)
     
-    // Update position to center
-    node.simdPosition = simd_float3(0, 0, 0)
+    // Keep the geometry aligned to the anchor's local center
+    node.simdPosition = anchor.center
   }
   
   // MARK: - ARSessionDelegate

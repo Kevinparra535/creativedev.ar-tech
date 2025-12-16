@@ -48,13 +48,15 @@ function getInstructionCopy(params: {
     if (planeCount === 0) {
       return {
         title: 'Apunta al suelo y mueve el dispositivo',
-        text: 'ARKit necesita ver más del entorno para detectar superficies.'
+        text:
+          'ARKit necesita ver el entorno para detectar superficies. Escanea una zona pequeña de piso (aprox. 1–2 m²) cerca de ti.'
       };
     }
 
     return {
-      title: 'Toca el suelo para colocar el modelo',
-      text: 'Coloca el modelo a escala real en una superficie horizontal.'
+      title: 'Toca el piso para colocar el modelo',
+      text:
+        'Coloca el modelo a escala real en una superficie horizontal. Tip: escanea una zona pequeña y estable de piso cerca de ti antes de tocar.'
     };
   }
 
@@ -94,14 +96,19 @@ export const AlignmentViewScreen = () => {
   const [showAlignmentAids, setShowAlignmentAids] = useState(false);
   const [isOrientationFlipped, setIsOrientationFlipped] = useState(false);
 
-  // Start tap-to-place flow when component mounts
+  // Prepare tap-to-place when AR is ready.
   useEffect(() => {
+    if (!arReady) return;
+    if (modelId) return;
+
     const timer = setTimeout(() => {
       arViewRef.current?.placeModelOnTap(modelPath, 1);
-    }, 1000); // Delay to ensure AR is initialized
+    }, 350);
 
-    return () => clearTimeout(timer);
-  }, [modelPath]);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [arReady, modelId, modelPath]);
 
   // Ensure debug overlay is turned off when leaving the screen
   useEffect(() => {
@@ -129,6 +136,7 @@ export const AlignmentViewScreen = () => {
     const { error } = event.nativeEvent;
     setArErrorMessage(error);
   };
+
   const handleModelPlaced = async (event: { nativeEvent: ModelPlacedEvent }) => {
     const { modelId: placedModelId, success } = event.nativeEvent;
 
@@ -139,6 +147,10 @@ export const AlignmentViewScreen = () => {
 
     console.log('📦 Model placed with ID:', placedModelId);
     setModelId(placedModelId);
+
+    // Hide plane overlays once the model is placed to reduce visual clutter.
+    // (They can be re-enabled via Reset if the user wants to place again.)
+    arViewRef.current?.setPlaneVisibility(false);
 
     // Automatically calculate and apply alignment
     await calculateAndApplyAlignment(placedModelId);
@@ -327,6 +339,7 @@ export const AlignmentViewScreen = () => {
           }
 
           arViewRef.current?.removeAllAnchors();
+          arViewRef.current?.setPlaneVisibility(true);
 
           setModelId(null);
           setAlignment(null);

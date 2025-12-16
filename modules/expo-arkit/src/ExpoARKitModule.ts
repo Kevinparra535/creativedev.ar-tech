@@ -55,6 +55,12 @@ interface ExpoARKitModuleType {
   addTestObject(viewTag: number): Promise<void>;
   loadModel(viewTag: number, path: string, scale: number, position: number[]): Promise<void>;
   placeModelOnTap(viewTag: number, path: string, scale: number): Promise<void>;
+
+  // Placement preview (reticle + confirm)
+  startPlacementPreview(viewTag: number, path: string, scale: number): Promise<void>;
+  stopPlacementPreview(viewTag: number): Promise<void>;
+  confirmPlacement(viewTag: number): Promise<void>;
+
   removeAllAnchors(viewTag: number): Promise<void>;
   undoLastModel(viewTag: number): Promise<void>;
   setPlaneVisibility(viewTag: number, visible: boolean): Promise<void>;
