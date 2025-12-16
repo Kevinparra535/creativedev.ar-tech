@@ -7,6 +7,8 @@ class ExpoARKitView: ExpoView {
   private var sceneView: ARSCNView!
   private var isInitialized = false
 
+  private var coachingOverlay: ARCoachingOverlayView?
+
   // Track detected planes count for React Native events
   private var detectedPlanesCount: Int = 0
 
@@ -27,6 +29,13 @@ class ExpoARKitView: ExpoView {
 
   // Plane visualization control
   private var planesVisible: Bool = true
+
+  // Alignment debug overlay
+  private var alignmentDebugEnabled: Bool = false
+  private var alignmentDebugModelId: UUID?
+  private var alignmentDebugVirtualNormalModelSpace: simd_float3?
+  private var alignmentDebugRealNormalWorldSpace: simd_float3?
+  private var alignmentDebugRootNode: SCNNode?
 
   // Event emitters
   let onARInitialized = EventDispatcher()
@@ -91,6 +100,23 @@ class ExpoARKitView: ExpoView {
 
       addSubview(sceneView)
       isInitialized = true
+
+      // Native AR guidance overlay ("apunta al suelo", move device, etc.)
+      if #available(iOS 13.0, *) {
+        let overlay = ARCoachingOverlayView()
+        overlay.session = sceneView.session
+        overlay.goal = .horizontalPlane
+        overlay.activatesAutomatically = true
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(overlay)
+        NSLayoutConstraint.activate([
+          overlay.topAnchor.constraint(equalTo: topAnchor),
+          overlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+          overlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+          overlay.trailingAnchor.constraint(equalTo: trailingAnchor)
+        ])
+        coachingOverlay = overlay
+      }
 
       // Notify React Native after a short delay to ensure handlers are registered
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -310,24 +336,23 @@ class ExpoARKitView: ExpoView {
 
     // Use modern raycast API (iOS 13+) instead of deprecated hitTest
     if #available(iOS 13.0, *) {
-      // Create a raycast query for existing plane anchors
-      guard let raycastQuery = sceneView.raycastQuery(from: touchLocation, allowing: .existingPlaneGeometry, alignment: .any) else {
-        onARError(["error": "Unable to create raycast query"])
+      // Prefer existing plane geometry, but fall back to estimated planes for first placement.
+      func raycastFirst(allowing: ARRaycastQuery.Target) -> ARRaycastResult? {
+        guard let query = sceneView.raycastQuery(from: touchLocation, allowing: allowing, alignment: .horizontal) else {
+          return nil
+        }
+        return sceneView.session.raycast(query).first
+      }
+
+      guard let firstResult = raycastFirst(allowing: .existingPlaneGeometry) ?? raycastFirst(allowing: .estimatedPlane) else {
+        onARError(["error": "No se encontró una superficie. Mueve el dispositivo para detectar el piso e intenta de nuevo."])
         return
       }
 
-      // Perform the raycast
-      let raycastResults = sceneView.session.raycast(raycastQuery)
+      let planeAnchor = firstResult.anchor as? ARPlaneAnchor
 
-      guard let firstResult = raycastResults.first,
-            let planeAnchor = firstResult.anchor as? ARPlaneAnchor else {
-        // No valid plane found
-        onARError(["error": "No valid plane found at tap location"])
-        return
-      }
-
-      // Optional: Filter by plane type (can be customized based on requirements)
-      if #available(iOS 12.0, *) {
+      // Optional: Filter by plane type (only available when we hit a real plane anchor).
+      if #available(iOS 12.0, *), let planeAnchor {
         // Log plane classification for debugging
         let classification = planeAnchor.classification
         print("Plane classification: \(classification)")
@@ -349,7 +374,11 @@ class ExpoARKitView: ExpoView {
 
       print("Anchor created: \(anchor.identifier)")
       print("Raycast hit plane at: \(firstResult.worldTransform)")
-      print("Plane anchor ID: \(planeAnchor.identifier)")
+      if let planeAnchor {
+        print("Plane anchor ID: \(planeAnchor.identifier)")
+      } else {
+        print("Raycast hit estimated plane (no anchor)")
+      }
 
       // If we have a pending model, load it anchored to this tap
       if let modelPath = pendingModelPath {
@@ -447,6 +476,12 @@ class ExpoARKitView: ExpoView {
     modelHistory.removeAll()
     currentModelNode = nil
     selectedNode = nil
+
+    removeAlignmentDebugOverlay()
+    alignmentDebugEnabled = false
+    alignmentDebugModelId = nil
+    alignmentDebugVirtualNormalModelSpace = nil
+    alignmentDebugRealNormalWorldSpace = nil
 
     print("All anchors and models removed")
   }
@@ -789,6 +824,8 @@ class ExpoARKitView: ExpoView {
 
     SCNTransaction.commit()
 
+    updateAlignmentDebugOverlayIfNeeded()
+
     print("✅ Alignment transform applied to model \(modelId)")
 
     return [
@@ -796,6 +833,153 @@ class ExpoARKitView: ExpoView {
       "modelId": modelId,
       "message": "Alignment transform applied successfully"
     ]
+  }
+
+  func setAlignmentDebug(modelId: String, enabled: Bool, virtualNormal: [Double], realNormal: [Double]) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId) else {
+      return [
+        "success": false,
+        "error": "Invalid modelId"
+      ]
+    }
+
+    alignmentDebugEnabled = enabled
+    alignmentDebugModelId = uuid
+
+    if virtualNormal.count >= 3 {
+      alignmentDebugVirtualNormalModelSpace = simd_float3(
+        Float(virtualNormal[0]),
+        Float(virtualNormal[1]),
+        Float(virtualNormal[2])
+      )
+    }
+
+    if realNormal.count >= 3 {
+      alignmentDebugRealNormalWorldSpace = simd_float3(
+        Float(realNormal[0]),
+        Float(realNormal[1]),
+        Float(realNormal[2])
+      )
+    }
+
+    if !enabled {
+      removeAlignmentDebugOverlay()
+      return ["success": true]
+    }
+
+    let angleDegrees = updateAlignmentDebugOverlayIfNeeded()
+    return [
+      "success": true,
+      "angleDegrees": angleDegrees as Any
+    ]
+  }
+
+  @discardableResult
+  private func updateAlignmentDebugOverlayIfNeeded() -> Double? {
+    guard alignmentDebugEnabled,
+          let modelId = alignmentDebugModelId,
+          let modelNode = anchoredNodes[modelId],
+          let virtualNormalModel = alignmentDebugVirtualNormalModelSpace,
+          let realNormalWorld = alignmentDebugRealNormalWorldSpace else {
+      return nil
+    }
+
+    let modelWorldPos = modelNode.presentation.worldPosition
+    let modelWorldTransform = modelNode.presentation.simdWorldTransform
+
+    let virtualWorld4 = modelWorldTransform * simd_float4(virtualNormalModel, 0)
+    let virtualNormalWorld = simd_normalize(simd_float3(virtualWorld4.x, virtualWorld4.y, virtualWorld4.z))
+    let realNormalWorldNorm = simd_normalize(realNormalWorld)
+
+    let angleDegrees = computeYawAngleDegrees(a: virtualNormalWorld, b: realNormalWorldNorm)
+
+    let root = alignmentDebugRootNode ?? {
+      let node = SCNNode()
+      node.name = "alignment_debug_root"
+      sceneView.scene.rootNode.addChildNode(node)
+      alignmentDebugRootNode = node
+      return node
+    }()
+
+    root.position = modelWorldPos
+
+    // Clear existing
+    root.childNodes.forEach { $0.removeFromParentNode() }
+
+    // World axes
+    root.addChildNode(makeArrowNode(direction: simd_float3(1, 0, 0), length: 0.2, color: .systemRed, name: "axis_x"))
+    root.addChildNode(makeArrowNode(direction: simd_float3(0, 1, 0), length: 0.2, color: .systemGreen, name: "axis_y"))
+    root.addChildNode(makeArrowNode(direction: simd_float3(0, 0, 1), length: 0.2, color: .systemBlue, name: "axis_z"))
+
+    // Normals
+    root.addChildNode(makeArrowNode(direction: virtualNormalWorld, length: 0.25, color: .systemTeal, name: "virtual_normal"))
+    root.addChildNode(makeArrowNode(direction: realNormalWorldNorm, length: 0.25, color: .systemYellow, name: "real_normal"))
+
+    return angleDegrees
+  }
+
+  private func removeAlignmentDebugOverlay() {
+    alignmentDebugRootNode?.removeFromParentNode()
+    alignmentDebugRootNode = nil
+  }
+
+  private func computeYawAngleDegrees(a: simd_float3, b: simd_float3) -> Double? {
+    let a2 = simd_float3(a.x, 0, a.z)
+    let b2 = simd_float3(b.x, 0, b.z)
+    if simd_length(a2) < 1e-5 || simd_length(b2) < 1e-5 {
+      return nil
+    }
+    let an = simd_normalize(a2)
+    let bn = simd_normalize(b2)
+    let dot = max(-1.0, min(1.0, Double(simd_dot(an, bn))))
+    let angle = acos(dot)
+    return angle * 180.0 / Double.pi
+  }
+
+  private func makeArrowNode(direction: simd_float3, length: Float, color: UIColor, name: String) -> SCNNode {
+    let dir = simd_length(direction) > 0 ? simd_normalize(direction) : simd_float3(0, 1, 0)
+
+    let shaftLength = max(0.001, length * 0.8)
+    let headLength = max(0.001, length * 0.2)
+    let shaftRadius: CGFloat = 0.004
+    let headRadius: CGFloat = 0.01
+
+    let shaft = SCNCylinder(radius: shaftRadius, height: CGFloat(shaftLength))
+    let shaftMat = SCNMaterial()
+    shaftMat.diffuse.contents = color
+    shaft.materials = [shaftMat]
+    let shaftNode = SCNNode(geometry: shaft)
+    shaftNode.position = SCNVector3(0, shaftLength / 2, 0)
+
+    let head = SCNCone(topRadius: 0, bottomRadius: headRadius, height: CGFloat(headLength))
+    let headMat = SCNMaterial()
+    headMat.diffuse.contents = color
+    head.materials = [headMat]
+    let headNode = SCNNode(geometry: head)
+    headNode.position = SCNVector3(0, shaftLength + headLength / 2, 0)
+
+    let arrow = SCNNode()
+    arrow.name = name
+    arrow.addChildNode(shaftNode)
+    arrow.addChildNode(headNode)
+
+    // Default arrow points +Y; rotate to match direction
+    let from = simd_float3(0, 1, 0)
+    let to = dir
+    let axis = simd_cross(from, to)
+    let axisLen = simd_length(axis)
+    let dot = simd_dot(from, to)
+
+    if axisLen < 1e-5 {
+      if dot < 0 {
+        arrow.simdOrientation = simd_quatf(angle: .pi, axis: simd_float3(1, 0, 0))
+      }
+    } else {
+      let angle = acos(max(-1.0, min(1.0, dot)))
+      arrow.simdOrientation = simd_quatf(angle: angle, axis: simd_normalize(axis))
+    }
+
+    return arrow
   }
 
   // MARK: - Gesture Handlers

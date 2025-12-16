@@ -363,6 +363,25 @@ public class ExpoARKitModule: Module {
       return result
     }
 
+    // Module-level async function to toggle alignment debug overlay
+    AsyncFunction("setAlignmentDebug") { (viewTag: Int, modelId: String, enabled: Bool, virtualNormal: [Double], realNormal: [Double]) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = [
+            "error": "Could not find ARKit view with tag \(viewTag)",
+            "success": false
+          ]
+          return
+        }
+
+        result = view.setAlignmentDebug(modelId: modelId, enabled: enabled, virtualNormal: virtualNormal, realNormal: realNormal)
+      }
+
+      return result
+    }
+
     // ViewManager definition for ARKit
     View(ExpoARKitView.self) {
       // Events
@@ -399,6 +418,8 @@ public class ExpoARKitModule: Module {
         "onVerticalPlaneDetected",
         "onRealWallSelected",
         "onRealWallDeselected",
+        "onRealWallUpdated",
+        "onTrackingStateChanged",
         "onARError"
       )
     }

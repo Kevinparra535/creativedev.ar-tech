@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,15 +16,65 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   ARKitView,
   ARKitViewRef,
-  ModelLoadedEvent,
+  ExpoARKitModule,
   ModelPlacedEvent,
+  PlaneData,
 } from '../../../modules/expo-arkit';
-import { wallAnchorService } from '../../services/wallAnchorService';
 import type { AlignmentResultResponse } from '../../../modules/expo-arkit/src/ExpoARKitModule';
+import { wallAnchorService } from '../../services/wallAnchorService';
 import type { RootStackParamList } from '../navigation/types';
 
 type AlignmentViewRouteProp = RouteProp<RootStackParamList, 'AlignmentView'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AlignmentView'>;
+
+function getInstructionCopy(params: {
+  hasModel: boolean;
+  arReady: boolean;
+  planeCount: number;
+  isCalculating: boolean;
+  isApplying: boolean;
+  alignmentApplied: boolean;
+}): { title: string; text: string } {
+  const { hasModel, arReady, planeCount, isCalculating, isApplying, alignmentApplied } = params;
+
+  if (!hasModel) {
+    if (!arReady) {
+      return {
+        title: 'Iniciando AR...',
+        text: 'Inicializando cámara y sesión AR...'
+      };
+    }
+
+    if (planeCount === 0) {
+      return {
+        title: 'Apunta al suelo y mueve el dispositivo',
+        text: 'ARKit necesita ver más del entorno para detectar superficies.'
+      };
+    }
+
+    return {
+      title: 'Toca el suelo para colocar el modelo',
+      text: 'Coloca el modelo a escala real en una superficie horizontal.'
+    };
+  }
+
+  if (isCalculating) {
+    return { title: 'Calculando alineación...', text: 'Por favor espera...' };
+  }
+
+  if (isApplying) {
+    return { title: 'Aplicando transformación...', text: 'Por favor espera...' };
+  }
+
+  if (alignmentApplied) {
+    return {
+      title: 'Alineación completada',
+      text: 'El modelo está alineado con el entorno real. Presiona "Finalizar" para guardar.'
+    };
+  }
+
+  return { title: 'Procesando...', text: 'Preparando alineación...' };
+}
 
 export const AlignmentViewScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -38,16 +88,47 @@ export const AlignmentViewScreen = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [alignmentApplied, setAlignmentApplied] = useState(false);
+  const [arReady, setArReady] = useState(false);
+  const [planeCount, setPlaneCount] = useState(0);
+  const [arErrorMessage, setArErrorMessage] = useState<string | null>(null);
+  const [showAlignmentAids, setShowAlignmentAids] = useState(false);
+  const [isOrientationFlipped, setIsOrientationFlipped] = useState(false);
 
   // Start tap-to-place flow when component mounts
   useEffect(() => {
     const timer = setTimeout(() => {
-      arViewRef.current?.placeModelOnTap(modelPath, 1.0);
+      arViewRef.current?.placeModelOnTap(modelPath, 1);
     }, 1000); // Delay to ensure AR is initialized
 
     return () => clearTimeout(timer);
   }, [modelPath]);
 
+  // Ensure debug overlay is turned off when leaving the screen
+  useEffect(() => {
+    return () => {
+      const viewTag = arViewRef.current?.getViewTag?.();
+      if (viewTag && modelId && showAlignmentAids) {
+        ExpoARKitModule.setAlignmentDebug(viewTag, modelId, false, [0, 1, 0], [0, 1, 0]).catch(
+          () => {}
+        );
+      }
+    };
+  }, [modelId, showAlignmentAids]);
+
+  const handleARInitialized = (event: { nativeEvent: { success: boolean; message: string } }) => {
+    if (event.nativeEvent.success) {
+      setArReady(true);
+    }
+  };
+
+  const handlePlaneDetected = (event: { nativeEvent: { plane: PlaneData; totalPlanes: number } }) => {
+    setPlaneCount(event.nativeEvent.totalPlanes);
+  };
+
+  const handleARError = (event: { nativeEvent: { error: string } }) => {
+    const { error } = event.nativeEvent;
+    setArErrorMessage(error);
+  };
   const handleModelPlaced = async (event: { nativeEvent: ModelPlacedEvent }) => {
     const { modelId: placedModelId, success } = event.nativeEvent;
 
@@ -63,14 +144,22 @@ export const AlignmentViewScreen = () => {
     await calculateAndApplyAlignment(placedModelId);
   };
 
-  const calculateAndApplyAlignment = async (modelIdToAlign: string) => {
+  const calculateAndApplyAlignment = async (modelIdToAlign: string, flipOrientation?: boolean) => {
     setIsCalculating(true);
+
+    const shouldFlip = flipOrientation ?? isOrientationFlipped;
+    const virtualWallForAlignment = shouldFlip
+      ? {
+          ...virtualWall,
+          normal: [-virtualWall.normal[0], -virtualWall.normal[1], -virtualWall.normal[2]] as [number, number, number]
+        }
+      : virtualWall;
 
     try {
       // Calculate alignment using the service
       console.log('🔧 Calculating alignment...');
       const alignmentResult = await wallAnchorService.calculateAlignment(
-        virtualWall,
+        virtualWallForAlignment,
         realWall
       );
 
@@ -104,13 +193,13 @@ export const AlignmentViewScreen = () => {
             },
             {
               text: 'Continuar de Todos Modos',
-              onPress: () => applyAlignmentToModel(modelIdToAlign, alignmentResult),
+              onPress: () => applyAlignmentToModel(modelIdToAlign, alignmentResult, virtualWallForAlignment),
             },
           ]
         );
       } else {
         // Good quality - apply automatically
-        await applyAlignmentToModel(modelIdToAlign, alignmentResult);
+        await applyAlignmentToModel(modelIdToAlign, alignmentResult, virtualWallForAlignment);
       }
     } catch (error) {
       setIsCalculating(false);
@@ -121,7 +210,8 @@ export const AlignmentViewScreen = () => {
 
   const applyAlignmentToModel = async (
     modelIdToAlign: string,
-    alignmentResult: AlignmentResultResponse
+    alignmentResult: AlignmentResultResponse,
+    virtualWallUsed: typeof virtualWall
   ) => {
     setIsApplying(true);
 
@@ -149,11 +239,110 @@ export const AlignmentViewScreen = () => {
           `El modelo ha sido alineado con el entorno real.`,
         [{ text: 'OK' }]
       );
+
+      if (showAlignmentAids) {
+        ExpoARKitModule.setAlignmentDebug(
+          viewTag,
+          modelIdToAlign,
+          true,
+          [...virtualWallUsed.normal],
+          [...realWall.normal]
+        ).catch(() => {});
+      }
     } catch (error) {
       setIsApplying(false);
       console.error('❌ Error applying alignment:', error);
       Alert.alert('Error', 'No se pudo aplicar la alineación');
     }
+  };
+
+  const handleToggleAlignmentAids = async () => {
+    if (!modelId) return;
+
+    const viewTag = arViewRef.current?.getViewTag?.();
+    if (!viewTag) return;
+
+    const next = !showAlignmentAids;
+    setShowAlignmentAids(next);
+
+    const virtualWallUsed = isOrientationFlipped
+      ? {
+          ...virtualWall,
+          normal: [-virtualWall.normal[0], -virtualWall.normal[1], -virtualWall.normal[2]] as [number, number, number]
+        }
+      : virtualWall;
+
+    try {
+      await ExpoARKitModule.setAlignmentDebug(
+        viewTag,
+        modelId,
+        next,
+        [...virtualWallUsed.normal],
+        [...realWall.normal]
+      );
+    } catch {
+      // Non-fatal
+    }
+  };
+
+  const handleFlipOrientation = () => {
+    if (!modelId) return;
+
+    Alert.alert(
+      'Flip orientación',
+      'Si el modelo quedó invertido respecto a la pared, esto invierte la normal virtual y recalcula la alineación.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Flip',
+          onPress: () => {
+            const next = !isOrientationFlipped;
+            setIsOrientationFlipped(next);
+            setAlignmentApplied(false);
+            setAlignment(null);
+
+            const viewTag = arViewRef.current?.getViewTag?.();
+            if (viewTag && showAlignmentAids) {
+              ExpoARKitModule.setAlignmentDebug(viewTag, modelId, false, [0, 1, 0], [0, 1, 0]).catch(
+                () => {}
+              );
+            }
+            calculateAndApplyAlignment(modelId, next);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleResetPlacement = () => {
+    Alert.alert('Reset', '¿Deseas reiniciar la colocación del modelo?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Reiniciar',
+        style: 'destructive',
+        onPress: async () => {
+          const viewTag = arViewRef.current?.getViewTag?.();
+          if (viewTag && modelId && showAlignmentAids) {
+            ExpoARKitModule.setAlignmentDebug(viewTag, modelId, false, [0, 1, 0], [0, 1, 0]).catch(() => {});
+          }
+
+          arViewRef.current?.removeAllAnchors();
+
+          setModelId(null);
+          setAlignment(null);
+          setIsCalculating(false);
+          setIsApplying(false);
+          setAlignmentApplied(false);
+          setArErrorMessage(null);
+          setShowAlignmentAids(false);
+          setIsOrientationFlipped(false);
+
+          setTimeout(() => {
+            arViewRef.current?.placeModelOnTap(modelPath, 1);
+          }, 350);
+        },
+      },
+    ]);
   };
 
   const handleFinish = () => {
@@ -201,6 +390,15 @@ export const AlignmentViewScreen = () => {
     : 'Calculando...';
   const confidence = alignment ? (alignment.confidence ?? 0) * 100 : 0;
 
+  const { title: instructionsTitle, text: instructionsText } = getInstructionCopy({
+    hasModel: modelId !== null,
+    arReady,
+    planeCount,
+    isCalculating,
+    isApplying,
+    alignmentApplied
+  });
+
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <View style={styles.arContainer}>
@@ -208,31 +406,19 @@ export const AlignmentViewScreen = () => {
           ref={arViewRef}
           style={styles.arView}
           onModelPlaced={handleModelPlaced}
+          onARInitialized={handleARInitialized}
+          onPlaneDetected={handlePlaneDetected}
+          onARError={handleARError}
         />
       </View>
 
       {/* Instructions Panel */}
       <View style={styles.instructionsPanel}>
-        <Text style={styles.instructionsTitle}>
-          {!modelId
-            ? 'Toca una superficie para colocar el modelo'
-            : isCalculating
-            ? 'Calculando alineación...'
-            : isApplying
-            ? 'Aplicando transformación...'
-            : alignmentApplied
-            ? 'Alineación completada'
-            : 'Procesando...'}
-        </Text>
-        <Text style={styles.instructionsText}>
-          {!modelId
-            ? 'Selecciona dónde quieres anclar el modelo en el espacio real'
-            : isCalculating || isApplying
-            ? 'Por favor espera...'
-            : alignmentApplied
-            ? 'El modelo está alineado con el entorno real. Presiona "Finalizar" para guardar.'
-            : 'Preparando alineación...'}
-        </Text>
+        <Text style={styles.instructionsTitle}>{instructionsTitle}</Text>
+        <Text style={styles.instructionsText}>{instructionsText}</Text>
+        {!!arErrorMessage && !alignmentApplied && (
+          <Text style={[styles.instructionsText, { marginTop: 6, color: '#FFD60A' }]}>⚠️ {arErrorMessage}</Text>
+        )}
       </View>
 
       {/* Alignment Quality Panel */}
@@ -280,9 +466,25 @@ export const AlignmentViewScreen = () => {
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
         {alignmentApplied && (
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleRecalculate}>
-            <Text style={styles.secondaryButtonText}>Recalcular</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleRecalculate}>
+              <Text style={styles.secondaryButtonText}>Recalcular</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.goBack()}>
+              <Text style={styles.secondaryButtonText}>Re-escanear Pared</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleFlipOrientation}>
+              <Text style={styles.secondaryButtonText}>Flip orientación</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleToggleAlignmentAids}>
+              <Text style={styles.secondaryButtonText}>
+                {showAlignmentAids ? 'Ocultar ayudas' : 'Mostrar ayudas'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleResetPlacement}>
+              <Text style={styles.secondaryButtonText}>Reset</Text>
+            </TouchableOpacity>
+          </>
         )}
         <TouchableOpacity
           style={[
@@ -393,13 +595,14 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     padding: 16,
     paddingBottom: 24,
     backgroundColor: '#1C1C1E',
     gap: 12,
   },
   primaryButton: {
-    flex: 1,
+    flexBasis: '100%',
     backgroundColor: '#34C759',
     paddingVertical: 16,
     borderRadius: 12,
@@ -419,7 +622,8 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   secondaryButton: {
-    flex: 1,
+    flexBasis: '48%',
+    flexGrow: 1,
     backgroundColor: '#2C2C2E',
     paddingVertical: 16,
     borderRadius: 12,

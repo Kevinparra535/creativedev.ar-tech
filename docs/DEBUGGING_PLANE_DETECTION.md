@@ -9,7 +9,7 @@
 
 ### 1. Logging Extensivo en Swift
 
-Se agregaron logs detallados en [ios/ARKitModule/ExpoARKitView.swift](../ios/ARKitModule/ExpoARKitView.swift):
+Se agregaron logs detallados en [modules/expo-arkit/ios/ExpoARKitView.swift](../modules/expo-arkit/ios/ExpoARKitView.swift):
 
 - 🔧 Inicialización de ARView
 - ✅ Configuración de ARKit
@@ -29,6 +29,37 @@ Nuevo componente [ARDebugOverlay.tsx](../src/ui/ar/components/ARDebugOverlay.tsx
 - Instrucciones para el usuario
 
 ---
+
+## 🧨 Crash al pasar a Wall Scanning (pared de referencia)
+
+**Síntoma típico:**
+
+- Seleccionas modelo ✅
+- Seleccionas pared virtual ✅
+- Entras a `WallScanningScreen` ✅
+- Se detectan 1-2 planos verticales (`onVerticalPlaneDetected`) y la app crashea
+
+**Causa común (iOS):**
+
+- ARKit puede ejecutar callbacks de `ARSCNViewDelegate` fuera del main thread.
+- Si el callback modifica estado compartido (ej. diccionarios de anchors/nodes) mientras el UI thread lo lee (tap, selección, etc.), es fácil caer en `EXC_BAD_ACCESS` por data races.
+
+**Fix aplicado (recomendado):**
+
+- Mantener *todas* las mutaciones de estado + SceneKit nodes en main thread dentro de `ARWallScanningView`.
+- Asegurar que los eventos hacia React Native envíen solo valores serializables (números como `Double`, strings, arrays).
+
+**Archivo clave:**
+
+- [modules/expo-arkit/ios/ARWallScanningView.swift](../modules/expo-arkit/ios/ARWallScanningView.swift)
+
+**Rebuild obligatorio:**
+
+```bash
+npm start -- --clear
+npx expo run:ios --device
+```
+
 
 ## 🔍 Cómo Debuggear
 

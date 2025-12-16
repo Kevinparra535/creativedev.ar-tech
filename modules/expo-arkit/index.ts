@@ -8,31 +8,21 @@ export type { ARKitViewProps, ARKitViewRef, ModelPlacedEvent, PlaneData } from '
 // Export SceneKit Preview view
 export { SceneKitPreviewView } from './src/SceneKitPreviewView';
 export type {
-  SceneKitPreviewViewProps,
-  SceneKitPreviewViewRef,
-  WallData,
-  ModelLoadedEvent,
-  LoadErrorEvent,
+    LoadErrorEvent, ModelLoadedEvent, SceneKitPreviewViewProps,
+    SceneKitPreviewViewRef,
+    WallData
 } from './src/SceneKitPreviewView';
 
 // Export AR Wall Scanning view
 export { ARWallScanningView } from './src/ARWallScanningView';
 export type {
-  ARWallScanningViewProps,
-  ARWallScanningViewRef,
-  RealWallData,
-  ARSessionStartedEvent,
-  VerticalPlaneDetectedEvent,
-  ARErrorEvent,
+    ARErrorEvent, ARSessionStartedEvent, ARWallScanningViewProps,
+    ARWallScanningViewRef,
+    RealWallData, VerticalPlaneDetectedEvent
 } from './src/ARWallScanningView';
 
 // Export types from module
 export type {
-  ModelDimensions,
-  Vector3,
-  ModelDimensionsResponse,
-  AllModelIdsResponse,
-  ModelTransformResponse,
-  ModelTransformData,
-  AlignmentResultResponse,
+    AlignmentDebugResponse, AlignmentResultResponse, AllModelIdsResponse, ModelDimensions, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse, Vector3
 } from './src/ExpoARKitModule';
+

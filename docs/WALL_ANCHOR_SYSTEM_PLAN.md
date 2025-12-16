@@ -276,6 +276,12 @@ const [isLoading, setIsLoading] = useState(false);
 - Extraer datos del plano real (ARPlaneAnchor)
 - Emitir evento cuando pared real es confirmada
 
+**Notas de estabilidad (importante):**
+
+- Los callbacks de ARKit (`didAdd/didUpdate/didRemove`) pueden ejecutarse fuera del main thread.
+- Para evitar crashes tipo `EXC_BAD_ACCESS`, todas las mutaciones de estado y nodos SceneKit deben hacerse en main.
+- Los eventos hacia React Native deben enviar payloads 100% serializables (sin objetos nativos como `ARPlaneAnchor`).
+
 **Configuración AR:**
 ```swift
 let config = ARWorldTrackingConfiguration()
@@ -304,13 +310,15 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate {
 }
 
 struct RealWallData {
-    let id: String
-    let normal: simd_float3
-    let center: simd_float3
-    let width: Float
-    let height: Float
-    let anchor: ARPlaneAnchor
+  let id: String
+  let normal: simd_float3
+  let center: simd_float3
+  let width: Float
+  let height: Float
+  let anchorIdentifier: UUID
 }
+
+// Nota: al emitir a RN, convertir números a Double y no enviar ARPlaneAnchor.
 ```
 
 **Algoritmo de selección:**
@@ -320,6 +328,12 @@ struct RealWallData {
 3. Obtener ARPlaneAnchor del resultado
 4. Extraer extent (width/height), center, normal del anchor
 5. Resaltar plano seleccionado (verde brillante)
+
+**Validación de tamaño recomendada:**
+
+- Los planos verticales suelen comenzar pequeños y crecer.
+- Un mínimo de área muy alto puede impedir selección aunque ARKit ya esté detectando.
+- Recomendado: `area >= 0.05m²` (ajustar según UX).
 
 **Visualización de planos:**
 - Reutilizar `Plane.swift` existente pero solo para verticales

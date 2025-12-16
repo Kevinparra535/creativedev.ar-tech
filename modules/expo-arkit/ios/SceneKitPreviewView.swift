@@ -7,7 +7,7 @@ import simd
 public struct WallSelectionData {
   let id: String
   let normal: simd_float3           // Vector normal de la pared
-  let center: simd_float3           // Centro de la pared en espacio mundial
+  let center: simd_float3           // Centro de la pared en espacio del modelo (coordenadas locales del USDZ)
   let width: Float                  // Ancho de la pared en metros
   let height: Float                 // Alto de la pared en metros
   let transformMatrix: simd_float4x4 // Matriz de transformación
@@ -27,7 +27,8 @@ public struct WallSelectionData {
       "normal": [normal.x, normal.y, normal.z],
       "center": [center.x, center.y, center.z],
       "dimensions": [width, height],
-      "transform": transformMatrix.toArray()
+      "transform": transformMatrix.toArray(),
+      "space": "model"
     ]
   }
 }
@@ -374,6 +375,33 @@ class SceneKitPreviewView: ExpoView {
     return (min: minWorld, max: maxWorld)
   }
 
+  private func getBoundingBoxInModelSpace(for node: SCNNode, modelRoot: SCNNode) -> (min: simd_float3, max: simd_float3) {
+    let (minLocal, maxLocal) = node.boundingBox
+
+    let corners = [
+      SCNVector3(minLocal.x, minLocal.y, minLocal.z),
+      SCNVector3(minLocal.x, minLocal.y, maxLocal.z),
+      SCNVector3(minLocal.x, maxLocal.y, minLocal.z),
+      SCNVector3(minLocal.x, maxLocal.y, maxLocal.z),
+      SCNVector3(maxLocal.x, minLocal.y, minLocal.z),
+      SCNVector3(maxLocal.x, minLocal.y, maxLocal.z),
+      SCNVector3(maxLocal.x, maxLocal.y, minLocal.z),
+      SCNVector3(maxLocal.x, maxLocal.y, maxLocal.z)
+    ]
+
+    var minModel = simd_float3(Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude)
+    var maxModel = simd_float3(-Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude)
+
+    for c in corners {
+      let pInModel = node.convertPosition(c, to: modelRoot)
+      let p = simd_float3(pInModel.x, pInModel.y, pInModel.z)
+      minModel = simd_min(minModel, p)
+      maxModel = simd_max(maxModel, p)
+    }
+
+    return (min: minModel, max: maxModel)
+  }
+
   // MARK: - Wall Selection
 
   @objc private func handleTapForWallSelection(_ gesture: UITapGestureRecognizer) {
@@ -438,6 +466,10 @@ class SceneKitPreviewView: ExpoView {
   }
 
   private func extractWallData(from hit: SCNHitTestResult) -> WallSelectionData? {
+    guard let modelRoot = modelNode else {
+      return nil
+    }
+
     // Try to get a stable normal (some USDZ assets may have missing normals)
     let localNormal = hit.localNormal
     var normalVec = simd_float3(Float(localNormal.x), Float(localNormal.y), Float(localNormal.z))
@@ -446,11 +478,13 @@ class SceneKitPreviewView: ExpoView {
       // Fallback: use node forward axis as an approximate normal
       let forwardLocal = simd_float4(0, 0, 1, 0)
       let forwardWorld4 = hit.node.simdWorldTransform * forwardLocal
-      normalVec = simd_float3(forwardWorld4.x, forwardWorld4.y, forwardWorld4.z)
+      let forwardWorld = SCNVector3(forwardWorld4.x, forwardWorld4.y, forwardWorld4.z)
+      let forwardInModel = modelRoot.convertVector(forwardWorld, from: nil)
+      normalVec = simd_float3(Float(forwardInModel.x), Float(forwardInModel.y), Float(forwardInModel.z))
     } else {
-      // Convert to world space
-      let worldNormal = hit.node.convertVector(localNormal, to: nil)
-      normalVec = simd_float3(Float(worldNormal.x), Float(worldNormal.y), Float(worldNormal.z))
+      // Convert to model space (undo preview centering/scaling)
+      let modelNormal = hit.node.convertVector(localNormal, to: modelRoot)
+      normalVec = simd_float3(Float(modelNormal.x), Float(modelNormal.y), Float(modelNormal.z))
     }
 
     guard simd_length(normalVec) >= 0.0001 else {
@@ -471,8 +505,8 @@ class SceneKitPreviewView: ExpoView {
       return nil
     }
 
-    // Get bounding box in world space
-    let boundingBox = getWorldBoundingBox(for: hit.node)
+    // Get bounding box in model space (undo preview centering/scaling)
+    let boundingBox = getBoundingBoxInModelSpace(for: hit.node, modelRoot: modelRoot)
     let size = boundingBox.max - boundingBox.min
     let center = (boundingBox.max + boundingBox.min) / 2
 
@@ -493,8 +527,8 @@ class SceneKitPreviewView: ExpoView {
       return nil
     }
 
-    // Get transform matrix
-    let transform = hit.node.simdWorldTransform
+    // Keep transform matrix as identity (callers should treat center/normal as model-local)
+    let transform = matrix_identity_float4x4
 
     // Create wall data
     let wallData = WallSelectionData(

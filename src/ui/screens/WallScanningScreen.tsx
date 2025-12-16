@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,17 +13,54 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
-  ARErrorEvent,
-  ARSessionStartedEvent,
-  ARWallScanningView,
-  ARWallScanningViewRef,
-  RealWallData,
-  VerticalPlaneDetectedEvent,
+    ARErrorEvent,
+    ARSessionStartedEvent,
+    ARWallScanningView,
+    ARWallScanningViewRef,
+    RealWallData,
+    TrackingStateChangedEvent,
+    VerticalPlaneDetectedEvent,
 } from '../../../modules/expo-arkit';
 import type { RootStackParamList } from '../navigation/types';
 
 type WallScanningRouteProp = RouteProp<RootStackParamList, 'WallScanning'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'WallScanning'>;
+
+function getScanInstructionCopy(params: {
+  arSessionReady: boolean;
+  detectedPlanes: number;
+  hasSelectedWall: boolean;
+  canLockWall: boolean;
+  selectedWallText: string;
+}): { title: string; text: string } {
+  const { arSessionReady, detectedPlanes, hasSelectedWall, canLockWall, selectedWallText } = params;
+
+  if (!arSessionReady) {
+    return {
+      title: 'Iniciando AR...',
+      text: 'Configurando detección de planos verticales...'
+    };
+  }
+
+  if (detectedPlanes === 0) {
+    return {
+      title: 'Escanea el entorno',
+      text: 'Mueve el dispositivo lentamente para detectar paredes.'
+    };
+  }
+
+  if (!hasSelectedWall) {
+    return {
+      title: 'Toca una pared para seleccionarla',
+      text: `${detectedPlanes} pared${detectedPlanes > 1 ? 'es' : ''} detectada${detectedPlanes > 1 ? 's' : ''}. Toca la pared física que corresponde a la pared del modelo.`
+    };
+  }
+
+  return {
+    title: canLockWall ? 'Listo para bloquear pared' : 'Pared seleccionada (validando...)',
+    text: selectedWallText
+  };
+}
 
 export const WallScanningScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -35,6 +72,10 @@ export const WallScanningScreen = () => {
   const [detectedPlanes, setDetectedPlanes] = useState<number>(0);
   const [selectedRealWall, setSelectedRealWall] = useState<RealWallData | null>(null);
   const [arSessionReady, setArSessionReady] = useState(false);
+  const [trackingState, setTrackingState] = useState<TrackingStateChangedEvent['state']>('limited');
+  const [trackingReason, setTrackingReason] = useState<TrackingStateChangedEvent['reason']>('initializing');
+  const [trackingNormalSince, setTrackingNormalSince] = useState<number | null>(null);
+  const [selectedWallSince, setSelectedWallSince] = useState<number | null>(null);
 
   // Start scanning when component mounts
   useEffect(() => {
@@ -42,7 +83,10 @@ export const WallScanningScreen = () => {
       arViewRef.current?.startWallScanning();
     }, 500); // Small delay to ensure view is mounted
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      arViewRef.current?.stopWallScanning();
+    };
   }, []);
 
   // Timeout warning if no planes detected
@@ -77,10 +121,24 @@ export const WallScanningScreen = () => {
     setDetectedPlanes(totalPlanes);
   };
 
+  const handleTrackingStateChanged = (event: { nativeEvent: TrackingStateChangedEvent }) => {
+    const { state, reason } = event.nativeEvent;
+    setTrackingState(state);
+    setTrackingReason(reason);
+
+    const now = Date.now();
+    if (state === 'normal') {
+      setTrackingNormalSince((prev) => prev ?? now);
+    } else {
+      setTrackingNormalSince(null);
+    }
+  };
+
   const handleRealWallSelected = (event: { nativeEvent: RealWallData }) => {
     const wallData = event.nativeEvent;
     console.log('>� Real wall selected:', wallData);
     setSelectedRealWall(wallData);
+    setSelectedWallSince(Date.now());
 
     const virtualDim = `${virtualWallData.dimensions[0].toFixed(2)}m x ${virtualWallData.dimensions[1].toFixed(2)}m`;
     const realDim = `${wallData.dimensions[0].toFixed(2)}m x ${wallData.dimensions[1].toFixed(2)}m`;
@@ -95,6 +153,11 @@ export const WallScanningScreen = () => {
   const handleRealWallDeselected = () => {
     console.log('9 Real wall deselected');
     setSelectedRealWall(null);
+    setSelectedWallSince(null);
+  };
+
+  const handleRealWallUpdated = (event: { nativeEvent: RealWallData }) => {
+    setSelectedRealWall(event.nativeEvent);
   };
 
   const handleARError = (event: { nativeEvent: ARErrorEvent }) => {
@@ -108,6 +171,40 @@ export const WallScanningScreen = () => {
       Alert.alert('Error', 'Selecciona una pared primero');
       return;
     }
+
+    const now = Date.now();
+    const selectedArea = selectedRealWall.dimensions[0] * selectedRealWall.dimensions[1];
+    const trackingNormalMs = trackingNormalSince ? now - trackingNormalSince : 0;
+    const selectedWallMs = selectedWallSince ? now - selectedWallSince : 0;
+
+    // Quality gates (Spec v0.2)
+    if (selectedArea < 0.8) {
+      Alert.alert(
+        'Pared muy pequeña',
+        'Sigue escaneando hasta que ARKit detecte una pared más grande (idealmente > 0.8 m²).'
+      );
+      return;
+    }
+
+    if (trackingState !== 'normal' || trackingNormalMs < 1500) {
+      Alert.alert(
+        'Tracking no estable',
+        'Espera a que el tracking esté en estado normal por un momento antes de bloquear la pared.'
+      );
+      return;
+    }
+
+    // Optional stability gate (v0.2): give ARKit a short settle window
+    if (selectedWallMs < 500) {
+      Alert.alert(
+        'Confirmando pared...',
+        'Mantén el dispositivo quieto un momento para estabilizar la detección.'
+      );
+      return;
+    }
+
+    // Stop scanning before moving to the next AR screen (avoid ARSession contention)
+    arViewRef.current?.stopWallScanning();
 
     // Navigate to AlignmentViewScreen
     navigation.navigate('AlignmentView', {
@@ -138,7 +235,40 @@ export const WallScanningScreen = () => {
   const handleDeselectWall = async () => {
     await arViewRef.current?.deselectRealWall();
     setSelectedRealWall(null);
+    setSelectedWallSince(null);
   };
+
+  const selectedArea = selectedRealWall
+    ? selectedRealWall.dimensions[0] * selectedRealWall.dimensions[1]
+    : 0;
+  const trackingNormalMs = trackingNormalSince ? Date.now() - trackingNormalSince : 0;
+  const selectedWallMs = selectedWallSince ? Date.now() - selectedWallSince : 0;
+  const canLockWall =
+    !!selectedRealWall &&
+    selectedArea >= 0.8 &&
+    trackingState === 'normal' &&
+    trackingNormalMs >= 1500 &&
+    selectedWallMs >= 500;
+
+  const trackingCopy =
+    trackingState === 'normal'
+      ? 'Tracking: Normal'
+      : trackingState === 'notAvailable'
+      ? 'Tracking: No disponible'
+      : `Tracking: Limitado (${trackingReason})`;
+
+  const hasSelectedWall = selectedRealWall !== null;
+  const selectedWallText = hasSelectedWall
+    ? `Pared real: ${selectedRealWall.dimensions[0].toFixed(2)}m x ${selectedRealWall.dimensions[1].toFixed(2)}m (área: ${selectedArea.toFixed(2)}m²)`
+    : '';
+
+  const { title: instructionsTitle, text: instructionsText } = getScanInstructionCopy({
+    arSessionReady,
+    detectedPlanes,
+    hasSelectedWall,
+    canLockWall,
+    selectedWallText
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -149,30 +279,24 @@ export const WallScanningScreen = () => {
           onARSessionStarted={handleARSessionStarted}
           onVerticalPlaneDetected={handlePlaneDetected}
           onRealWallSelected={handleRealWallSelected}
+          onRealWallUpdated={handleRealWallUpdated}
           onRealWallDeselected={handleRealWallDeselected}
+          onTrackingStateChanged={handleTrackingStateChanged}
           onARError={handleARError}
         />
       </View>
 
       <View style={styles.instructionsPanel}>
-        <Text style={styles.instructionsTitle}>
-          {!arSessionReady
-            ? 'Iniciando AR...'
-            : detectedPlanes === 0
-            ? 'Escanea el entorno'
-            : !selectedRealWall
-            ? 'Toca una pared para seleccionarla'
-            : 'Pared seleccionada'}
-        </Text>
-        <Text style={styles.instructionsText}>
-          {!arSessionReady
-            ? 'Configurando detecci�n de planos verticales...'
-            : detectedPlanes === 0
-            ? 'Mueve el dispositivo lentamente para detectar paredes.'
-            : !selectedRealWall
-            ? `${detectedPlanes} pared${detectedPlanes > 1 ? 'es' : ''} detectada${detectedPlanes > 1 ? 's' : ''}. Toca la pared f�sica que corresponde a la pared del modelo.`
-            : `Pared real: ${selectedRealWall.dimensions[0].toFixed(2)}m x ${selectedRealWall.dimensions[1].toFixed(2)}m`}
-        </Text>
+        <Text style={styles.instructionsTitle}>{instructionsTitle}</Text>
+        <Text style={styles.instructionsText}>{instructionsText}</Text>
+        {!!arSessionReady && (
+          <Text style={[styles.instructionsText, { marginTop: 6 }]}>{trackingCopy}</Text>
+        )}
+        {!!hasSelectedWall && !canLockWall && (
+          <Text style={[styles.instructionsText, { marginTop: 6 }]}>
+            Requisitos: área ≥ 0.8m², tracking normal ~1–2s.
+          </Text>
+        )}
       </View>
 
       <View style={styles.referencePanel}>
@@ -218,16 +342,16 @@ export const WallScanningScreen = () => {
         <TouchableOpacity
           style={[
             styles.primaryButton,
-            !selectedRealWall && styles.disabledButton
+            !canLockWall && styles.disabledButton
           ]}
           onPress={handleAccept}
-          disabled={!selectedRealWall}
+          disabled={!canLockWall}
         >
           <Text style={[
             styles.primaryButtonText,
-            !selectedRealWall && styles.disabledButtonText
+            !canLockWall && styles.disabledButtonText
           ]}>
-            Aceptar �
+            Lock Wall →
           </Text>
         </TouchableOpacity>
       </View>

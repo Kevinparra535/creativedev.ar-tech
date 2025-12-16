@@ -69,6 +69,14 @@ El proyecto ha completado las fases fundamentales del POC:
 - `onPlaneRemoved` - cuando plano desaparece
 - Eventos incluyen: id, type, alignment, dimensions, center position
 
+### Wall Anchor System: Escaneo de pared de referencia
+
+✅ **ARWallScanningView (vertical planes)**
+- Detección de planos verticales + selección por tap.
+- Hardening aplicado para evitar crashes por threading (ARKit delegate callbacks pueden llegar off-main).
+- Payloads de eventos hacia RN serializables (números como `Double`).
+- Umbral mínimo de área de plano vertical relajado para que la selección sea viable desde temprano.
+
 ### Model Loading (Fase 0.8 - Completada ✅)
 
 ✅ **Carga de USDZ**

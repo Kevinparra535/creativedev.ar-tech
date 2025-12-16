@@ -39,12 +39,17 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
   private var planeNodes: [UUID: SCNNode] = [:]
   private var selectedRealWall: RealWallData?
   private var selectedPlaneNode: SCNNode?
+
+  private var coachingOverlay: ARCoachingOverlayView?
+  private var lastSentSelectedWallUpdateAt: TimeInterval = 0
   
   // Event dispatchers
   let onARSessionStarted = EventDispatcher()
   let onVerticalPlaneDetected = EventDispatcher()
   let onRealWallSelected = EventDispatcher()
   let onRealWallDeselected = EventDispatcher()
+  let onRealWallUpdated = EventDispatcher()
+  let onTrackingStateChanged = EventDispatcher()
   let onARError = EventDispatcher()
   
   required init(appContext: AppContext? = nil) {
@@ -80,6 +85,23 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     
     // Add to view hierarchy
     addSubview(sceneView)
+
+    // Native-style guidance overlay (iOS 13+)
+    if #available(iOS 13.0, *) {
+      let overlay = ARCoachingOverlayView()
+      overlay.session = sceneView.session
+      overlay.goal = .verticalPlane
+      overlay.activatesAutomatically = true
+      overlay.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(overlay)
+      NSLayoutConstraint.activate([
+        overlay.topAnchor.constraint(equalTo: topAnchor),
+        overlay.bottomAnchor.constraint(equalTo: bottomAnchor),
+        overlay.leadingAnchor.constraint(equalTo: leadingAnchor),
+        overlay.trailingAnchor.constraint(equalTo: trailingAnchor)
+      ])
+      coachingOverlay = overlay
+    }
     
     print("✅ ARWallScanningView initialized")
   }
@@ -331,6 +353,13 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
       if let selectedWall = self.selectedRealWall, selectedWall.anchorIdentifier == planeAnchor.identifier {
         if let updatedData = self.extractRealWallData(from: planeAnchor) {
           self.selectedRealWall = updatedData
+
+          // Throttle wall updates to React Native (avoid spamming JS thread)
+          let now = Date().timeIntervalSince1970
+          if now - self.lastSentSelectedWallUpdateAt >= 0.2 {
+            self.lastSentSelectedWallUpdateAt = now
+            self.onRealWallUpdated(updatedData.toDictionary())
+          }
         }
       }
     }
@@ -390,6 +419,43 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
   }
   
   // MARK: - ARSessionDelegate
+
+  func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
+    let payload: [String: Any]
+
+    switch camera.trackingState {
+    case .normal:
+      payload = [
+        "state": "normal",
+        "reason": ""
+      ]
+    case .notAvailable:
+      payload = [
+        "state": "notAvailable",
+        "reason": ""
+      ]
+    case .limited(let reason):
+      let reasonString: String
+      switch reason {
+      case .initializing:
+        reasonString = "initializing"
+      case .excessiveMotion:
+        reasonString = "excessiveMotion"
+      case .insufficientFeatures:
+        reasonString = "insufficientFeatures"
+      case .relocalizing:
+        reasonString = "relocalizing"
+      @unknown default:
+        reasonString = "unknown"
+      }
+      payload = [
+        "state": "limited",
+        "reason": reasonString
+      ]
+    }
+
+    onTrackingStateChanged(payload)
+  }
   
   func session(_ session: ARSession, didFailWithError error: Error) {
     print("❌ AR Session failed: \(error.localizedDescription)")

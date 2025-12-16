@@ -80,6 +80,15 @@ interface ExpoARKitModuleType {
   // Wall Alignment functions
   calculateAlignment(virtualWallData: any, realWallData: any): Promise<AlignmentResultResponse>;
   applyAlignmentTransform(viewTag: number, modelId: string, transformMatrix: number[][]): Promise<ModelTransformResponse>;
+
+  // Alignment debug overlay
+  setAlignmentDebug(
+    viewTag: number,
+    modelId: string,
+    enabled: boolean,
+    virtualNormal: number[],
+    realNormal: number[]
+  ): Promise<AlignmentDebugResponse>;
 }
 
 // Alignment Result Types
@@ -90,6 +99,12 @@ export interface AlignmentResultResponse {
   rotation?: number[]; // [x, y, z, w] quaternion
   translation?: number[]; // [x, y, z]
   confidence?: number; // 0.0 - 1.0
+  error?: string;
+}
+
+export interface AlignmentDebugResponse {
+  success: boolean;
+  angleDegrees?: number;
   error?: string;
 }
 

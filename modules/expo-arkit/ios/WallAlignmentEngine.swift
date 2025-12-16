@@ -125,32 +125,31 @@ public class WallAlignmentEngine {
         virtualNormal: simd_float3,
         realNormal: simd_float3
     ) -> simd_quatf {
-        // Normalize vectors
-        let v = normalize(virtualNormal)
-        let r = normalize(realNormal)
+        // Spec v0.2 (interiors): align yaw only around world up to avoid roll/pitch.
+        // Project normals onto horizontal plane (y = 0).
+        let vRaw = normalize(virtualNormal)
+        let rRaw = normalize(realNormal)
 
-        // Calculate rotation axis (perpendicular to both normals)
-        let axis = cross(v, r)
+        let v = simd_float3(vRaw.x, 0, vRaw.z)
+        let r = simd_float3(rRaw.x, 0, rRaw.z)
 
-        // Calculate rotation angle
-        let cosAngle = dot(v, r)
-        let angle = acos(min(max(cosAngle, -1.0), 1.0))
-
-        // Handle parallel or antiparallel vectors
-        if length(axis) < 0.001 {
-            if cosAngle > 0 {
-                // Vectors are parallel - no rotation needed
-                print("      Normals are parallel - no rotation needed")
-                return simd_quatf(angle: 0, axis: [0, 1, 0])
-            } else {
-                // Vectors are antiparallel - 180° rotation
-                print("      Normals are antiparallel - 180° rotation")
-                return simd_quatf(angle: .pi, axis: [0, 1, 0])
-            }
+        let vLen = length(v)
+        let rLen = length(r)
+        if vLen < 0.0001 || rLen < 0.0001 {
+            print("      Warning: normal projection too small - no yaw rotation")
+            return simd_quatf(angle: 0, axis: [0, 1, 0])
         }
 
-        print("      Rotation angle: \(angle * 180 / .pi)°")
-        return simd_quatf(angle: angle, axis: normalize(axis))
+        let vN = v / vLen
+        let rN = r / rLen
+
+        // Signed yaw angle around +Y (world up)
+        let crossY = cross(vN, rN).y
+        let dotVR = dot(vN, rN)
+        let angle = atan2(crossY, dotVR)
+
+        print("      Yaw rotation angle: \(angle * 180 / .pi)°")
+        return simd_quatf(angle: angle, axis: [0, 1, 0])
     }
 
     // MARK: - Step 3: Translation Calculation

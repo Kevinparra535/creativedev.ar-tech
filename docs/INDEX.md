@@ -66,6 +66,9 @@
 | **PLAN_AR_INMERSIVO.md** | 16KB | Arquitectura | Quieres entender la visión técnica |
 | **EXPO_ROOMPLAN_MIGRATION.md** | 12KB | Implementación | Entender approach expo-roomplan |
 | **ARKIT_IMPLEMENTATION.md** | 8KB | Implementación ARKit | Entender módulos nativos y funcionalidades |
+| **ARKIT_WORLD_TRACKING_CONFIGURATION.md** | ~3KB | Guía ARKit | Configuración de ARWorldTrackingConfiguration (qué es y cómo usarla) |
+| **ARKIT_CONFIGURATION_OBJECTS.md** | ~4KB | Guía ARKit | Catálogo de configuraciones ARKit + cómo elegir (performance/UX) |
+| **POC_AR_INTERIOR_ALIGNMENT_SPEC.md** | ~6KB | Spec POC | Contrato de alineación + estados UX + criterios medibles |
 | **FILE_EXPORT_GUIDE.md** | 10KB | Exportación de archivos | Aprender a exportar modelos USDZ |
 | **EJEMPLO_EXPORTACION.md** | 14KB | Ejemplos de código | Ver ejemplos de exportación e integración |
 

@@ -34,12 +34,19 @@ export interface ARErrorEvent {
   message: string;
 }
 
+export interface TrackingStateChangedEvent {
+  state: 'normal' | 'limited' | 'notAvailable';
+  reason: '' | 'initializing' | 'excessiveMotion' | 'insufficientFeatures' | 'relocalizing' | 'unknown';
+}
+
 // Component props
 export interface ARWallScanningViewProps extends ViewProps {
   onARSessionStarted?: (event: { nativeEvent: ARSessionStartedEvent }) => void;
   onVerticalPlaneDetected?: (event: { nativeEvent: VerticalPlaneDetectedEvent }) => void;
   onRealWallSelected?: (event: { nativeEvent: RealWallData }) => void;
+  onRealWallUpdated?: (event: { nativeEvent: RealWallData }) => void;
   onRealWallDeselected?: (event: { nativeEvent: { deselected: boolean } }) => void;
+  onTrackingStateChanged?: (event: { nativeEvent: TrackingStateChangedEvent }) => void;
   onARError?: (event: { nativeEvent: ARErrorEvent }) => void;
 }
 
@@ -134,7 +141,9 @@ export const ARWallScanningView = forwardRef<ARWallScanningViewRef, ARWallScanni
         onARSessionStarted={props.onARSessionStarted}
         onVerticalPlaneDetected={props.onVerticalPlaneDetected}
         onRealWallSelected={props.onRealWallSelected}
+        onRealWallUpdated={props.onRealWallUpdated}
         onRealWallDeselected={props.onRealWallDeselected}
+        onTrackingStateChanged={props.onTrackingStateChanged}
         onARError={props.onARError}
       />
     );
