@@ -394,7 +394,7 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 - Recursos de aprendizaje complementarios necesarios
 - Tutoriales de Apple recomendados
 
-### 4. Estado: **FASE 1 COMPLETADA (85%)** 🔨
+### 4. Estado: **FASE 1 COMPLETADA (95%)** 🔨
 
 **Logros:**
 
@@ -408,10 +408,14 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 - ✅ Undo/Redo y gestión de modelos
 - ✅ Room Scanning vía expo-roomplan
 - ✅ Export de geometría escaneada como USDZ
+- ✅ **SceneKit Preview con gestos Apple Quick Look**
+- ✅ **Model rotation con momentum/inercia**
+- ✅ **Gestos simultáneos (pinch+pan, rotation+pan)**
+- ✅ **Preset camera views (Front/Right/Top/Perspective)**
 
-**Progreso del POC:** ~60% completado
+**Progreso del POC:** ~65% completado
 
-**Próximo paso:** Completar Fase 1 (integrar room scan con AR view) e iniciar Fase 2 - Model Alignment
+**Próximo paso:** Iniciar Fase 2 - Model Alignment con room scan
 
 ---
 
@@ -443,6 +447,32 @@ Ver [FASE_0_SETUP.md](./FASE_0_SETUP.md) para pasos detallados de implementació
 ---
 
 ## 📝 Registro de Cambios
+
+### Versión 2.3 - 2025-12-16
+
+**SceneKit Preview Mejorado:**
+
+- ✅ Sistema de gestos Apple Quick Look implementado
+- ✅ Model rotation en lugar de camera orbit (paradigma turntable)
+- ✅ Momentum/inercia para rotación natural
+- ✅ Gestos simultáneos: pinch+pan, rotation+pan
+- ✅ Two-finger rotation gesture para tilt/roll del modelo
+- ✅ Dampening en zoom para sensación suave
+- ✅ UIGestureRecognizerDelegate para múltiples gestos
+- ✅ Timer-based momentum animation (60 FPS)
+- ✅ Velocity tracking y friction decay
+
+**Arquitectura:**
+
+- Estado del modelo: `modelRotationY`, `modelRotationX`
+- Velocidad de rotación: `rotationVelocity`
+- Momentum timer: `momentumTimer`
+- Gestos configurados: 1-finger pan, 2-finger rotation, 2-finger pan, pinch, double-tap
+
+**Documentación actualizada:**
+
+- CURRENT_STATE.md refleja nuevo sistema de gestos
+- Progreso del POC: ~65% completado
 
 ### Versión 2.2 - 2025-12-12
 

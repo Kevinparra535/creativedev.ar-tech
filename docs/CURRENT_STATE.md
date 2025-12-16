@@ -1,8 +1,8 @@
 # Estado Actual del Proyecto
 
 **Fecha:** 2025-12-16
-**Versión:** 1.2.1
-**Fase:** Model Manipulation Complete + Room Scanning Implementado
+**Versión:** 1.3.0
+**Fase:** Model Manipulation Complete + Room Scanning + Apple-Style Gestures
 
 ---
 
@@ -13,10 +13,11 @@ El proyecto ha completado las fases fundamentales del POC:
 - ✅ Fase 0.5: Plane Detection con visualización y eventos
 - ✅ Fase 1: Model Loading, Tap-to-Place y Manipulación de Modelos
 - ✅ **Fase 1.5: Room Scanning** (vía expo-roomplan 1.2.1)
+- ✅ **Fase 1.7: SceneKit Preview + Apple Quick Look Gestures**
 
-**Progreso del POC:** ~60% completado
+**Progreso del POC:** ~65% completado
 
-**Último logro:** Wall Anchor System end-to-end + alineación automática sin tap al piso (y estabilidad mejorada)
+**Último logro:** Sistema de gestos avanzado Apple Quick Look para preview de modelos 3D (model rotation, momentum, simultaneous gestures)
 
 ---
 
@@ -94,6 +95,43 @@ El proyecto ha completado las fases fundamentales del POC:
 - Sistema de escalado configurable
 - Posicionamiento relativo a cámara actual
 - Evento `onModelLoaded` hacia React Native
+
+### SceneKit Preview: 3D Model Viewer (Fase 1.7 - Completada ✅)
+
+✅ **Apple Quick Look Style Gestures**
+- One-finger pan: Rotate model horizontally (turntable style)
+- Two-finger rotation: Tilt/roll model (±30° range)
+- Two-finger pan: Translate camera position
+- Pinch: Smooth zoom with dampening
+- Double-tap: Reset view
+
+✅ **Advanced Interaction Features**
+- Momentum/inertia animation after gesture release
+- Simultaneous gesture recognition (pinch + pan, rotation + pan)
+- Model-centric rotation paradigm (model rotates, not camera)
+- Smooth dampening for natural feel
+- Velocity-based momentum with friction decay
+
+✅ **Camera Controls**
+- Preset views: Front, Right, Top, Perspective
+- Smooth animated transitions (0.3s)
+- Auto-center and fit model on load
+- Optimal camera distance calculation
+- Blender-style background (#3D3D3D)
+- Elevated initial camera angle (35°)
+
+✅ **Visual Helpers**
+- Grid toggle for spatial reference
+- Bounding box visualization
+- Real-time camera stats (distance, angles)
+- Model dimensions display
+
+✅ **Implementation Details**
+- File: `modules/expo-arkit/ios/SceneKitPreviewView.swift`
+- Uses SCNView with custom camera rig
+- UIGestureRecognizer delegate for simultaneous gestures
+- Timer-based momentum animation (60 FPS)
+- State: `modelRotationY/X`, `cameraDistance`, `cameraPanOffset`
 
 ### Fase 1: Model Manipulation (Completada ✅)
 
