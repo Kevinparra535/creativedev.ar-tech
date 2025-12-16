@@ -1,25 +1,25 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as DocumentPicker from 'expo-document-picker';
+
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as DocumentPicker from 'expo-document-picker';
 
 import {
+  LoadErrorEvent,
+  ModelLoadedEvent,
   SceneKitPreviewView,
   SceneKitPreviewViewRef,
   WallData,
-  ModelLoadedEvent,
-  LoadErrorEvent,
 } from '../../../modules/expo-arkit/src/SceneKitPreviewView';
-
 import type { RootStackParamList } from '../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ModelPreview'>;
@@ -31,7 +31,7 @@ export const ModelPreviewScreen = () => {
   const [modelPath, setModelPath] = useState<string | null>(null);
   const [selectedWall, setSelectedWall] = useState<WallData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [modelDimensions, setModelDimensions] = useState<[number, number, number] | null>(null);
+  const [tapFeedback, setTapFeedback] = useState<string | null>(null);
 
   // Load model when modelPath changes and component is mounted
   useEffect(() => {
@@ -98,7 +98,6 @@ export const ModelPreviewScreen = () => {
     console.log('✅ Model loaded:', { success, dimensions, path });
 
     if (success) {
-      setModelDimensions(dimensions);
       setIsLoading(false);
       Alert.alert(
         'Modelo Cargado',
@@ -123,6 +122,15 @@ export const ModelPreviewScreen = () => {
   const handleWallDeselected = () => {
     console.log('ℹ️ Wall deselected');
     setSelectedWall(null);
+  };
+
+  const handleTapFeedback = (event: { nativeEvent: { success: boolean; message: string } }) => {
+    const { success, message } = event.nativeEvent;
+    if (success) {
+      setTapFeedback(null);
+      return;
+    }
+    setTapFeedback(message);
   };
 
   const handleLoadError = (event: { nativeEvent: LoadErrorEvent }) => {
@@ -156,7 +164,7 @@ export const ModelPreviewScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       {/* 3D Preview View */}
       <View style={styles.previewContainer}>
         {modelPath ? (
@@ -167,6 +175,7 @@ export const ModelPreviewScreen = () => {
             onPreviewWallSelected={handleWallSelected}
             onPreviewWallDeselected={handleWallDeselected}
             onPreviewLoadError={handleLoadError}
+            onPreviewTapFeedback={handleTapFeedback}
           />
         ) : (
           <View style={styles.emptyState}>
@@ -190,19 +199,23 @@ export const ModelPreviewScreen = () => {
       {/* Instructions Panel */}
       <View style={styles.instructionsPanel}>
         <Text style={styles.instructionsTitle}>
-          {!modelPath
-            ? '1. Selecciona un modelo USDZ'
-            : !selectedWall
-            ? '2. Toca una pared del modelo'
-            : '3. Presiona Continuar'}
+          {modelPath
+            ? selectedWall
+              ? '3. Presiona Continuar'
+              : '2. Toca una pared del modelo'
+            : '1. Selecciona un modelo USDZ'}
         </Text>
         <Text style={styles.instructionsText}>
-          {!modelPath
-            ? 'Carga un archivo USDZ exportado desde SketchUp u otra aplicación de modelado 3D.'
-            : !selectedWall
-            ? 'Usa pan (arrastrar) para rotar la cámara y pinch para hacer zoom. Toca una pared del modelo para seleccionarla como referencia.'
-            : `Pared seleccionada: ${selectedWall.dimensions[0].toFixed(2)}m x ${selectedWall.dimensions[1].toFixed(2)}m`}
+          {modelPath
+            ? selectedWall
+              ? `Pared seleccionada: ${selectedWall.dimensions[0].toFixed(2)}m x ${selectedWall.dimensions[1].toFixed(2)}m`
+              : 'Usa pan (arrastrar) para rotar la cámara y pinch para hacer zoom. Toca una pared del modelo para seleccionarla como referencia.'
+            : 'Carga un archivo USDZ exportado desde SketchUp u otra aplicación de modelado 3D.'}
         </Text>
+
+        {!!modelPath && !selectedWall && !!tapFeedback && (
+          <Text style={styles.tapFeedbackText}>{tapFeedback}</Text>
+        )}
       </View>
 
       {/* Wall Info (when selected) */}
@@ -228,17 +241,7 @@ export const ModelPreviewScreen = () => {
 
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
-        {!modelPath || !selectedWall ? (
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={handleSelectModel}
-            disabled={isLoading}
-          >
-            <Text style={styles.primaryButtonText}>
-              {modelPath ? 'Cambiar Modelo' : 'Seleccionar Modelo'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
+        {modelPath && selectedWall ? (
           <>
             <TouchableOpacity
               style={styles.secondaryButton}
@@ -253,6 +256,16 @@ export const ModelPreviewScreen = () => {
               <Text style={styles.primaryButtonText}>Continuar →</Text>
             </TouchableOpacity>
           </>
+        ) : (
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={handleSelectModel}
+            disabled={isLoading}
+          >
+            <Text style={styles.primaryButtonText}>
+              {modelPath ? 'Cambiar Modelo' : 'Seleccionar Modelo'}
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
     </SafeAreaView>
@@ -275,7 +288,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#000000',
   },
   emptyStateText: {
     fontSize: 20,
@@ -317,6 +330,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#8E8E93',
     lineHeight: 20,
+  },
+  tapFeedbackText: {
+    marginTop: 10,
+    fontSize: 13,
+    color: '#FFD60A',
+    lineHeight: 18,
   },
   wallInfoPanel: {
     backgroundColor: 'rgba(52, 199, 89, 0.15)',

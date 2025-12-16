@@ -10,7 +10,6 @@ const HomeScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   return (
     <SafeAreaView style={styles.container}>
-      <Button title='Go to AR Test' onPress={() => navigation.navigate('ARTest')} />
       <Button
         title='Go to Room Plan Test'
         onPress={() => navigation.navigate('RoomPlanTestScreen')}

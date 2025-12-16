@@ -24,9 +24,9 @@ public struct RealWallData {
   func toDictionary() -> [String: Any] {
     return [
       "wallId": id,
-      "normal": [normal.x, normal.y, normal.z],
-      "center": [center.x, center.y, center.z],
-      "dimensions": [width, height],
+      "normal": [Double(normal.x), Double(normal.y), Double(normal.z)],
+      "center": [Double(center.x), Double(center.y), Double(center.z)],
+      "dimensions": [Double(width), Double(height)],
       "anchorId": anchorIdentifier.uuidString
     ]
   }
@@ -210,9 +210,9 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     let width = extent.width
     let height = extent.height
     
-    // Validate minimum size (at least 0.5m²)
+    // Validate minimum size (relaxed: vertical planes often start small)
     let area = width * height
-    guard area >= 0.5 else {
+    guard area >= 0.05 else {
       print("⚠️ Plane too small: \(area)m²")
       return nil
     }
@@ -223,7 +223,18 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     
     // Get normal (perpendicular to the plane)
     // For ARPlaneAnchor, the normal is the Y-axis of the transform
-    let normal = simd_normalize(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
+    let rawNormal = simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)
+    guard simd_length(rawNormal) > 0.0001 else {
+      print("⚠️ Invalid plane normal (zero length)")
+      return nil
+    }
+    let normal = simd_normalize(rawNormal)
+
+    guard normal.x.isFinite, normal.y.isFinite, normal.z.isFinite,
+          center.x.isFinite, center.y.isFinite, center.z.isFinite else {
+      print("⚠️ Invalid plane data (non-finite values)")
+      return nil
+    }
     
     return RealWallData(
       id: UUID().uuidString,
@@ -272,59 +283,73 @@ class ARWallScanningView: ExpoView, ARSCNViewDelegate, ARSessionDelegate {
     
     // Only process vertical planes
     guard planeAnchor.alignment == .vertical else { return }
-    
-    // Store the anchor
-    detectedWallPlanes[planeAnchor.identifier] = planeAnchor
-    
-    // Create visualization node
-    let planeNode = createPlaneNode(from: planeAnchor)
-    node.addChildNode(planeNode)
-    planeNodes[planeAnchor.identifier] = planeNode
-    
-    // Notify React Native
+
+    // ARKit delegate callbacks may come off-main; keep all state + SceneKit mutations on main
     DispatchQueue.main.async { [weak self] in
-      self?.onVerticalPlaneDetected([
+      guard let self = self else { return }
+
+      // Store the anchor
+      self.detectedWallPlanes[planeAnchor.identifier] = planeAnchor
+
+      // Create visualization node
+      let planeNode = self.createPlaneNode(from: planeAnchor)
+      node.addChildNode(planeNode)
+      self.planeNodes[planeAnchor.identifier] = planeNode
+
+      let width = Double(planeAnchor.planeExtent.width)
+      let height = Double(planeAnchor.planeExtent.height)
+
+      // Notify React Native (use JSON-serializable primitives)
+      self.onVerticalPlaneDetected([
         "planeId": planeAnchor.identifier.uuidString,
-        "width": planeAnchor.planeExtent.width,
-        "height": planeAnchor.planeExtent.height,
-        "area": planeAnchor.planeExtent.width * planeAnchor.planeExtent.height,
-        "totalPlanes": self?.detectedWallPlanes.count ?? 0
+        "width": width,
+        "height": height,
+        "area": width * height,
+        "totalPlanes": self.detectedWallPlanes.count
       ])
+
+      print("🟢 Vertical plane detected: \(planeAnchor.planeExtent.width)m x \(planeAnchor.planeExtent.height)m")
     }
-    
-    print("🟢 Vertical plane detected: \(planeAnchor.planeExtent.width)m x \(planeAnchor.planeExtent.height)m")
   }
   
   func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
     guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
     guard planeAnchor.alignment == .vertical else { return }
-    
-    // Update stored anchor
-    detectedWallPlanes[planeAnchor.identifier] = planeAnchor
-    
-    // Update visualization
-    if let planeNode = planeNodes[planeAnchor.identifier] {
-      updatePlaneNode(planeNode, with: planeAnchor)
-    }
-    
-    // If this is the selected wall, update its data
-    if let selectedWall = selectedRealWall, selectedWall.anchorIdentifier == planeAnchor.identifier {
-      if let updatedData = extractRealWallData(from: planeAnchor) {
-        selectedRealWall = updatedData
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+
+      // Update stored anchor
+      self.detectedWallPlanes[planeAnchor.identifier] = planeAnchor
+
+      // Update visualization
+      if let planeNode = self.planeNodes[planeAnchor.identifier] {
+        self.updatePlaneNode(planeNode, with: planeAnchor)
+      }
+
+      // If this is the selected wall, update its data
+      if let selectedWall = self.selectedRealWall, selectedWall.anchorIdentifier == planeAnchor.identifier {
+        if let updatedData = self.extractRealWallData(from: planeAnchor) {
+          self.selectedRealWall = updatedData
+        }
       }
     }
   }
   
   func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
     guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-    
-    // Remove from tracking
-    detectedWallPlanes.removeValue(forKey: planeAnchor.identifier)
-    planeNodes.removeValue(forKey: planeAnchor.identifier)
-    
-    // If removed plane was selected, deselect
-    if let selectedWall = selectedRealWall, selectedWall.anchorIdentifier == planeAnchor.identifier {
-      deselectWall()
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+
+      // Remove from tracking
+      self.detectedWallPlanes.removeValue(forKey: planeAnchor.identifier)
+      self.planeNodes.removeValue(forKey: planeAnchor.identifier)
+
+      // If removed plane was selected, deselect
+      if let selectedWall = self.selectedRealWall, selectedWall.anchorIdentifier == planeAnchor.identifier {
+        self.deselectWall()
+      }
     }
   }
   

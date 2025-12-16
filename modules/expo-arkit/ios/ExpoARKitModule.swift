@@ -387,7 +387,8 @@ public class ExpoARKitModule: Module {
         "onPreviewModelLoaded",
         "onPreviewWallSelected",
         "onPreviewWallDeselected",
-        "onPreviewLoadError"
+        "onPreviewLoadError",
+        "onPreviewTapFeedback"
       )
     }
 

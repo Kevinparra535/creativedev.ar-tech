@@ -3,11 +3,10 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { ARTestScreen } from '@/ui/screens/ARTestScreen';
+import { AlignmentViewScreen } from '@/ui/screens/AlignmentViewScreen';
 import { ModelPreviewScreen } from '@/ui/screens/ModelPreviewScreen';
 import { RoomPlanTestScreen } from '@/ui/screens/RoomPlanTestScreen';
 import { WallScanningScreen } from '@/ui/screens/WallScanningScreen';
-import { AlignmentViewScreen } from '@/ui/screens/AlignmentViewScreen';
 
 import { RootStackParamList } from './types';
 
@@ -20,7 +19,6 @@ export function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName='Home'>
         <Stack.Screen name='Home' component={HomeScreen} options={{ title: 'Home' }} />
-        <Stack.Screen name='ARTest' component={ARTestScreen} options={{ title: 'ARKit Test' }} />
         <Stack.Screen name='RoomPlanTestScreen' component={RoomPlanTestScreen} />
         <Stack.Screen
           name='ModelPreview'

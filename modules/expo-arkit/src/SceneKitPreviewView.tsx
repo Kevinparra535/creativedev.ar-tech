@@ -1,6 +1,8 @@
-import { requireNativeViewManager } from 'expo-modules-core';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
-import { StyleSheet, ViewProps, findNodeHandle } from 'react-native';
+import { findNodeHandle, StyleSheet, ViewProps } from 'react-native';
+
+import { requireNativeViewManager } from 'expo-modules-core';
+
 import { ExpoARKitModule } from './ExpoARKitModule';
 
 const NativeSceneKitPreviewView = requireNativeViewManager('ExpoARKit', 'SceneKitPreviewView');
@@ -32,6 +34,7 @@ export interface SceneKitPreviewViewProps extends ViewProps {
   onPreviewWallSelected?: (event: { nativeEvent: WallData }) => void;
   onPreviewWallDeselected?: (event: { nativeEvent: { deselected: boolean } }) => void;
   onPreviewLoadError?: (event: { nativeEvent: LoadErrorEvent }) => void;
+  onPreviewTapFeedback?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
 }
 
 // Component ref interface
@@ -98,6 +101,7 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
           throw error;
         }
       },
+
     }));
 
     return (
@@ -108,6 +112,7 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
         onPreviewWallSelected={props.onPreviewWallSelected}
         onPreviewWallDeselected={props.onPreviewWallDeselected}
         onPreviewLoadError={props.onPreviewLoadError}
+        onPreviewTapFeedback={props.onPreviewTapFeedback}
       />
     );
   }

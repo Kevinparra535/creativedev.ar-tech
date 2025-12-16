@@ -40,6 +40,7 @@ class SceneKitPreviewView: ExpoView {
   private var selectedWallNode: SCNNode?
   private var selectedWallData: WallSelectionData?
   private var highlightOverlay: SCNNode?
+  private var gridRootNode: SCNNode?
 
   // Initial camera setup
   private var initialCameraDistance: Float = 3.0
@@ -54,6 +55,7 @@ class SceneKitPreviewView: ExpoView {
   let onPreviewWallSelected = EventDispatcher()
   let onPreviewWallDeselected = EventDispatcher()
   let onPreviewLoadError = EventDispatcher()
+  let onPreviewTapFeedback = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -90,6 +92,9 @@ class SceneKitPreviewView: ExpoView {
     // Setup camera
     setupCamera()
 
+    // Add floor grid
+    setupGrid()
+
     // Add gesture recognizers
     setupGestureRecognizers()
 
@@ -122,11 +127,72 @@ class SceneKitPreviewView: ExpoView {
 
     // Pan gesture for camera rotation
     let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanForCameraRotation(_:)))
+    panGesture.maximumNumberOfTouches = 1
     sceneView.addGestureRecognizer(panGesture)
+
+    // Prefer tap over accidental tiny pans
+    panGesture.require(toFail: tapGesture)
 
     // Pinch gesture for zoom
     let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinchForZoom(_:)))
     sceneView.addGestureRecognizer(pinchGesture)
+  }
+
+  private func setupGrid() {
+    let grid = SCNNode()
+    grid.name = "floorGrid"
+    grid.opacity = 0.9
+
+    // Minor grid (0.25m)
+    let minor = makeGridLines(size: 10.0, step: 0.25, color: UIColor.systemGray.withAlphaComponent(0.25))
+    // Major grid (1m)
+    let major = makeGridLines(size: 10.0, step: 1.0, color: UIColor.systemGray.withAlphaComponent(0.55))
+
+    grid.addChildNode(minor)
+    grid.addChildNode(major)
+
+    sceneView.scene?.rootNode.addChildNode(grid)
+    gridRootNode = grid
+  }
+
+  private func makeGridLines(size: Float, step: Float, color: UIColor) -> SCNNode {
+    let half = size / 2
+    var vertices: [SCNVector3] = []
+    var indices: [UInt32] = []
+    var index: UInt32 = 0
+
+    var value: Float = -half
+    while value <= half + 0.0001 {
+      // Line parallel to X axis at Z=value
+      vertices.append(SCNVector3(-half, 0, value))
+      vertices.append(SCNVector3(half, 0, value))
+      indices.append(index)
+      indices.append(index + 1)
+      index += 2
+
+      // Line parallel to Z axis at X=value
+      vertices.append(SCNVector3(value, 0, -half))
+      vertices.append(SCNVector3(value, 0, half))
+      indices.append(index)
+      indices.append(index + 1)
+      index += 2
+
+      value += step
+    }
+
+    let source = SCNGeometrySource(vertices: vertices)
+    let indexData = indices.withUnsafeBytes { Data($0) }
+    let element = SCNGeometryElement(data: indexData, primitiveType: .line, primitiveCount: indices.count / 2, bytesPerIndex: MemoryLayout<UInt32>.size)
+    let geometry = SCNGeometry(sources: [source], elements: [element])
+
+    let material = SCNMaterial()
+    material.diffuse.contents = color
+    material.isDoubleSided = true
+    geometry.materials = [material]
+
+    let node = SCNNode(geometry: geometry)
+    node.renderingOrder = -1
+    return node
   }
 
   // MARK: - Model Loading
@@ -138,6 +204,7 @@ class SceneKitPreviewView: ExpoView {
     modelNode?.removeFromParentNode()
     modelNode = nil
     deselectWall()
+    onPreviewTapFeedback(["success": true, "message": ""])
 
     // Normalize the path - handle file:// URLs and percent encoding
     var normalizedPath = path
@@ -228,7 +295,7 @@ class SceneKitPreviewView: ExpoView {
           self.centerAndScaleModel()
 
           // Get model info
-          let boundingBox = self.getBoundingBox(for: modelContainer)
+          let boundingBox = self.getWorldBoundingBox(for: modelContainer)
           let dimensions = boundingBox.max - boundingBox.min
 
           print("✅ Model loaded successfully")
@@ -259,7 +326,7 @@ class SceneKitPreviewView: ExpoView {
   private func centerAndScaleModel() {
     guard let model = modelNode else { return }
 
-    let boundingBox = getBoundingBox(for: model)
+    let boundingBox = getWorldBoundingBox(for: model)
     let size = boundingBox.max - boundingBox.min
     let center = (boundingBox.max + boundingBox.min) / 2
 
@@ -272,19 +339,39 @@ class SceneKitPreviewView: ExpoView {
     model.position = SCNVector3(-center.x, -center.y, -center.z)
     model.scale = SCNVector3(scale, scale, scale)
 
+    // Place grid at the model "floor" after centering/scaling
+    let floorY = (boundingBox.min.y - center.y) * scale
+    gridRootNode?.position = SCNVector3(0, floorY, 0)
+
     print("   Scale applied: \(scale)x")
     print("   Centered at origin")
   }
 
-  private func getBoundingBox(for node: SCNNode) -> (min: simd_float3, max: simd_float3) {
-    let (min, max) = node.boundingBox
-    let minWorld = node.convertPosition(min, to: nil)
-    let maxWorld = node.convertPosition(max, to: nil)
+  private func getWorldBoundingBox(for node: SCNNode) -> (min: simd_float3, max: simd_float3) {
+    let (minLocal, maxLocal) = node.boundingBox
 
-    return (
-      min: simd_float3(minWorld.x, minWorld.y, minWorld.z),
-      max: simd_float3(maxWorld.x, maxWorld.y, maxWorld.z)
-    )
+    let corners = [
+      SCNVector3(minLocal.x, minLocal.y, minLocal.z),
+      SCNVector3(minLocal.x, minLocal.y, maxLocal.z),
+      SCNVector3(minLocal.x, maxLocal.y, minLocal.z),
+      SCNVector3(minLocal.x, maxLocal.y, maxLocal.z),
+      SCNVector3(maxLocal.x, minLocal.y, minLocal.z),
+      SCNVector3(maxLocal.x, minLocal.y, maxLocal.z),
+      SCNVector3(maxLocal.x, maxLocal.y, minLocal.z),
+      SCNVector3(maxLocal.x, maxLocal.y, maxLocal.z)
+    ]
+
+    var minWorld = simd_float3(Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude, Float.greatestFiniteMagnitude)
+    var maxWorld = simd_float3(-Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude, -Float.greatestFiniteMagnitude)
+
+    for c in corners {
+      let w = node.convertPosition(c, to: nil)
+      let p = simd_float3(w.x, w.y, w.z)
+      minWorld = simd_min(minWorld, p)
+      maxWorld = simd_max(maxWorld, p)
+    }
+
+    return (min: minWorld, max: maxWorld)
   }
 
   // MARK: - Wall Selection
@@ -298,6 +385,8 @@ class SceneKitPreviewView: ExpoView {
       SCNHitTestOption.ignoreHiddenNodes: true
     ])
 
+    var hitModelSurface = false
+
     // Find first valid wall hit
     for hit in hitResults {
       // Skip if this is the highlight overlay
@@ -310,6 +399,8 @@ class SceneKitPreviewView: ExpoView {
         continue
       }
 
+      hitModelSurface = true
+
       // Validate if this is a valid wall surface
       if let wallData = extractWallData(from: hit) {
         selectWall(hit: hit, wallData: wallData)
@@ -317,7 +408,19 @@ class SceneKitPreviewView: ExpoView {
       }
     }
 
-    // No valid wall found - deselect current
+    // No valid wall found - provide feedback and deselect current
+    if hitModelSurface {
+      onPreviewTapFeedback([
+        "success": false,
+        "message": "No se detectó una pared válida. Intenta tocar una superficie vertical más grande (no piso/techo)."
+      ])
+    } else {
+      onPreviewTapFeedback([
+        "success": false,
+        "message": "No se detectó el modelo en ese punto. Acerca/rota y vuelve a tocar una pared."
+      ])
+    }
+
     if selectedWallNode != nil {
       deselectWall()
     }
@@ -335,12 +438,26 @@ class SceneKitPreviewView: ExpoView {
   }
 
   private func extractWallData(from hit: SCNHitTestResult) -> WallSelectionData? {
-    // Get local normal from hit
+    // Try to get a stable normal (some USDZ assets may have missing normals)
     let localNormal = hit.localNormal
+    var normalVec = simd_float3(Float(localNormal.x), Float(localNormal.y), Float(localNormal.z))
 
-    // Convert to world space
-    let worldNormal = hit.node.convertVector(localNormal, to: nil)
-    let normalVec = simd_normalize(simd_float3(worldNormal.x, worldNormal.y, worldNormal.z))
+    if simd_length(normalVec) < 0.0001 || normalVec.x.isNaN || normalVec.y.isNaN || normalVec.z.isNaN {
+      // Fallback: use node forward axis as an approximate normal
+      let forwardLocal = simd_float4(0, 0, 1, 0)
+      let forwardWorld4 = hit.node.simdWorldTransform * forwardLocal
+      normalVec = simd_float3(forwardWorld4.x, forwardWorld4.y, forwardWorld4.z)
+    } else {
+      // Convert to world space
+      let worldNormal = hit.node.convertVector(localNormal, to: nil)
+      normalVec = simd_float3(Float(worldNormal.x), Float(worldNormal.y), Float(worldNormal.z))
+    }
+
+    guard simd_length(normalVec) >= 0.0001 else {
+      return nil
+    }
+
+    normalVec = simd_normalize(normalVec)
 
     // Validate that this is a vertical surface (wall, not floor/ceiling)
     guard isValidWallNormal(normalVec) else {
@@ -355,23 +472,23 @@ class SceneKitPreviewView: ExpoView {
     }
 
     // Get bounding box in world space
-    let boundingBox = getBoundingBox(for: hit.node)
+    let boundingBox = getWorldBoundingBox(for: hit.node)
     let size = boundingBox.max - boundingBox.min
     let center = (boundingBox.max + boundingBox.min) / 2
 
     // Determine wall dimensions based on normal direction
     let (width, height) = calculateWallDimensions(size: size, normal: normalVec)
 
-    // Validate minimum size (at least 0.5m²)
+    // Validate minimum size (relaxed)
     let area = width * height
-    guard area >= 0.5 else {
+    guard area >= 0.05 else {
       print("⚠️  Surface too small to be a wall (\(area)m²)")
       return nil
     }
 
     // Validate aspect ratio (avoid very elongated surfaces)
-    let aspectRatio = max(width, height) / min(width, height)
-    guard aspectRatio <= 10.0 else {
+    let aspectRatio = max(width, height) / max(0.001, min(width, height))
+    guard aspectRatio <= 25.0 else {
       print("⚠️  Surface has extreme aspect ratio (\(aspectRatio):1)")
       return nil
     }
@@ -436,6 +553,7 @@ class SceneKitPreviewView: ExpoView {
 
     // Notify React Native
     onPreviewWallSelected(wallData.toDictionary())
+    onPreviewTapFeedback(["success": true, "message": "Pared seleccionada" ])
 
     print("✅ Wall selected: \(wallData.id)")
   }

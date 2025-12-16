@@ -1,8 +1,8 @@
 # Plan: Sistema de Anclaje Basado en Paredes (Wall-Based Anchor System)
 
 **Fecha de creación:** 2025-12-13
-**Última actualización:** 2025-12-13
-**Estado:** En implementación - Fase 2 completada
+**Última actualización:** 2025-12-15
+**Estado:** Fases 1-4 completadas - Testing en dispositivo físico
 **Duración estimada:** 4-5 semanas (21 días hábiles)
 
 ## 📊 Estado de Implementación
@@ -1147,23 +1147,110 @@ Este orden es crítico. Cambiar el orden produce resultados incorrectos.
 - **Navegación/tipos:** ~50 líneas
 - **Total implementado:** ~2,049 líneas
 
-#### Próximos Pasos
+#### Problemas Encontrados y Solucionados (2025-12-15)
 
-**Fase 3 - Motor de Alineación:**
+##### 1. **Error: "Unsupported top level event type" en SceneKitPreviewView**
 
-1. Crear `WallAlignmentEngine.swift` con algoritmo matemático
-2. Implementar cálculos de escala, rotación, traslación
-3. Función `applyAlignmentTransform` en ExpoARKitView
-4. Servicio TypeScript `WallAnchorService.ts`
+**Síntomas:**
 
-**Fase 4 - Vista de Alineación:**
+- Al cargar un modelo, aparecían errores:
 
-1. Crear `AlignmentViewScreen.tsx`
-2. Componente `AlignmentControls.tsx`
-3. Integración de navegación completa
+  ```text
+  ERROR [Error: Unsupported top level event type "topPreviewWallDeselected" dispatched]
+  ERROR [Error: Unsupported top level event type "topPreviewModelLoaded" dispatched]
+  ```
+
+- El modelo se cargaba pero la UI quedaba en estado de carga indefinido
+- Los eventos nativos no llegaban a React Native
+
+**Causa raíz:**
+
+- Los eventos nativos se disparaban ANTES de que React Native estuviera listo para recibirlos
+- Problema de timing entre inicialización de componente nativo y montaje de componente React
+
+**Soluciones implementadas:**
+
+1. **Evento `onPreviewWallDeselected` condicional**
+   - Archivo: `modules/expo-arkit/ios/SceneKitPreviewView.swift:441-458`
+   - Cambio: Solo disparar evento si realmente había una selección previa
+
+   ```swift
+   func deselectWall() {
+     let hadSelection = selectedWallNode != nil
+     // ... limpiar estado ...
+     if hadSelection {
+       onPreviewWallDeselected(["deselected": true])
+     }
+   }
+   ```
+
+   - Evita disparar eventos espurios durante la inicialización
+
+2. **Delay en evento `onPreviewModelLoaded`**
+   - Archivo: `modules/expo-arkit/ios/SceneKitPreviewView.swift:237-244`
+   - Cambio: Agregar delay de 100ms antes de disparar evento
+
+   ```swift
+   DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+     self.onPreviewModelLoaded([...])
+   }
+   ```
+
+   - Da tiempo a React Native para estar listo y recibir el evento
+
+**Resultado:**
+
+- ✅ Errores de eventos eliminados
+- ✅ Estado de carga se actualiza correctamente
+- ✅ Alertas de modelo cargado aparecen como esperado
+- ✅ Flujo completo de carga funcional
+
+##### 2. **Corrección de nombre de vista nativa (Fase 1)**
+
+**Problema:** Error "Unable to get view config for ExpoARKit_SceneKitPreviewView"
+
+**Solución:** Cambio de `'ExpoARKit_SceneKitPreviewView'` a `'SceneKitPreviewView'`
+
+**Archivo:** `modules/expo-arkit/src/SceneKitPreviewView.tsx:6`
+
+**Antes:**
+
+```typescript
+const NativeSceneKitPreviewView = requireNativeViewManager('ExpoARKit_SceneKitPreviewView');
+```
+
+**Después:**
+
+```typescript
+const NativeSceneKitPreviewView = requireNativeViewManager('ExpoARKit', 'SceneKitPreviewView');
+```
+
+---
+
+#### Próximos Pasos - Fase 5: Testing y Polish
+
+**Testing en dispositivo físico:**
+
+1. Probar flujo completo ModelPreview → WallScanning → AlignmentView
+2. Validar precisión de alineación con diferentes tipos de modelos
+3. Probar en diferentes condiciones de iluminación
+4. Verificar detección de paredes en espacios reales
+5. Ajustar umbrales de confianza si es necesario
+
+**Polish y mejoras opcionales:**
+
+1. Agregar controles manuales de ajuste fino (si la alineación automática no es suficiente)
+2. Mejorar visualización de paredes detectadas
+3. Agregar tutorial/onboarding
+4. Optimizar rendimiento si es necesario
+
+**Dispositivos requeridos:**
+
+- iPhone 12 Pro o superior (requiere LiDAR para ARKit plane detection precisa)
+- iOS 15.0 o superior
 
 ---
 
 **Última actualización:** 2025-12-15
-**Estado:** Fases 1-4 completadas - Listo para testing
+**Estado:** Fases 1-4 completadas - Listo para testing en dispositivo físico
 **Próxima revisión:** Durante Fase 5 (Testing y Polish)
