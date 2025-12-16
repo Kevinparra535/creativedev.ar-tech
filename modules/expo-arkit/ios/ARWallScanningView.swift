@@ -4,14 +4,23 @@ import SceneKit
 import ExpoModulesCore
 
 // MARK: - Real Wall Data Structure
-struct RealWallData {
+public struct RealWallData {
   let id: String
   let normal: simd_float3
   let center: simd_float3
   let width: Float
   let height: Float
   let anchorIdentifier: UUID
-  
+
+  public init(id: String, normal: simd_float3, center: simd_float3, width: Float, height: Float, anchorIdentifier: UUID) {
+    self.id = id
+    self.normal = normal
+    self.center = center
+    self.width = width
+    self.height = height
+    self.anchorIdentifier = anchorIdentifier
+  }
+
   func toDictionary() -> [String: Any] {
     return [
       "wallId": id,

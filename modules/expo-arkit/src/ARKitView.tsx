@@ -53,6 +53,7 @@ export interface ARKitViewRef {
   setModelRotation: (modelId: string, rotation: number[]) => Promise<ModelTransformResponse>;
   setModelPosition: (modelId: string, position: number[]) => Promise<ModelTransformResponse>;
   getModelTransform: (modelId: string) => Promise<ModelTransformData>;
+  getViewTag: () => number | null;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -261,6 +262,9 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error getting model transform:', error);
         return { success: false, error: String(error) };
       }
+    },
+    getViewTag: () => {
+      return findNodeHandle(nativeRef.current);
     },
   }));
 

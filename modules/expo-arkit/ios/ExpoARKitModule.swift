@@ -264,6 +264,105 @@ public class ExpoARKitModule: Module {
       return result
     }
 
+    // MARK: - Wall Alignment Functions
+
+    // Module-level async function to calculate wall alignment
+    AsyncFunction("calculateAlignment") { (virtualWallData: [String: Any], realWallData: [String: Any]) -> [String: Any] in
+      // Parse virtual wall data
+      guard let virtualNormal = virtualWallData["normal"] as? [Double],
+            virtualNormal.count >= 3,
+            let virtualCenter = virtualWallData["center"] as? [Double],
+            virtualCenter.count >= 3,
+            let virtualDimensions = virtualWallData["dimensions"] as? [Double],
+            virtualDimensions.count >= 2 else {
+        return [
+          "error": "Invalid virtual wall data format",
+          "success": false
+        ]
+      }
+
+      // Parse real wall data
+      guard let realNormal = realWallData["normal"] as? [Double],
+            realNormal.count >= 3,
+            let realCenter = realWallData["center"] as? [Double],
+            realCenter.count >= 3,
+            let realDimensions = realWallData["dimensions"] as? [Double],
+            realDimensions.count >= 2 else {
+        return [
+          "error": "Invalid real wall data format",
+          "success": false
+        ]
+      }
+
+      // Create WallSelectionData from virtual wall
+      let virtualWall = WallSelectionData(
+        id: virtualWallData["id"] as? String ?? UUID().uuidString,
+        normal: simd_float3(Float(virtualNormal[0]), Float(virtualNormal[1]), Float(virtualNormal[2])),
+        center: simd_float3(Float(virtualCenter[0]), Float(virtualCenter[1]), Float(virtualCenter[2])),
+        width: Float(virtualDimensions[0]),
+        height: Float(virtualDimensions[1]),
+        transformMatrix: matrix_identity_float4x4
+      )
+
+      // Create RealWallData from real wall
+      let anchorId = realWallData["anchorId"] as? String ?? UUID().uuidString
+      let realWall = RealWallData(
+        id: realWallData["id"] as? String ?? UUID().uuidString,
+        normal: simd_float3(Float(realNormal[0]), Float(realNormal[1]), Float(realNormal[2])),
+        center: simd_float3(Float(realCenter[0]), Float(realCenter[1]), Float(realCenter[2])),
+        width: Float(realDimensions[0]),
+        height: Float(realDimensions[1]),
+        anchorIdentifier: UUID(uuidString: anchorId) ?? UUID()
+      )
+
+      // Calculate alignment
+      let alignment = WallAlignmentEngine.calculateAlignment(
+        virtualWall: virtualWall,
+        realWall: realWall
+      )
+
+      // Convert to dictionary and return
+      var result = alignment.toDictionary()
+      result["success"] = true
+
+      return result
+    }
+
+    // Module-level async function to apply alignment transform to a model
+    AsyncFunction("applyAlignmentTransform") { (viewTag: Int, modelId: String, transformMatrix: [[Double]]) -> [String: Any] in
+      var result: [String: Any] = [:]
+
+      // Validate transform matrix dimensions
+      guard transformMatrix.count == 4,
+            transformMatrix.allSatisfy({ $0.count == 4 }) else {
+        return [
+          "error": "Transform matrix must be 4x4",
+          "success": false
+        ]
+      }
+
+      // Convert [[Double]] to simd_float4x4
+      let matrix = simd_float4x4(
+        simd_float4(Float(transformMatrix[0][0]), Float(transformMatrix[0][1]), Float(transformMatrix[0][2]), Float(transformMatrix[0][3])),
+        simd_float4(Float(transformMatrix[1][0]), Float(transformMatrix[1][1]), Float(transformMatrix[1][2]), Float(transformMatrix[1][3])),
+        simd_float4(Float(transformMatrix[2][0]), Float(transformMatrix[2][1]), Float(transformMatrix[2][2]), Float(transformMatrix[2][3])),
+        simd_float4(Float(transformMatrix[3][0]), Float(transformMatrix[3][1]), Float(transformMatrix[3][2]), Float(transformMatrix[3][3]))
+      )
+
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          result = [
+            "error": "Could not find ARKit view with tag \(viewTag)",
+            "success": false
+          ]
+          return
+        }
+        result = view.applyAlignmentTransform(modelId: modelId, transform: matrix)
+      }
+
+      return result
+    }
+
     // ViewManager definition for ARKit
     View(ExpoARKitView.self) {
       // Events

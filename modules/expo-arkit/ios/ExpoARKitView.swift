@@ -766,6 +766,38 @@ class ExpoARKitView: ExpoView {
     ]
   }
 
+  // MARK: - Wall Alignment
+
+  /// Apply alignment transformation to a model
+  /// This is used by the wall alignment system to transform a model
+  /// based on virtual-to-real wall correspondence
+  func applyAlignmentTransform(modelId: String, transform: simd_float4x4) -> [String: Any] {
+    guard let uuid = UUID(uuidString: modelId),
+          let node = anchoredNodes[uuid] else {
+      print("❌ Model not found: \(modelId)")
+      return [
+        "error": "Model not found with ID: \(modelId)",
+        "success": false
+      ]
+    }
+
+    // Apply transformation with smooth animation
+    SCNTransaction.begin()
+    SCNTransaction.animationDuration = 0.5
+
+    node.simdTransform = transform
+
+    SCNTransaction.commit()
+
+    print("✅ Alignment transform applied to model \(modelId)")
+
+    return [
+      "success": true,
+      "modelId": modelId,
+      "message": "Alignment transform applied successfully"
+    ]
+  }
+
   // MARK: - Gesture Handlers
 
   @objc private func handleLongPress(_ sender: UILongPressGestureRecognizer) {

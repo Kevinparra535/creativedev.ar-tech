@@ -5,7 +5,7 @@ import { requireNativeViewManager } from 'expo-modules-core';
 
 import { ExpoARKitModule } from './ExpoARKitModule';
 
-const NativeARWallScanningView = requireNativeViewManager('ExpoARKit_ARWallScanningView');
+const NativeARWallScanningView = requireNativeViewManager('ExpoARKit', 'ARWallScanningView');
 
 // Data types
 export interface RealWallData {
@@ -59,13 +59,14 @@ export const ARWallScanningView = forwardRef<ARWallScanningViewRef, ARWallScanni
       startWallScanning: async () => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('📡 Starting wall scanning with viewId:', viewId);
-            await ExpoARKitModule.startWallScanning(viewId);
-            console.log('✅ Wall scanning started');
-          } else {
+          if (viewId === null) {
             console.error('❌ viewId is null');
+            return;
           }
+
+          console.log('📡 Starting wall scanning with viewId:', viewId);
+          await ExpoARKitModule.startWallScanning(viewId);
+          console.log('✅ Wall scanning started');
         } catch (error) {
           console.error('❌ Error starting wall scanning:', error);
           throw error;
@@ -75,13 +76,14 @@ export const ARWallScanningView = forwardRef<ARWallScanningViewRef, ARWallScanni
       stopWallScanning: async () => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('⏸ Stopping wall scanning with viewId:', viewId);
-            await ExpoARKitModule.stopWallScanning(viewId);
-            console.log('✅ Wall scanning stopped');
-          } else {
+          if (viewId === null) {
             console.error('❌ viewId is null');
+            return;
           }
+
+          console.log('⏸ Stopping wall scanning with viewId:', viewId);
+          await ExpoARKitModule.stopWallScanning(viewId);
+          console.log('✅ Wall scanning stopped');
         } catch (error) {
           console.error('❌ Error stopping wall scanning:', error);
           throw error;
@@ -91,13 +93,14 @@ export const ARWallScanningView = forwardRef<ARWallScanningViewRef, ARWallScanni
       deselectRealWall: async () => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('🔄 Deselecting real wall with viewId:', viewId);
-            await ExpoARKitModule.deselectRealWall(viewId);
-            console.log('✅ Real wall deselected');
-          } else {
+          if (viewId === null) {
             console.error('❌ viewId is null');
+            return;
           }
+
+          console.log('🔄 Deselecting real wall with viewId:', viewId);
+          await ExpoARKitModule.deselectRealWall(viewId);
+          console.log('✅ Real wall deselected');
         } catch (error) {
           console.error('❌ Error deselecting real wall:', error);
           throw error;
@@ -107,15 +110,16 @@ export const ARWallScanningView = forwardRef<ARWallScanningViewRef, ARWallScanni
       getSelectedRealWallData: async (): Promise<RealWallData | null> => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('📊 Getting selected real wall data with viewId:', viewId);
-            const wallData = await ExpoARKitModule.getSelectedRealWallData(viewId);
-            console.log('✅ Real wall data retrieved:', wallData);
-            return wallData as RealWallData | null;
-          } else {
+
+          if (viewId === null) {
             console.error('❌ viewId is null');
             return null;
           }
+
+          console.log('📊 Getting selected real wall data with viewId:', viewId);
+          const wallData = await ExpoARKitModule.getSelectedRealWallData(viewId);
+          console.log('✅ Real wall data retrieved:', wallData);
+          return wallData as RealWallData | null;
         } catch (error) {
           console.error('❌ Error getting real wall data:', error);
           throw error;

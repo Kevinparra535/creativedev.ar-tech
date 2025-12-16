@@ -76,6 +76,21 @@ interface ExpoARKitModuleType {
   stopWallScanning(viewTag: number): Promise<void>;
   deselectRealWall(viewTag: number): Promise<void>;
   getSelectedRealWallData(viewTag: number): Promise<any>;
+
+  // Wall Alignment functions
+  calculateAlignment(virtualWallData: any, realWallData: any): Promise<AlignmentResultResponse>;
+  applyAlignmentTransform(viewTag: number, modelId: string, transformMatrix: number[][]): Promise<ModelTransformResponse>;
+}
+
+// Alignment Result Types
+export interface AlignmentResultResponse {
+  success: boolean;
+  transformMatrix?: number[][];
+  scale?: number;
+  rotation?: number[]; // [x, y, z, w] quaternion
+  translation?: number[]; // [x, y, z]
+  confidence?: number; // 0.0 - 1.0
+  error?: string;
 }
 
 // Get the native module and export it

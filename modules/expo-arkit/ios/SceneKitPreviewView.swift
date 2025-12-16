@@ -4,13 +4,22 @@ import ExpoModulesCore
 import simd
 
 // MARK: - Wall Selection Data Structure
-struct WallSelectionData {
+public struct WallSelectionData {
   let id: String
   let normal: simd_float3           // Vector normal de la pared
   let center: simd_float3           // Centro de la pared en espacio mundial
   let width: Float                  // Ancho de la pared en metros
   let height: Float                 // Alto de la pared en metros
   let transformMatrix: simd_float4x4 // Matriz de transformación
+
+  public init(id: String, normal: simd_float3, center: simd_float3, width: Float, height: Float, transformMatrix: simd_float4x4) {
+    self.id = id
+    self.normal = normal
+    self.center = center
+    self.width = width
+    self.height = height
+    self.transformMatrix = transformMatrix
+  }
 
   func toDictionary() -> [String: Any] {
     return [
@@ -225,12 +234,14 @@ class SceneKitPreviewView: ExpoView {
           print("✅ Model loaded successfully")
           print("   Dimensions: \(dimensions.x)m x \(dimensions.y)m x \(dimensions.z)m")
 
-          // Notify React Native
-          self.onPreviewModelLoaded([
-            "success": true,
-            "dimensions": [dimensions.x, dimensions.y, dimensions.z],
-            "path": path
-          ])
+          // Notify React Native with a small delay to ensure component is mounted
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.onPreviewModelLoaded([
+              "success": true,
+              "dimensions": [dimensions.x, dimensions.y, dimensions.z],
+              "path": path
+            ])
+          }
         }
       } catch {
         DispatchQueue.main.async {
@@ -430,6 +441,9 @@ class SceneKitPreviewView: ExpoView {
   }
 
   func deselectWall() {
+    // Only fire event if there was actually a selection
+    let hadSelection = selectedWallNode != nil
+
     // Remove highlight
     highlightOverlay?.removeFromParentNode()
     highlightOverlay = nil
@@ -438,10 +452,11 @@ class SceneKitPreviewView: ExpoView {
     selectedWallNode = nil
     selectedWallData = nil
 
-    // Notify React Native
-    onPreviewWallDeselected(["deselected": true])
-
-    print("ℹ️  Wall deselected")
+    // Notify React Native only if there was a previous selection
+    if hadSelection {
+      onPreviewWallDeselected(["deselected": true])
+      print("ℹ️  Wall deselected")
+    }
   }
 
   private func highlightWall(hit: SCNHitTestResult) {

@@ -7,6 +7,7 @@ import { ARTestScreen } from '@/ui/screens/ARTestScreen';
 import { ModelPreviewScreen } from '@/ui/screens/ModelPreviewScreen';
 import { RoomPlanTestScreen } from '@/ui/screens/RoomPlanTestScreen';
 import { WallScanningScreen } from '@/ui/screens/WallScanningScreen';
+import { AlignmentViewScreen } from '@/ui/screens/AlignmentViewScreen';
 
 import { RootStackParamList } from './types';
 
@@ -30,6 +31,11 @@ export function AppNavigator() {
           name='WallScanning'
           component={WallScanningScreen}
           options={{ title: 'Escanear Pared' }}
+        />
+        <Stack.Screen
+          name='AlignmentView'
+          component={AlignmentViewScreen}
+          options={{ title: 'Alineación AR' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

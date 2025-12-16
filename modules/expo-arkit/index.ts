@@ -3,7 +3,7 @@ export { ExpoARKitModule } from './src/ExpoARKitModule';
 
 // Export ARKit view
 export { ARKitView } from './src/ARKitView';
-export type { ARKitViewProps, ARKitViewRef } from './src/ARKitView';
+export type { ARKitViewProps, ARKitViewRef, ModelPlacedEvent, PlaneData } from './src/ARKitView';
 
 // Export SceneKit Preview view
 export { SceneKitPreviewView } from './src/SceneKitPreviewView';
@@ -34,4 +34,5 @@ export type {
   AllModelIdsResponse,
   ModelTransformResponse,
   ModelTransformData,
+  AlignmentResultResponse,
 } from './src/ExpoARKitModule';

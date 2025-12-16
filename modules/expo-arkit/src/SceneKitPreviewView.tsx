@@ -1,9 +1,9 @@
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
 import { requireNativeViewManager } from 'expo-modules-core';
-import { ViewProps, StyleSheet, findNodeHandle } from 'react-native';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import { StyleSheet, ViewProps, findNodeHandle } from 'react-native';
 import { ExpoARKitModule } from './ExpoARKitModule';
 
-const NativeSceneKitPreviewView = requireNativeViewManager('ExpoARKit_SceneKitPreviewView');
+const NativeSceneKitPreviewView = requireNativeViewManager('ExpoARKit', 'SceneKitPreviewView');
 
 // Data types
 export interface WallData {
@@ -49,13 +49,14 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
       loadModelForPreview: async (path: string) => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('📦 Loading model for preview with viewId:', viewId, 'path:', path);
-            await ExpoARKitModule.loadModelForPreview(viewId, path);
-            console.log('✅ Model loaded for preview');
-          } else {
+          if (viewId === null) {
             console.error('❌ viewId is null');
+            return;
           }
+
+          console.log('📦 Loading model for preview with viewId:', viewId, 'path:', path);
+          await ExpoARKitModule.loadModelForPreview(viewId, path);
+          console.log('✅ Model loaded for preview');
         } catch (error) {
           console.error('❌ Error loading model for preview:', error);
           throw error;
@@ -65,13 +66,14 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
       deselectWall: async () => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('🔄 Deselecting wall with viewId:', viewId);
-            await ExpoARKitModule.deselectWall(viewId);
-            console.log('✅ Wall deselected');
-          } else {
+          if (viewId === null) {
             console.error('❌ viewId is null');
+            return;
           }
+
+          console.log('🔄 Deselecting wall with viewId:', viewId);
+          await ExpoARKitModule.deselectWall(viewId);
+          console.log('✅ Wall deselected');
         } catch (error) {
           console.error('❌ Error deselecting wall:', error);
           throw error;
@@ -81,15 +83,16 @@ export const SceneKitPreviewView = forwardRef<SceneKitPreviewViewRef, SceneKitPr
       getSelectedWallData: async (): Promise<WallData | null> => {
         try {
           const viewId = findNodeHandle(nativeRef.current);
-          if (viewId !== null) {
-            console.log('📊 Getting selected wall data with viewId:', viewId);
-            const wallData = await ExpoARKitModule.getSelectedWallData(viewId);
-            console.log('✅ Wall data retrieved:', wallData);
-            return wallData as WallData | null;
-          } else {
+
+          if (viewId === null) {
             console.error('❌ viewId is null');
             return null;
           }
+
+          console.log('📊 Getting selected wall data with viewId:', viewId);
+          const wallData = await ExpoARKitModule.getSelectedWallData(viewId);
+          console.log('✅ Wall data retrieved:', wallData);
+          return wallData as WallData | null;
         } catch (error) {
           console.error('❌ Error getting wall data:', error);
           throw error;
