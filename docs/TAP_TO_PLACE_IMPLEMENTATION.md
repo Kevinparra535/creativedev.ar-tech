@@ -18,6 +18,10 @@ Este documento detalla la implementación del sistema tap-to-place que permite:
 - Modelo permanece fijo mientras usuario camina
 - Base para futuro "reemplazo de realidad"
 
+Nota de alcance:
+- Este flujo se usa principalmente en pantallas de testing/AR general (por ejemplo ARTest).
+- El flujo de **Wall Anchor System** (preview → scan → align) no requiere tap al piso en la pantalla de alineación (auto-load + auto-align).
+
 ---
 
 ## 🎯 Fases de Implementación

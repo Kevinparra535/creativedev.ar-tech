@@ -1,7 +1,7 @@
 # Estado Actual del Proyecto
 
-**Fecha:** 2025-12-12
-**Versión:** 1.2.0
+**Fecha:** 2025-12-16
+**Versión:** 1.2.1
 **Fase:** Model Manipulation Complete + Room Scanning Implementado
 
 ---
@@ -16,7 +16,7 @@ El proyecto ha completado las fases fundamentales del POC:
 
 **Progreso del POC:** ~60% completado
 
-**Último logro:** Sistema completo de gestos táctiles, undo/redo, y room scanning funcional
+**Último logro:** Wall Anchor System end-to-end + alineación automática sin tap al piso (y estabilidad mejorada)
 
 ---
 
@@ -76,6 +76,10 @@ El proyecto ha completado las fases fundamentales del POC:
 - Hardening aplicado para evitar crashes por threading (ARKit delegate callbacks pueden llegar off-main).
 - Payloads de eventos hacia RN serializables (números como `Double`).
 - Umbral mínimo de área de plano vertical relajado para que la selección sea viable desde temprano.
+
+✅ **Flujo Wall Anchor completo (Preview → Scan → Align)**
+- El paso de alineación no requiere tap al piso: `AlignmentViewScreen` auto-carga el modelo y aplica la alineación al recibir `onModelLoaded`.
+- Estabilidad mejorada: se evita sobreescribir transforms del modelo en updates de anchors (evita que el modelo “siga” la cámara).
 
 ### Model Loading (Fase 0.8 - Completada ✅)
 

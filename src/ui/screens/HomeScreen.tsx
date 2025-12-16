@@ -18,14 +18,14 @@ const HomeScreen = () => {
         title='Wall Anchor System'
         onPress={() => navigation.navigate('ModelPreview')}
       />
-      <Button
+      {/* <Button
         title='Guided Walkthrough (New)'
         onPress={() => navigation.navigate('GuidedModelSelect', { mode: 'floor' })}
       />
       <Button
         title='Guided Wall Walkthrough (New)'
         onPress={() => navigation.navigate('GuidedModelSelect', { mode: 'wall' })}
-      />
+      /> */}
     </SafeAreaView>
   );
 };

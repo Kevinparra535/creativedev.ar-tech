@@ -1,7 +1,7 @@
 # Plan: Sistema de Anclaje Basado en Paredes (Wall-Based Anchor System)
 
 **Fecha de creación:** 2025-12-13
-**Última actualización:** 2025-12-15
+**Última actualización:** 2025-12-16
 **Estado:** Fases 1-4 completadas - Testing en dispositivo físico
 **Duración estimada:** 4-5 semanas (21 días hábiles)
 
@@ -36,6 +36,8 @@
   - ✅ Indicadores de calidad con código de colores
   - ✅ Validación de alineación
   - ✅ Navegación completa integrada
+  - ✅ UX: no requiere tap al piso (auto-load + auto-align)
+  - ✅ Estabilidad: se evita “snap” en updates de anchors
 
 - ⏳ **Fase 5: Testing y Polish** - PENDIENTE
 
@@ -749,8 +751,8 @@ route.params = {
 ```
 
 **Flujo en componentDidMount:**
-1. Cargar modelo en ARView (usando tap-to-place en la pared real)
-2. Calcular alignment automático
+1. Cargar modelo automáticamente en ARView (sin tap-to-place; placement temporal relativo a cámara)
+2. Al recibir `onModelLoaded` (modelId), calcular alignment automático
 3. Aplicar transformación
 4. Mostrar resultado con confianza
 5. Habilitar controles manuales

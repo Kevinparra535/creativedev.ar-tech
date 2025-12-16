@@ -24,8 +24,9 @@
 
 Uso típico en este repo:
 
-- Tap-to-place en **horizontales**.
-- “Reference wall scanning” en **verticales**.
+- Tap-to-place en **horizontales** (ARTestScreen / flujo general).
+- “Reference wall scanning” en **verticales** (Wall Anchor System).
+- Wall Anchor System: el paso de alineación no requiere tap al piso (auto-load + auto-align).
 
 ### 3) Raycasting (tap → punto 3D)
 

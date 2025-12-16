@@ -1,4 +1,4 @@
-# POC AR Interior Alignment — Spec v0.2
+# POC AR Interior Alignment — Spec v0.3
 
 ## North Star del POC
 
@@ -28,7 +28,7 @@
 **Objetivo:** encontrar una “pared real” con tracking estable.
 
 - Config: `ARWorldTrackingConfiguration`
-  - `planeDetection`: `.vertical` (y opcional `.horizontal` si ayudas placement)
+  - `planeDetection`: `.vertical` (y opcional `.horizontal` para ayudas visuales; no es requerido para placement en Wall Anchor System)
   - `sceneReconstruction`: `.mesh` (si el device lo soporta) para robustez
 - UI: coaching overlay tipo Apple:
   - “Move iPhone slowly”
@@ -51,12 +51,13 @@
   - normal del plano
   - (opcional) extensión/centro del anchor para punto de referencia
 
-## Estado D — Place (tap-to-place)
+## Estado D — Place (auto-load + align)
 
 **Objetivo:** colocar el modelo con una transformación inicial y luego aplicar alineación.
 
-- Usuario toca un punto del plano horizontal (si lo usas) o directamente “Place at wall”.
+- La app carga el modelo automáticamente en una pose temporal (relativa a cámara) para obtener `modelId`.
 - Calculas la transformación final y la aplicas al root node del USDZ.
+- No requiere tap al piso para continuar el flujo de Wall Anchor.
 
 ## Estado E — Validate (walkaround)
 
