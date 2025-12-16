@@ -77,5 +77,5 @@ export const FileExport = {
    */
   async deleteFile(filePath: string): Promise<DeleteResult> {
     return await FileExportModule.deleteFile(filePath);
-  },
+  }
 };

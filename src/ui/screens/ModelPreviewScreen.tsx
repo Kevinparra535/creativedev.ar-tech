@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,6 +21,7 @@ import {
   SceneKitPreviewViewRef,
   WallData,
 } from '../../../modules/expo-arkit/src/SceneKitPreviewView';
+import { loadRoomPlanWallsFromJsonUri } from '../../services/roomPlanJson';
 import type { RootStackParamList } from '../navigation/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ModelPreview'>;
@@ -32,6 +34,12 @@ export const ModelPreviewScreen = () => {
   const [selectedWall, setSelectedWall] = useState<WallData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [tapFeedback, setTapFeedback] = useState<string | null>(null);
+
+  const [roomJsonPath, setRoomJsonPath] = useState<string | null>(null);
+  const [roomJsonWalls, setRoomJsonWalls] = useState<WallData[]>([]);
+  const [roomJsonVersion, setRoomJsonVersion] = useState<number | null>(null);
+  const [isRoomJsonLoading, setIsRoomJsonLoading] = useState(false);
+  const [wallSource, setWallSource] = useState<'model' | 'roomJson' | null>(null);
 
   // Load model when modelPath changes and component is mounted
   useEffect(() => {
@@ -50,7 +58,8 @@ export const ModelPreviewScreen = () => {
 
   const handleSelectModel = async () => {
     try {
-      // Use specific USDZ UTI and wildcard to show all files
+      // Allow any file type so the picker shows files from all providers.
+      // We validate USDZ by extension below.
       const result = await DocumentPicker.getDocumentAsync({
         type: ['com.pixar.universal-scene-description-mobile', '*/*'],
         copyToCacheDirectory: false, // Don't copy, use original path
@@ -67,9 +76,15 @@ export const ModelPreviewScreen = () => {
         console.log('📦 File name:', file.name);
         console.log('📦 File type:', file.mimeType);
 
-        // Validate USDZ file
-        if (!filePath.toLowerCase().endsWith('.usdz') && !filePath.toLowerCase().endsWith('.usd')) {
-          Alert.alert('Error', 'Solo se aceptan archivos USDZ o USD');
+        // Validate USDZ extension (uri can vary by provider)
+        const uriLower = filePath.toLowerCase();
+        const nameLower = (file.name ?? '').toLowerCase();
+        const isUsdz = uriLower.endsWith('.usdz') || nameLower.endsWith('.usdz');
+        if (!isUsdz) {
+          Alert.alert(
+            'Formato no soportado',
+            'Solo se aceptan modelos USDZ (.usdz). Exporta tu modelo a USDZ e inténtalo de nuevo.'
+          );
           return;
         }
 
@@ -82,6 +97,7 @@ export const ModelPreviewScreen = () => {
         console.log('📦 Setting modelPath to:', localPath);
         setModelPath(localPath);
         setSelectedWall(null);
+        setWallSource(null);
         // isLoading will be set in useEffect when loading starts
       } else {
         console.log('📄 Selection canceled or no file selected');
@@ -90,6 +106,46 @@ export const ModelPreviewScreen = () => {
       console.error('❌ Error selecting document:', error);
       Alert.alert('Error', `No se pudo seleccionar el archivo: ${error}`);
       setIsLoading(false);
+    }
+  };
+
+  const handleSelectRoomJson = async () => {
+    try {
+      setIsRoomJsonLoading(true);
+
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', '*/*'],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const file = result.assets[0];
+      const uriLower = (file.uri ?? '').toLowerCase();
+      const nameLower = (file.name ?? '').toLowerCase();
+      const isJson = uriLower.endsWith('.json') || nameLower.endsWith('.json');
+      if (!isJson) {
+        Alert.alert('Formato no soportado', 'Selecciona el archivo Room.json exportado por RoomPlan.');
+        return;
+      }
+
+      const { version, wallCount, walls } = await loadRoomPlanWallsFromJsonUri(file.uri);
+      setRoomJsonPath(file.uri);
+      setRoomJsonWalls(walls);
+      setRoomJsonVersion(typeof version === 'number' ? version : null);
+
+      Alert.alert(
+        'RoomPlan JSON cargado',
+        `Paredes encontradas: ${wallCount}\nVersión: ${version ?? '—'}\n\nSelecciona una pared de la lista para usarla como pared virtual.`
+      );
+    } catch (error) {
+      console.error('❌ Error selecting Room.json:', error);
+      Alert.alert('Error', `No se pudo cargar Room.json: ${String(error)}`);
+    } finally {
+      setIsRoomJsonLoading(false);
     }
   };
 
@@ -110,6 +166,7 @@ export const ModelPreviewScreen = () => {
     const wallData = event.nativeEvent;
     console.log('🧱 Wall selected:', wallData);
     setSelectedWall(wallData);
+    setWallSource('model');
 
     Alert.alert(
       'Pared Seleccionada',
@@ -122,6 +179,18 @@ export const ModelPreviewScreen = () => {
   const handleWallDeselected = () => {
     console.log('ℹ️ Wall deselected');
     setSelectedWall(null);
+    setWallSource(null);
+  };
+
+  const handleSelectRoomJsonWall = (wallData: WallData) => {
+    setSelectedWall(wallData);
+    setWallSource('roomJson');
+    setTapFeedback(null);
+
+    Alert.alert(
+      'Pared (Room.json) seleccionada',
+      `Dimensiones: ${wallData.dimensions[0].toFixed(2)}m x ${wallData.dimensions[1].toFixed(2)}m\n\nAhora presiona "Continuar" y selecciona la pared física correspondiente.`
+    );
   };
 
   const handleTapFeedback = (event: { nativeEvent: { success: boolean; message: string } }) => {
@@ -159,8 +228,11 @@ export const ModelPreviewScreen = () => {
   };
 
   const handleDeselectWall = async () => {
-    await sceneViewRef.current?.deselectWall();
+    if (wallSource === 'model') {
+      await sceneViewRef.current?.deselectWall();
+    }
     setSelectedWall(null);
+    setWallSource(null);
   };
 
   return (
@@ -203,20 +275,70 @@ export const ModelPreviewScreen = () => {
             ? selectedWall
               ? '3. Presiona Continuar'
               : '2. Toca una pared del modelo'
-            : '1. Selecciona un modelo USDZ'}
+            : '1. Selecciona un modelo USDZ (.usdz)'}
         </Text>
         <Text style={styles.instructionsText}>
           {modelPath
             ? selectedWall
               ? `Pared seleccionada: ${selectedWall.dimensions[0].toFixed(2)}m x ${selectedWall.dimensions[1].toFixed(2)}m`
               : 'Usa pan (arrastrar) para rotar la cámara y pinch para hacer zoom. Toca una pared del modelo para seleccionarla como referencia.'
-            : 'Carga un archivo USDZ exportado desde SketchUp u otra aplicación de modelado 3D.'}
+            : 'Carga un archivo USDZ (.usdz) exportado desde SketchUp u otra aplicación de modelado 3D.'}
         </Text>
+
+        {!!modelPath && (
+          <TouchableOpacity
+            style={styles.inlineSecondaryButton}
+            onPress={handleSelectRoomJson}
+            disabled={isRoomJsonLoading}
+          >
+            <Text style={styles.inlineSecondaryButtonText}>
+              {isRoomJsonLoading ? 'Cargando Room.json...' : 'Importar Room.json (opcional)'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {!!modelPath && !!roomJsonPath && !selectedWall && (
+          <Text style={styles.instructionsSubtle}>
+            Room.json cargado (v{roomJsonVersion ?? '—'}) • {roomJsonWalls.length} paredes
+          </Text>
+        )}
 
         {!!modelPath && !selectedWall && !!tapFeedback && (
           <Text style={styles.tapFeedbackText}>{tapFeedback}</Text>
         )}
       </View>
+
+      {!!modelPath && roomJsonWalls.length > 0 && !selectedWall && (
+        <View style={styles.roomJsonPanel}>
+          <Text style={styles.roomJsonTitle}>Selecciona pared desde Room.json (opcional)</Text>
+          <Text style={styles.roomJsonSubtitle}>
+            Elige una pared grande para mejor estabilidad.
+          </Text>
+          <ScrollView style={styles.roomJsonList} contentContainerStyle={styles.roomJsonListContent}>
+            {roomJsonWalls.slice(0, 12).map((wall) => {
+              const area = wall.dimensions[0] * wall.dimensions[1];
+              const idShort = wall.wallId.split('-')[0];
+              return (
+                <TouchableOpacity
+                  key={wall.wallId}
+                  style={styles.roomJsonItem}
+                  onPress={() => handleSelectRoomJsonWall(wall)}
+                >
+                  <Text style={styles.roomJsonItemTitle}>
+                    Wall {idShort} • {wall.dimensions[0].toFixed(2)}m x {wall.dimensions[1].toFixed(2)}m
+                  </Text>
+                  <Text style={styles.roomJsonItemSubtitle}>Área: {area.toFixed(2)} m²</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          {roomJsonWalls.length > 12 && (
+            <Text style={styles.roomJsonFooter}>
+              Mostrando 12/{roomJsonWalls.length}. (Luego lo expandimos a “ver todas” si hace falta.)
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* Wall Info (when selected) */}
       {selectedWall && (
@@ -275,7 +397,7 @@ export const ModelPreviewScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#858585',
   },
   previewContainer: {
     flex: 1,
@@ -288,7 +410,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
+    backgroundColor: '#858585',
   },
   emptyStateText: {
     fontSize: 20,
@@ -298,7 +420,7 @@ const styles = StyleSheet.create({
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#8E8E93',
+    color: '#ffffff',
     textAlign: 'center',
     paddingHorizontal: 40,
   },
@@ -331,11 +453,80 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     lineHeight: 20,
   },
+  inlineSecondaryButton: {
+    alignSelf: 'center',
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: '#2C2C2E',
+    borderWidth: 1,
+    borderColor: '#38383A',
+  },
+  inlineSecondaryButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  instructionsSubtle: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#8E8E93',
+  },
   tapFeedbackText: {
     marginTop: 10,
     fontSize: 13,
     color: '#FFD60A',
     lineHeight: 18,
+  },
+  roomJsonPanel: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#1C1C1E',
+    borderWidth: 1,
+    borderColor: '#2C2C2E',
+  },
+  roomJsonTitle: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  roomJsonSubtitle: {
+    color: '#8E8E93',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  roomJsonList: {
+    maxHeight: 220,
+  },
+  roomJsonListContent: {
+    gap: 8,
+  },
+  roomJsonItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#2C2C2E',
+    borderWidth: 1,
+    borderColor: '#38383A',
+  },
+  roomJsonItemTitle: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  roomJsonItemSubtitle: {
+    color: '#8E8E93',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  roomJsonFooter: {
+    marginTop: 8,
+    color: '#8E8E93',
+    fontSize: 12,
   },
   wallInfoPanel: {
     backgroundColor: 'rgba(52, 199, 89, 0.15)',

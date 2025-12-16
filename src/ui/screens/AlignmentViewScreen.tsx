@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,11 +14,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
-  ARKitView,
-  ARKitViewRef,
-  ExpoARKitModule,
-  ModelPlacedEvent,
-  PlaneData,
+    ARKitView,
+    ARKitViewRef,
+    ExpoARKitModule,
+    ModelPlacedEvent
 } from '../../../modules/expo-arkit';
 import type { AlignmentResultResponse } from '../../../modules/expo-arkit/src/ExpoARKitModule';
 import { wallAnchorService } from '../../services/wallAnchorService';
@@ -30,12 +29,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AlignmentVi
 function getInstructionCopy(params: {
   hasModel: boolean;
   arReady: boolean;
-  planeCount: number;
   isCalculating: boolean;
   isApplying: boolean;
   alignmentApplied: boolean;
 }): { title: string; text: string } {
-  const { hasModel, arReady, planeCount, isCalculating, isApplying, alignmentApplied } = params;
+  const { hasModel, arReady, isCalculating, isApplying, alignmentApplied } = params;
 
   if (!hasModel) {
     if (!arReady) {
@@ -45,18 +43,10 @@ function getInstructionCopy(params: {
       };
     }
 
-    if (planeCount === 0) {
-      return {
-        title: 'Apunta al suelo y mueve el dispositivo',
-        text:
-          'ARKit necesita ver el entorno para detectar superficies. Escanea una zona pequeña de piso (aprox. 1–2 m²) cerca de ti.'
-      };
-    }
-
     return {
-      title: 'Toca el piso para colocar el modelo',
+      title: 'Cargando modelo...',
       text:
-        'Coloca el modelo a escala real en una superficie horizontal. Tip: escanea una zona pequeña y estable de piso cerca de ti antes de tocar.'
+        'Colocando el modelo automáticamente (sin tap). Mantén el dispositivo estable por un momento.'
     };
   }
 
@@ -91,18 +81,17 @@ export const AlignmentViewScreen = () => {
   const [isApplying, setIsApplying] = useState(false);
   const [alignmentApplied, setAlignmentApplied] = useState(false);
   const [arReady, setArReady] = useState(false);
-  const [planeCount, setPlaneCount] = useState(0);
   const [arErrorMessage, setArErrorMessage] = useState<string | null>(null);
   const [showAlignmentAids, setShowAlignmentAids] = useState(false);
   const [isOrientationFlipped, setIsOrientationFlipped] = useState(false);
 
-  // Prepare tap-to-place when AR is ready.
+  // Auto-load model (no tap) when AR is ready.
   useEffect(() => {
     if (!arReady) return;
     if (modelId) return;
 
     const timer = setTimeout(() => {
-      arViewRef.current?.placeModelOnTap(modelPath, 1);
+      arViewRef.current?.loadModel(modelPath, 1, [0, 0, -1]);
     }, 350);
 
     return () => {
@@ -112,11 +101,13 @@ export const AlignmentViewScreen = () => {
 
   // Ensure debug overlay is turned off when leaving the screen
   useEffect(() => {
+    const viewRef = arViewRef.current;
+
     return () => {
-      const viewTag = arViewRef.current?.getViewTag?.();
+      const viewTag = viewRef?.getViewTag?.();
       if (viewTag && modelId && showAlignmentAids) {
         ExpoARKitModule.setAlignmentDebug(viewTag, modelId, false, [0, 1, 0], [0, 1, 0]).catch(
-          () => {}
+          () => undefined
         );
       }
     };
@@ -128,32 +119,36 @@ export const AlignmentViewScreen = () => {
     }
   };
 
-  const handlePlaneDetected = (event: { nativeEvent: { plane: PlaneData; totalPlanes: number } }) => {
-    setPlaneCount(event.nativeEvent.totalPlanes);
-  };
-
   const handleARError = (event: { nativeEvent: { error: string } }) => {
     const { error } = event.nativeEvent;
     setArErrorMessage(error);
   };
 
+  const handleModelReady = async (nextModelId: string) => {
+    console.log('📦 Model ready with ID:', nextModelId);
+    setModelId(nextModelId);
+    arViewRef.current?.setPlaneVisibility(false);
+    await calculateAndApplyAlignment(nextModelId);
+  };
+
+  const handleModelLoaded = async (event: {
+    nativeEvent: { success: boolean; message: string; path: string; modelId: string };
+  }) => {
+    const { success, modelId: loadedModelId } = event.nativeEvent;
+    if (!success || !loadedModelId) {
+      Alert.alert('Error', 'No se pudo cargar el modelo');
+      return;
+    }
+    await handleModelReady(loadedModelId);
+  };
+
   const handleModelPlaced = async (event: { nativeEvent: ModelPlacedEvent }) => {
     const { modelId: placedModelId, success } = event.nativeEvent;
-
     if (!success || !placedModelId) {
       Alert.alert('Error', 'No se pudo colocar el modelo');
       return;
     }
-
-    console.log('📦 Model placed with ID:', placedModelId);
-    setModelId(placedModelId);
-
-    // Hide plane overlays once the model is placed to reduce visual clutter.
-    // (They can be re-enabled via Reset if the user wants to place again.)
-    arViewRef.current?.setPlaneVisibility(false);
-
-    // Automatically calculate and apply alignment
-    await calculateAndApplyAlignment(placedModelId);
+    await handleModelReady(placedModelId);
   };
 
   const calculateAndApplyAlignment = async (modelIdToAlign: string, flipOrientation?: boolean) => {
@@ -351,7 +346,7 @@ export const AlignmentViewScreen = () => {
           setIsOrientationFlipped(false);
 
           setTimeout(() => {
-            arViewRef.current?.placeModelOnTap(modelPath, 1);
+            arViewRef.current?.loadModel(modelPath, 1, [0, 0, -1]);
           }, 350);
         },
       },
@@ -406,7 +401,6 @@ export const AlignmentViewScreen = () => {
   const { title: instructionsTitle, text: instructionsText } = getInstructionCopy({
     hasModel: modelId !== null,
     arReady,
-    planeCount,
     isCalculating,
     isApplying,
     alignmentApplied
@@ -418,9 +412,9 @@ export const AlignmentViewScreen = () => {
         <ARKitView
           ref={arViewRef}
           style={styles.arView}
+          onModelLoaded={handleModelLoaded}
           onModelPlaced={handleModelPlaced}
           onARInitialized={handleARInitialized}
-          onPlaneDetected={handlePlaneDetected}
           onARError={handleARError}
         />
       </View>

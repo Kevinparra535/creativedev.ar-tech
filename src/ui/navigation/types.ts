@@ -1,5 +1,5 @@
-import { WallData } from '../../../modules/expo-arkit/src/SceneKitPreviewView';
 import { RealWallData } from '../../../modules/expo-arkit/src/ARWallScanningView';
+import { WallData } from '../../../modules/expo-arkit/src/SceneKitPreviewView';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -7,6 +7,15 @@ export type RootStackParamList = {
   ARTest: undefined;
   RoomPlanTestScreen: undefined;
   ModelPreview: undefined;
+  GuidedModelSelect: { mode?: 'floor' | 'wall' } | undefined;
+  GuidedWalkthrough: {
+    modelPath: string;
+    modelDimensions: [number, number, number];
+  };
+  GuidedWallWalkthrough: {
+    modelPath: string;
+    modelDimensions: [number, number, number];
+  };
   WallScanning: {
     virtualWallData: WallData;
     modelPath: string;

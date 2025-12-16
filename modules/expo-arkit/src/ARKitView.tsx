@@ -1,6 +1,8 @@
-import { requireNativeViewManager } from 'expo-modules-core';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
-import { StyleSheet, ViewProps, findNodeHandle } from 'react-native';
+import { findNodeHandle, StyleSheet, ViewProps } from 'react-native';
+
+import { requireNativeViewManager } from 'expo-modules-core';
+
 import { AllModelIdsResponse, ExpoARKitModule, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse } from './ExpoARKitModule';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
@@ -40,12 +42,22 @@ export interface PlacementPreviewUpdatedEvent {
   };
 }
 
+export interface ScanGuidanceUpdatedEvent {
+  coverage: number;
+  isStable: boolean;
+  ready: boolean;
+  mode?: 'floor' | 'wall' | 'none';
+  observedWidth?: number;
+  observedHeight?: number;
+}
+
 export interface ARKitViewProps extends ViewProps {
   onARInitialized?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
   onARError?: (event: { nativeEvent: { error: string } }) => void;
   onModelLoaded?: (event: { nativeEvent: { success: boolean; message: string; path: string; modelId: string } }) => void;
   onModelPlaced?: (event: { nativeEvent: ModelPlacedEvent }) => void;
   onPlacementPreviewUpdated?: (event: { nativeEvent: PlacementPreviewUpdatedEvent }) => void;
+  onScanGuidanceUpdated?: (event: { nativeEvent: ScanGuidanceUpdatedEvent }) => void;
   onPlaneDetected?: (event: { nativeEvent: { plane: PlaneData; totalPlanes: number } }) => void;
   onPlaneUpdated?: (event: { nativeEvent: { plane: PlaneData } }) => void;
   onPlaneRemoved?: (event: { nativeEvent: { planeId: string; totalPlanes: number } }) => void;
@@ -58,6 +70,16 @@ export interface ARKitViewRef {
   startPlacementPreview: (path: string, scale?: number) => void;
   stopPlacementPreview: () => void;
   confirmPlacement: () => void;
+  startScanGuidance: (path: string, scale: number, targetWidth: number, targetLength: number) => void;
+  startWallScanGuidance: (
+    path: string,
+    scale: number,
+    targetWidth: number,
+    targetHeight: number,
+    depthOffset: number
+  ) => void;
+  stopScanGuidance: () => void;
+  confirmGuidedPlacement: () => void;
   removeAllAnchors: () => void;
   undoLastModel: () => void;
   setPlaneVisibility: (visible: boolean) => void;
@@ -166,6 +188,75 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.log('Placement confirmed');
       } catch (error) {
         console.error('Error confirming placement:', error);
+      }
+    },
+
+    startScanGuidance: async (path: string, scale: number, targetWidth: number, targetLength: number) => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+
+        await ExpoARKitModule.startScanGuidance(viewId, path, scale, targetWidth, targetLength);
+      } catch (error) {
+        console.error('Error starting scan guidance:', error);
+      }
+    },
+
+    startWallScanGuidance: async (
+      path: string,
+      scale: number,
+      targetWidth: number,
+      targetHeight: number,
+      depthOffset: number
+    ) => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+
+        await ExpoARKitModule.startWallScanGuidance(
+          viewId,
+          path,
+          scale,
+          targetWidth,
+          targetHeight,
+          depthOffset
+        );
+      } catch (error) {
+        console.error('Error starting wall scan guidance:', error);
+      }
+    },
+
+    stopScanGuidance: async () => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+
+        await ExpoARKitModule.stopScanGuidance(viewId);
+      } catch (error) {
+        console.error('Error stopping scan guidance:', error);
+      }
+    },
+
+    confirmGuidedPlacement: async () => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+
+        await ExpoARKitModule.confirmGuidedPlacement(viewId);
+      } catch (error) {
+        console.error('Error confirming guided placement:', error);
       }
     },
     removeAllAnchors: async () => {
@@ -332,9 +423,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return { success: false, error: String(error) };
       }
     },
-    getViewTag: () => {
-      return findNodeHandle(nativeRef.current);
-    },
+    getViewTag: () => findNodeHandle(nativeRef.current),
   }));
 
   return (
@@ -346,6 +435,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       onModelLoaded={props.onModelLoaded}
       onModelPlaced={props.onModelPlaced}
       onPlacementPreviewUpdated={props.onPlacementPreviewUpdated}
+      onScanGuidanceUpdated={props.onScanGuidanceUpdated}
       onPlaneDetected={props.onPlaneDetected}
       onPlaneUpdated={props.onPlaneUpdated}
       onPlaneRemoved={props.onPlaneRemoved}

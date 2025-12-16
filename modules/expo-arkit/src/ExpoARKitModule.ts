@@ -61,15 +61,53 @@ interface ExpoARKitModuleType {
   stopPlacementPreview(viewTag: number): Promise<void>;
   confirmPlacement(viewTag: number): Promise<void>;
 
+  // Guided scan + deterministic placement (no tap)
+  startScanGuidance(
+    viewTag: number,
+    path: string,
+    scale: number,
+    targetWidth: number,
+    targetLength: number
+  ): Promise<void>;
+
+  startWallScanGuidance(
+    viewTag: number,
+    path: string,
+    scale: number,
+    targetWidth: number,
+    targetHeight: number,
+    depthOffset: number
+  ): Promise<void>;
+  stopScanGuidance(viewTag: number): Promise<void>;
+  confirmGuidedPlacement(viewTag: number): Promise<void>;
+
   removeAllAnchors(viewTag: number): Promise<void>;
   undoLastModel(viewTag: number): Promise<void>;
   setPlaneVisibility(viewTag: number, visible: boolean): Promise<void>;
   getModelDimensions(viewTag: number, modelId: string): Promise<ModelDimensionsResponse>;
   getAllModelIds(viewTag: number): Promise<AllModelIdsResponse>;
-  updateModelTransform(viewTag: number, modelId: string, scale?: number[], rotation?: number[], position?: number[]): Promise<ModelTransformResponse>;
-  setModelScale(viewTag: number, modelId: string, scale: number[]): Promise<ModelTransformResponse>;
-  setModelRotation(viewTag: number, modelId: string, rotation: number[]): Promise<ModelTransformResponse>;
-  setModelPosition(viewTag: number, modelId: string, position: number[]): Promise<ModelTransformResponse>;
+  updateModelTransform(
+    viewTag: number,
+    modelId: string,
+    scale?: number[],
+    rotation?: number[],
+    position?: number[]
+  ): Promise<ModelTransformResponse>;
+  setModelScale(
+    viewTag: number,
+    modelId: string,
+    scale: number[]
+  ): Promise<ModelTransformResponse>;
+  setModelRotation(
+    viewTag: number,
+    modelId: string,
+    rotation: number[]
+  ): Promise<ModelTransformResponse>;
+  setModelPosition(
+    viewTag: number,
+    modelId: string,
+    position: number[]
+  ): Promise<ModelTransformResponse>;
   getModelTransform(viewTag: number, modelId: string): Promise<ModelTransformData>;
 
   // SceneKit Preview functions
@@ -85,7 +123,11 @@ interface ExpoARKitModuleType {
 
   // Wall Alignment functions
   calculateAlignment(virtualWallData: any, realWallData: any): Promise<AlignmentResultResponse>;
-  applyAlignmentTransform(viewTag: number, modelId: string, transformMatrix: number[][]): Promise<ModelTransformResponse>;
+  applyAlignmentTransform(
+    viewTag: number,
+    modelId: string,
+    transformMatrix: number[][]
+  ): Promise<ModelTransformResponse>;
 
   // Alignment debug overlay
   setAlignmentDebug(

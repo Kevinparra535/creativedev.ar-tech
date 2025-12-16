@@ -70,6 +70,53 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Guided scan + deterministic placement (no tap)
+    AsyncFunction("startScanGuidance") { (viewTag: Int, path: String, scale: Double, targetWidth: Double, targetLength: Double) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.startScanGuidance(path: path, scale: Float(scale), targetWidth: Float(targetWidth), targetLength: Float(targetLength))
+      }
+    }
+
+    AsyncFunction("startWallScanGuidance") { (viewTag: Int, path: String, scale: Double, targetWidth: Double, targetHeight: Double, depthOffset: Double) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.startWallScanGuidance(
+          path: path,
+          scale: Float(scale),
+          targetWidth: Float(targetWidth),
+          targetHeight: Float(targetHeight),
+          depthOffset: Float(depthOffset)
+        )
+      }
+    }
+
+    AsyncFunction("stopScanGuidance") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.stopScanGuidance()
+      }
+    }
+
+    AsyncFunction("confirmGuidedPlacement") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.confirmGuidedPlacement()
+      }
+    }
+
     // Module-level async function to remove all anchors
     AsyncFunction("removeAllAnchors") { (viewTag: Int) -> Void in
       DispatchQueue.main.async { [weak self] in
@@ -422,6 +469,7 @@ public class ExpoARKitModule: Module {
         "onModelLoaded",
         "onModelPlaced",
         "onPlacementPreviewUpdated",
+        "onScanGuidanceUpdated",
         "onPlaneDetected",
         "onPlaneUpdated",
         "onPlaneRemoved",

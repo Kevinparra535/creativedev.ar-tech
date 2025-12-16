@@ -36,6 +36,34 @@ class ExpoARKitView: ExpoView {
   private var placementPreviewIsValid: Bool = false
   private var placementPreviewLastEventAt: CFTimeInterval = 0
 
+  // Guided scan (floor target area + quality gates)
+  private enum ScanGuidanceMode {
+    case floor
+    case wall
+  }
+
+  private typealias ScanGuidancePlaneRecord = (
+    centerWorld: simd_float3,
+    extent: simd_float2,
+    normalWorld: simd_float3?,
+    alignment: ARPlaneAnchor.Alignment,
+    classification: ARPlaneAnchor.Classification?
+  )
+
+  private var scanGuidanceActive: Bool = false
+  private var scanGuidanceMode: ScanGuidanceMode = .floor
+  private var scanGuidanceTargetWidth: Float = 1.5
+  private var scanGuidanceTargetLength: Float = 1.5
+  private var scanGuidanceTargetHeight: Float = 2.2
+  private var scanGuidanceDepthOffset: Float = 0.35
+  private var scanGuidanceLastEventAt: CFTimeInterval = 0
+  private var scanGuidancePlaneRecords: [UUID: ScanGuidancePlaneRecord] = [:]
+  private var scanGuidanceStableSince: CFTimeInterval?
+  private var scanGuidanceLastSample: (centerWorld: simd_float3, extent: simd_float2)?
+  private var scanGuidanceLastValidTransform: simd_float4x4?
+  private var scanGuidanceIsReady: Bool = false
+  private var scanGuidanceRectNode: SCNNode?
+
   // Selected model for manipulation
   private var selectedNode: SCNNode?
 
@@ -62,6 +90,7 @@ class ExpoARKitView: ExpoView {
   let onMeshRemoved = EventDispatcher()
   let onModelPlaced = EventDispatcher()
   let onPlacementPreviewUpdated = EventDispatcher()
+  let onScanGuidanceUpdated = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -350,6 +379,11 @@ class ExpoARKitView: ExpoView {
       return
     }
 
+    // When guided scan is active, taps should not place models.
+    if scanGuidanceActive {
+      return
+    }
+
     // Only handle taps when a model is actually pending placement.
     // This prevents accidental taps from creating random anchors and destabilizing subsequent operations.
     guard pendingModelPath != nil else {
@@ -518,6 +552,400 @@ class ExpoARKitView: ExpoView {
     print("Waiting for user to tap on a surface...")
   }
 
+  // MARK: - Guided Scan (Scan what we need, then place deterministically)
+  func startScanGuidance(path: String, scale: Float, targetWidth: Float, targetLength: Float) {
+    pendingModelPath = path
+    pendingModelScale = scale
+
+    scanGuidanceActive = true
+    scanGuidanceMode = .floor
+    scanGuidanceTargetWidth = max(0.5, targetWidth)
+    scanGuidanceTargetLength = max(0.5, targetLength)
+    scanGuidanceTargetHeight = 2.2
+    scanGuidanceDepthOffset = 0.35
+    scanGuidancePlaneRecords.removeAll()
+    scanGuidanceStableSince = nil
+    scanGuidanceLastSample = nil
+    scanGuidanceLastValidTransform = nil
+    scanGuidanceIsReady = false
+    scanGuidanceLastEventAt = 0
+
+    ensureScanGuidanceRectNode()
+    scanGuidanceRectNode?.isHidden = true
+
+    // Emit initial state so RN can show guidance UI.
+    onScanGuidanceUpdated([
+      "coverage": 0.0,
+      "isStable": false,
+      "ready": false,
+      "mode": "floor"
+    ])
+  }
+
+  // Guided scan (vertical wall) + deterministic placement
+  // targetWidth/targetHeight are in meters.
+  // depthOffset pushes the model away from the wall so it doesn't clip.
+  func startWallScanGuidance(path: String, scale: Float, targetWidth: Float, targetHeight: Float, depthOffset: Float) {
+    pendingModelPath = path
+    pendingModelScale = scale
+
+    scanGuidanceActive = true
+    scanGuidanceMode = .wall
+    scanGuidanceTargetWidth = max(0.5, targetWidth)
+    scanGuidanceTargetHeight = max(0.5, targetHeight)
+    scanGuidanceTargetLength = 1.5
+    scanGuidanceDepthOffset = max(0.05, depthOffset)
+    scanGuidancePlaneRecords.removeAll()
+    scanGuidanceStableSince = nil
+    scanGuidanceLastSample = nil
+    scanGuidanceLastValidTransform = nil
+    scanGuidanceIsReady = false
+    scanGuidanceLastEventAt = 0
+
+    ensureScanGuidanceRectNode()
+    scanGuidanceRectNode?.isHidden = true
+
+    onScanGuidanceUpdated([
+      "coverage": 0.0,
+      "isStable": false,
+      "ready": false,
+      "mode": "wall"
+    ])
+  }
+
+  func stopScanGuidance() {
+    scanGuidanceActive = false
+    scanGuidanceMode = .floor
+    scanGuidancePlaneRecords.removeAll()
+    scanGuidanceStableSince = nil
+    scanGuidanceLastSample = nil
+    scanGuidanceLastValidTransform = nil
+    scanGuidanceIsReady = false
+    scanGuidanceRectNode?.isHidden = true
+
+    onScanGuidanceUpdated([
+      "coverage": 0.0,
+      "isStable": false,
+      "ready": false,
+      "mode": "none"
+    ])
+  }
+
+  func confirmGuidedPlacement() {
+    guard scanGuidanceActive else {
+      onARError(["error": "Scan guidance no está activo"]) 
+      return
+    }
+    guard scanGuidanceIsReady, let transform = scanGuidanceLastValidTransform else {
+      onARError(["error": "Aún no hay suficiente escaneo. Completa la zona indicada hasta que esté listo."])
+      return
+    }
+    guard let modelPath = pendingModelPath else {
+      onARError(["error": "No hay modelo pendiente para colocar"]) 
+      return
+    }
+
+    let anchor = ARAnchor(transform: transform)
+    sceneView.session.add(anchor: anchor)
+    modelAnchors[anchor.identifier] = anchor
+    lastPlacementAnchorId = anchor.identifier
+
+    loadModel(
+      path: modelPath,
+      scale: pendingModelScale,
+      position: [],
+      anchorToLastTap: true
+    )
+
+    onModelPlaced([
+      "success": true,
+      "modelId": anchor.identifier.uuidString,
+      "anchorId": anchor.identifier.uuidString,
+      "position": [
+        "x": Double(anchor.transform.columns.3.x),
+        "y": Double(anchor.transform.columns.3.y),
+        "z": Double(anchor.transform.columns.3.z)
+      ],
+      "path": modelPath
+    ])
+
+    pendingModelPath = nil
+    pendingModelScale = 1.0
+    stopScanGuidance()
+  }
+
+  private func ensureScanGuidanceRectNode() {
+    if scanGuidanceRectNode != nil { return }
+
+    let plane = SCNPlane(width: CGFloat(scanGuidanceTargetWidth), height: CGFloat(scanGuidanceTargetLength))
+    let material = SCNMaterial()
+    material.diffuse.contents = UIColor.systemTeal.withAlphaComponent(0.18)
+    material.emission.contents = UIColor.systemTeal.withAlphaComponent(0.10)
+    material.isDoubleSided = true
+    plane.materials = [material]
+
+    let node = SCNNode(geometry: plane)
+    node.isHidden = true
+    scanGuidanceRectNode = node
+    sceneView.scene.rootNode.addChildNode(node)
+  }
+
+  private func updateScanGuidanceRectSizeIfNeeded() {
+    guard let plane = scanGuidanceRectNode?.geometry as? SCNPlane else { return }
+    let w = CGFloat(scanGuidanceTargetWidth)
+    let h: CGFloat = {
+      switch scanGuidanceMode {
+      case .floor:
+        return CGFloat(scanGuidanceTargetLength)
+      case .wall:
+        return CGFloat(scanGuidanceTargetHeight)
+      }
+    }()
+    if plane.width != w || plane.height != h {
+      plane.width = w
+      plane.height = h
+    }
+  }
+
+  private func planeWorldCenter(_ anchor: ARPlaneAnchor) -> simd_float3 {
+    let localCenter = simd_float4(anchor.center.x, anchor.center.y, anchor.center.z, 1)
+    let worldCenter4 = anchor.transform * localCenter
+    return simd_float3(worldCenter4.x, worldCenter4.y, worldCenter4.z)
+  }
+
+  private func planeWorldNormal(_ anchor: ARPlaneAnchor) -> simd_float3? {
+    // ARPlaneAnchor plane normal is the anchor's Y axis.
+    let raw = simd_float3(anchor.transform.columns.1.x, anchor.transform.columns.1.y, anchor.transform.columns.1.z)
+    if simd_length(raw) < 0.0001 { return nil }
+    return simd_normalize(raw)
+  }
+
+  private func makeNormalFaceCameraIfPossible(normal: simd_float3, centerWorld: simd_float3) -> simd_float3 {
+    guard let cameraTransform = sceneView.session.currentFrame?.camera.transform else { return normal }
+    let cameraPos = simd_float3(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
+    let toCamera = cameraPos - centerWorld
+    if simd_length(toCamera) < 0.0001 { return normal }
+    let dir = simd_normalize(toCamera)
+    // If normal points away from camera, flip.
+    if simd_dot(normal, dir) < 0 {
+      return -normal
+    }
+    return normal
+  }
+
+  private func makeWallAlignedTransform(centerWorld: simd_float3, wallNormalWorld: simd_float3, depthOffset: Float) -> simd_float4x4 {
+    // Build a right-handed basis where:
+    // - yAxis is world up
+    // - zAxis points into the room (opposite of the wall normal facing the camera)
+    // - xAxis is horizontal along the wall
+    let up = simd_float3(0, 1, 0)
+    var zAxis = -wallNormalWorld
+    if simd_length(zAxis) < 0.0001 {
+      zAxis = simd_float3(0, 0, -1)
+    }
+    zAxis = simd_normalize(zAxis)
+
+    var xAxis = simd_cross(up, zAxis)
+    if simd_length(xAxis) < 0.0001 {
+      // In the unlikely case the wall normal is parallel to up.
+      xAxis = simd_float3(1, 0, 0)
+    }
+    xAxis = simd_normalize(xAxis)
+
+    let yAxis = simd_normalize(simd_cross(zAxis, xAxis))
+
+    // Place the model slightly away from the wall to reduce clipping.
+    let position = centerWorld + zAxis * depthOffset
+
+    var t = matrix_identity_float4x4
+    t.columns.0 = simd_float4(xAxis.x, xAxis.y, xAxis.z, 0)
+    t.columns.1 = simd_float4(yAxis.x, yAxis.y, yAxis.z, 0)
+    t.columns.2 = simd_float4(zAxis.x, zAxis.y, zAxis.z, 0)
+    t.columns.3 = simd_float4(position.x, position.y, position.z, 1)
+    return t
+  }
+
+  private func planeExtent2D(_ anchor: ARPlaneAnchor) -> simd_float2 {
+    if #available(iOS 16.0, *) {
+      return simd_float2(anchor.planeExtent.width, anchor.planeExtent.height)
+    }
+    // Pre-iOS16: use extent.x (width) and extent.z (length)
+    return simd_float2(anchor.extent.x, anchor.extent.z)
+  }
+
+  private func isFloorLike(_ anchor: ARPlaneAnchor) -> Bool {
+    guard anchor.alignment == .horizontal else { return false }
+    if #available(iOS 12.0, *) {
+      switch anchor.classification {
+      case .floor, .none:
+        return true
+      @unknown default:
+        return false
+      }
+    }
+    return true
+  }
+
+  private func isWallLike(_ anchor: ARPlaneAnchor) -> Bool {
+    guard anchor.alignment == .vertical else { return false }
+    if #available(iOS 12.0, *) {
+      switch anchor.classification {
+      case .wall, .none:
+        return true
+      @unknown default:
+        return false
+      }
+    }
+    return true
+  }
+
+  private func recomputeScanGuidance() {
+    guard scanGuidanceActive else { return }
+
+    // Pick the best plane for the active mode (largest area).
+    var best: (id: UUID, center: simd_float3, extent: simd_float2, normal: simd_float3?)?
+    for (id, record) in scanGuidancePlaneRecords {
+      let area = record.extent.x * record.extent.y
+      if best == nil || area > (best!.extent.x * best!.extent.y) {
+        best = (id: id, center: record.centerWorld, extent: record.extent, normal: record.normalWorld)
+      }
+    }
+
+    guard let bestPlane = best else {
+      scanGuidanceIsReady = false
+      scanGuidanceRectNode?.isHidden = true
+      emitScanGuidance(coverage: 0, isStable: false, ready: false, observedWidth: nil, observedHeight: nil)
+      return
+    }
+
+    let now = CACurrentMediaTime()
+    let center = bestPlane.center
+    let extent = bestPlane.extent
+
+    // Coverage heuristic.
+    let coverage: Double = {
+      switch scanGuidanceMode {
+      case .floor:
+        let coverW = min(extent.x / max(0.001, scanGuidanceTargetWidth), 1.0)
+        let coverL = min(extent.y / max(0.001, scanGuidanceTargetLength), 1.0)
+        return max(0.0, min(Double(coverW * coverL), 1.0))
+      case .wall:
+        let coverW = min(extent.x / max(0.001, scanGuidanceTargetWidth), 1.0)
+        let coverH = min(extent.y / max(0.001, scanGuidanceTargetHeight), 1.0)
+        return max(0.0, min(Double(coverW * coverH), 1.0))
+      }
+    }()
+
+    // Stability heuristic: extent & center change below threshold for >= 1s.
+    let centerThreshold: Float = 0.02
+    let extentThreshold: Float = 0.05
+
+    if let last = scanGuidanceLastSample {
+      let dCenter = simd_length(center - last.centerWorld)
+      let dExtent = simd_length(extent - last.extent)
+      if dCenter < centerThreshold && dExtent < extentThreshold {
+        if scanGuidanceStableSince == nil {
+          scanGuidanceStableSince = now
+        }
+      } else {
+        scanGuidanceStableSince = nil
+      }
+    } else {
+      scanGuidanceStableSince = nil
+    }
+
+    scanGuidanceLastSample = (centerWorld: center, extent: extent)
+    let isStable = (scanGuidanceStableSince != nil) && (now - (scanGuidanceStableSince ?? now) >= 1.0)
+
+    // Ready gate.
+    let ready = isStable && coverage >= 0.75
+    scanGuidanceIsReady = ready
+
+    // Update visual guidance.
+    updateScanGuidanceRectSizeIfNeeded()
+    if let node = scanGuidanceRectNode {
+      node.isHidden = false
+
+      switch scanGuidanceMode {
+      case .floor:
+        node.eulerAngles = SCNVector3(-(Float.pi / 2), 0, 0)
+        node.position = SCNVector3(center.x, center.y + 0.01, center.z)
+
+        var t = matrix_identity_float4x4
+        t.columns.3 = simd_float4(center.x, center.y, center.z, 1)
+        scanGuidanceLastValidTransform = t
+
+      case .wall:
+        guard let rawNormal = bestPlane.normal else {
+          scanGuidanceIsReady = false
+          node.isHidden = true
+          emitScanGuidance(
+            coverage: coverage,
+            isStable: false,
+            ready: false,
+            observedWidth: Double(extent.x),
+            observedHeight: Double(extent.y)
+          )
+          return
+        }
+
+        let wallNormal = makeNormalFaceCameraIfPossible(normal: rawNormal, centerWorld: center)
+        // Overlay flush to the wall (slight push toward camera to reduce z-fighting)
+        let overlayPos = center + wallNormal * 0.01
+        let overlayTransform = makeWallAlignedTransform(centerWorld: overlayPos, wallNormalWorld: wallNormal, depthOffset: 0)
+        node.simdTransform = overlayTransform
+
+        // Deterministic placement: snap orientation to wall, push the model into the room.
+        scanGuidanceLastValidTransform = makeWallAlignedTransform(
+          centerWorld: center,
+          wallNormalWorld: wallNormal,
+          depthOffset: scanGuidanceDepthOffset
+        )
+      }
+    }
+
+    emitScanGuidance(
+      coverage: coverage,
+      isStable: isStable,
+      ready: ready,
+      observedWidth: Double(extent.x),
+      observedHeight: Double(extent.y)
+    )
+  }
+
+  private func emitScanGuidance(
+    coverage: Double,
+    isStable: Bool,
+    ready: Bool,
+    observedWidth: Double?,
+    observedHeight: Double?
+  ) {
+    let now = CACurrentMediaTime()
+    if (now - scanGuidanceLastEventAt) < 0.20 {
+      return
+    }
+    scanGuidanceLastEventAt = now
+
+    let mode: String = {
+      switch scanGuidanceMode {
+      case .floor:
+        return "floor"
+      case .wall:
+        return "wall"
+      }
+    }()
+
+    var payload: [String: Any] = [
+      "coverage": coverage,
+      "isStable": isStable,
+      "ready": ready,
+      "mode": mode
+    ]
+    if let w = observedWidth { payload["observedWidth"] = w }
+    if let h = observedHeight { payload["observedHeight"] = h }
+    onScanGuidanceUpdated(payload)
+  }
+
   // MARK: - Placement Preview (Reticle + Confirm)
   func startPlacementPreview(path: String, scale: Float) {
     pendingModelPath = path
@@ -601,7 +1029,7 @@ class ExpoARKitView: ExpoView {
     ring.materials = [material]
 
     let node = SCNNode(geometry: ring)
-    node.eulerAngles.x = -.pi / 2
+    node.eulerAngles.x = -(Float.pi / 2)
     node.isHidden = true
 
     placementReticleNode = node
@@ -711,6 +1139,7 @@ class ExpoARKitView: ExpoView {
   // MARK: - Anchor Management
   func removeAllAnchors() {
     stopPlacementPreview()
+    stopScanGuidance()
 
     // Remove all anchored nodes from the scene
     for (_, node) in anchoredNodes {
@@ -1397,6 +1826,7 @@ class ExpoARKitView: ExpoView {
   // Cleanup
   deinit {
     stopPlacementPreviewDisplayLink()
+    stopScanGuidance()
     sceneView?.session.pause()
   }
 
@@ -1479,6 +1909,37 @@ extension ExpoARKitView: ARSCNViewDelegate {
       "plane": planeAnchorToDictionary(planeAnchor),
       "totalPlanes": detectedPlanesCount
     ])
+
+    // Scan guidance cache + recompute (throttled emitter inside).
+    if scanGuidanceActive {
+      let matchesMode: Bool = {
+        switch scanGuidanceMode {
+        case .floor:
+          return isFloorLike(planeAnchor)
+        case .wall:
+          return isWallLike(planeAnchor)
+        }
+      }()
+
+      if matchesMode {
+        let center = planeWorldCenter(planeAnchor)
+        let extent2D = planeExtent2D(planeAnchor)
+        let normal = planeWorldNormal(planeAnchor)
+        let classification: ARPlaneAnchor.Classification? = {
+          if #available(iOS 12.0, *) { return planeAnchor.classification }
+          return nil
+        }()
+        scanGuidancePlaneRecords[planeAnchor.identifier] = (
+          centerWorld: center,
+          extent: extent2D,
+          normalWorld: normal,
+          alignment: planeAnchor.alignment,
+          classification: classification
+        )
+      }
+
+      recomputeScanGuidance()
+    }
   }
 
   func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
@@ -1489,6 +1950,39 @@ extension ExpoARKitView: ARSCNViewDelegate {
 
     // Update plane visualization using the Plane class method
     plane.update(anchor: planeAnchor)
+
+    if scanGuidanceActive {
+      let matchesMode: Bool = {
+        switch scanGuidanceMode {
+        case .floor:
+          return isFloorLike(planeAnchor)
+        case .wall:
+          return isWallLike(planeAnchor)
+        }
+      }()
+
+      if matchesMode {
+        let center = planeWorldCenter(planeAnchor)
+        let extent2D = planeExtent2D(planeAnchor)
+        let normal = planeWorldNormal(planeAnchor)
+        let classification: ARPlaneAnchor.Classification? = {
+          if #available(iOS 12.0, *) { return planeAnchor.classification }
+          return nil
+        }()
+
+        scanGuidancePlaneRecords[planeAnchor.identifier] = (
+          centerWorld: center,
+          extent: extent2D,
+          normalWorld: normal,
+          alignment: planeAnchor.alignment,
+          classification: classification
+        )
+      } else {
+        scanGuidancePlaneRecords.removeValue(forKey: planeAnchor.identifier)
+      }
+
+      recomputeScanGuidance()
+    }
 
     // CRITICAL: Do NOT send events to React Native on every update
     // This method is called at high frequency (up to 60 fps) and causes serialization issues
@@ -1506,6 +2000,11 @@ extension ExpoARKitView: ARSCNViewDelegate {
       "planeId": planeAnchor.identifier.uuidString,
       "totalPlanes": detectedPlanesCount
     ])
+
+    if scanGuidanceActive {
+      scanGuidancePlaneRecords.removeValue(forKey: planeAnchor.identifier)
+      recomputeScanGuidance()
+    }
   }
 }
 
@@ -1520,13 +2019,14 @@ extension ExpoARKitView: ARSessionDelegate {
   }
 
   func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) {
-    // Update positions of anchored models when ARKit refines anchor transforms
-    for anchor in anchors {
-      // If we have a node associated with this anchor
-      if let node = anchoredNodes[anchor.identifier] {
-        // Update the node's transform to match the refined anchor position
-        node.simdTransform = anchor.transform
-      }
-    }
+    // IMPORTANT:
+    // Do not forcibly overwrite model node transforms on every anchor update.
+    // The wall-alignment flow applies a deterministic world-space transform to the model.
+    // If we keep snapping `anchoredNodes[anchorId]` back to `anchor.transform`, the model
+    // will appear to “move with the camera” as ARKit refines tracking.
+    //
+    // If we want true anchor-following behavior, we should attach model nodes as children of
+    // the ARKit-managed node in `renderer(_:didAdd:for:)` for that anchor (not done here).
+    _ = anchors
   }
 }

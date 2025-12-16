@@ -57,10 +57,7 @@ export interface ScaleValidation {
  * @param target - Target model dimensions (reference)
  * @returns Optimal scale factor
  */
-export function calculateOptimalScale(
-  source: ModelDimensions,
-  target: ModelDimensions
-): number {
+export function calculateOptimalScale(source: ModelDimensions, target: ModelDimensions): number {
   // Calculate scale factor for each dimension
   const scaleX = target.width / source.width;
   const scaleY = target.height / source.height;
@@ -99,10 +96,7 @@ export function calculateOptimalScale(
  * @param target - Target model dimensions
  * @returns Simple average scale factor
  */
-export function calculateSimpleScale(
-  source: ModelDimensions,
-  target: ModelDimensions
-): number {
+export function calculateSimpleScale(source: ModelDimensions, target: ModelDimensions): number {
   const scaleX = target.width / source.width;
   const scaleY = target.height / source.height;
   const scaleZ = target.depth / source.depth;
@@ -135,11 +129,14 @@ export function checkProportionCompatibility(
 
   // Calculate similarity for each ratio (1.0 = perfect match, 0.0 = very different)
   const similarityXY =
-    1 - Math.min(Math.abs(sourceRatioXY - targetRatioXY) / Math.max(sourceRatioXY, targetRatioXY), 1);
+    1 -
+    Math.min(Math.abs(sourceRatioXY - targetRatioXY) / Math.max(sourceRatioXY, targetRatioXY), 1);
   const similarityXZ =
-    1 - Math.min(Math.abs(sourceRatioXZ - targetRatioXZ) / Math.max(sourceRatioXZ, targetRatioXZ), 1);
+    1 -
+    Math.min(Math.abs(sourceRatioXZ - targetRatioXZ) / Math.max(sourceRatioXZ, targetRatioXZ), 1);
   const similarityYZ =
-    1 - Math.min(Math.abs(sourceRatioYZ - targetRatioYZ) / Math.max(sourceRatioYZ, targetRatioYZ), 1);
+    1 -
+    Math.min(Math.abs(sourceRatioYZ - targetRatioYZ) / Math.max(sourceRatioYZ, targetRatioYZ), 1);
 
   // Average similarity across all ratios
   const confidence = (similarityXY + similarityXZ + similarityYZ) / 3;
@@ -317,9 +314,7 @@ export function validateRealWorldScale(
     );
 
     if (maxAspect > 5.0) {
-      warnings.push(
-        `Room has unusual proportions (${maxAspect.toFixed(1)}:1 aspect ratio)`
-      );
+      warnings.push(`Room has unusual proportions (${maxAspect.toFixed(1)}:1 aspect ratio)`);
       suggestions.push('Verify model is correct scale and orientation');
     }
 
@@ -457,7 +452,8 @@ export function suggestScaleAdjustment(
   }
 
   // Fallback: suggest bringing to reasonable room size if too small/large
-  const avgDim = (currentDimensions.width + currentDimensions.height + currentDimensions.depth) / 3;
+  const avgDim =
+    (currentDimensions.width + currentDimensions.height + currentDimensions.depth) / 3;
 
   if (avgDim < 1.0) {
     // Too small, scale up

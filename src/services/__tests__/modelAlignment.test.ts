@@ -6,18 +6,18 @@
  */
 
 import {
+  applyScaleToDimensions,
+  calculateAutoAlignment,
   calculateOptimalScale,
   calculateSimpleScale,
   checkProportionCompatibility,
-  calculateAutoAlignment,
-  validateRealWorldScale,
   compareDimensions,
-  applyScaleToDimensions,
   formatDimensions,
   getConfidenceLevel,
-  suggestScaleAdjustment,
   type ModelDimensions,
-  type ModelInfo
+  type ModelInfo,
+  suggestScaleAdjustment,
+  validateRealWorldScale
 } from '../modelAlignment';
 
 // ============================================================================
@@ -74,13 +74,17 @@ console.log(`✅ Scale factor: ${scale2.toFixed(3)} (should be ~0.1)\n`);
 console.log('TEST 3: Proportion Compatibility - Good Match');
 console.log('----------------------------------------------');
 const confidence1 = checkProportionCompatibility(architectModelCorrectScale, roomScanDimensions);
-console.log(`✅ Confidence: ${(confidence1 * 100).toFixed(1)}% (${getConfidenceLevel(confidence1)})\n`);
+console.log(
+  `✅ Confidence: ${(confidence1 * 100).toFixed(1)}% (${getConfidenceLevel(confidence1)})\n`
+);
 
 // Test 4: Proportion Compatibility - Poor Match
 console.log('TEST 4: Proportion Compatibility - Poor Match (Furniture vs Room)');
 console.log('------------------------------------------------------------------');
 const confidence2 = checkProportionCompatibility(furnitureDimensions, roomScanDimensions);
-console.log(`✅ Confidence: ${(confidence2 * 100).toFixed(1)}% (${getConfidenceLevel(confidence2)})\n`);
+console.log(
+  `✅ Confidence: ${(confidence2 * 100).toFixed(1)}% (${getConfidenceLevel(confidence2)})\n`
+);
 
 // Test 5: Real-World Scale Validation - Valid Room
 console.log('TEST 5: Validate Real-World Scale - Valid Room');
@@ -121,9 +125,15 @@ const targetInfo: ModelInfo = {
 const alignment = calculateAutoAlignment(sourceInfo, targetInfo);
 console.log('✅ Alignment Result:');
 console.log(`   Scale: ${alignment.scale.toFixed(3)}x`);
-console.log(`   Position: (${alignment.position.x.toFixed(2)}, ${alignment.position.y.toFixed(2)}, ${alignment.position.z.toFixed(2)})`);
-console.log(`   Rotation: (${alignment.rotation.x.toFixed(2)}, ${alignment.rotation.y.toFixed(2)}, ${alignment.rotation.z.toFixed(2)})`);
-console.log(`   Confidence: ${(alignment.confidence * 100).toFixed(1)}% (${getConfidenceLevel(alignment.confidence)})\n`);
+console.log(
+  `   Position: (${alignment.position.x.toFixed(2)}, ${alignment.position.y.toFixed(2)}, ${alignment.position.z.toFixed(2)})`
+);
+console.log(
+  `   Rotation: (${alignment.rotation.x.toFixed(2)}, ${alignment.rotation.y.toFixed(2)}, ${alignment.rotation.z.toFixed(2)})`
+);
+console.log(
+  `   Confidence: ${(alignment.confidence * 100).toFixed(1)}% (${getConfidenceLevel(alignment.confidence)})\n`
+);
 
 // Test 8: Dimension Comparison
 console.log('TEST 8: Compare Dimensions');
@@ -148,7 +158,9 @@ console.log('TEST 10: Auto-detect Model Context');
 console.log('-----------------------------------');
 const furnitureValidation = validateRealWorldScale(furnitureDimensions, 'auto');
 console.log(`✅ Furniture dimensions: ${formatDimensions(furnitureDimensions)}`);
-console.log(`   Auto-detected as furniture: ${!furnitureValidation.warnings.some(w => w.includes('small'))}\n`);
+console.log(
+  `   Auto-detected as furniture: ${!furnitureValidation.warnings.some((w) => w.includes('small'))}\n`
+);
 
 console.log('===== ALL TESTS COMPLETED =====\n');
 
