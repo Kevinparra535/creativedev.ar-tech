@@ -65,6 +65,17 @@ interface ExpoARKitModuleType {
   setModelRotation(viewTag: number, modelId: string, rotation: number[]): Promise<ModelTransformResponse>;
   setModelPosition(viewTag: number, modelId: string, position: number[]): Promise<ModelTransformResponse>;
   getModelTransform(viewTag: number, modelId: string): Promise<ModelTransformData>;
+
+  // SceneKit Preview functions
+  loadModelForPreview(viewTag: number, path: string): Promise<void>;
+  deselectWall(viewTag: number): Promise<void>;
+  getSelectedWallData(viewTag: number): Promise<any>;
+
+  // ARWallScanningView functions
+  startWallScanning(viewTag: number): Promise<void>;
+  stopWallScanning(viewTag: number): Promise<void>;
+  deselectRealWall(viewTag: number): Promise<void>;
+  getSelectedRealWallData(viewTag: number): Promise<any>;
 }
 
 // Get the native module and export it

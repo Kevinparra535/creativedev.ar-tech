@@ -15,6 +15,10 @@ const HomeScreen = () => {
         title='Go to Room Plan Test'
         onPress={() => navigation.navigate('RoomPlanTestScreen')}
       />
+      <Button
+        title='Wall Anchor System'
+        onPress={() => navigation.navigate('ModelPreview')}
+      />
     </SafeAreaView>
   );
 };
