@@ -1,9 +1,9 @@
 # Plan: AR Inmersivo para Visualización de Diseño de Interiores
 
 **Documento:** Plan técnico completo para implementación AR avanzada
-**Versión:** 2.4
+**Versión:** 2.5
 **Fecha:** 2025-12-17
-**Estado:** Fase 2 completada (80%) - Occlusion Groundwork (15%)
+**Estado:** Fase 2 completada (80%) - Fase 3.2 completada (100%)
 
 ---
 
@@ -17,9 +17,11 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 - ✅ Plane Detection con clasificación completa
 - ✅ Room Scanning con RoomPlan API (export USDZ)
 - ✅ Model Alignment System (auto + manual + persistence)
-- 🔨 Scene reconstruction mesh (occlusion groundwork)
-- ⏳ Occlusion rendering completo (en progreso)
-- ⏳ Reality replacement (portal mode)
+- ✅ Scene reconstruction mesh (occlusion groundwork)
+- ✅ Portal Mode (camera feed hiding)
+- ✅ Mesh Classification (surface type detection & materials)
+- ⏳ Collision Detection (en progreso)
+- ⏳ Reality replacement completo (portal mode + collision)
 
 ### Objetivo del POC
 
@@ -509,9 +511,9 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 - ✅ **Gestos simultáneos (pinch+pan, rotation+pan)**
 - ✅ **Preset camera views (Front/Right/Top/Perspective)**
 
-**Progreso del POC:** ~65% completado
+**Progreso del POC:** ~82% completado
 
-**Próximo paso:** Iniciar Fase 2 - Model Alignment con room scan
+**Próximo paso:** Fase 3.3 - Collision Detection
 
 ---
 
@@ -528,6 +530,8 @@ Ver [FASE_0_SETUP.md](./FASE_0_SETUP.md) para pasos detallados de implementació
 - [RoomPlan API](https://developer.apple.com/documentation/roomplan)
 - [ARKit Documentation](https://developer.apple.com/documentation/arkit)
 - [SceneKit Documentation](https://developer.apple.com/documentation/scenekit)
+- [ARMeshClassification](https://developer.apple.com/documentation/arkit/armeshclassification)
+- [ARMeshAnchor](https://developer.apple.com/documentation/arkit/armeshanchor)
 
 ### React Native Resources
 
@@ -543,6 +547,43 @@ Ver [FASE_0_SETUP.md](./FASE_0_SETUP.md) para pasos detallados de implementació
 ---
 
 ## 📝 Registro de Cambios
+
+### Versión 2.5 - 2025-12-17
+
+**Mesh Classification Complete:**
+
+- ✅ Classification-aware occlusion materials (wall/floor/ceiling/etc)
+- ✅ `ARMeshClassification` buffer reading implementation
+- ✅ Material cache por tipo de superficie
+- ✅ `getMeshClassificationStats()` method Swift + React Native
+- ✅ UI para visualizar estadísticas de meshes
+- ✅ Modal "📊 Mesh Stats" con desglose completo
+- ✅ Eventos actualizados con clasificación real (no hardcoded)
+- ✅ iOS 14+ support con fallback para iOS 13
+
+**Arquitectura:**
+
+- Materials por clasificación: `getOcclusionMaterial(for: ARMeshClassification)`
+- Buffer reading: `withMemoryRebound(to: UInt8.self)` para leer classifications
+- Primary classification: cuenta ocurrencias, retorna más común
+- Stats method: totalMeshes, meshReconstructionEnabled, portalModeEnabled, meshClassifications dictionary
+
+**Documentación actualizada:**
+
+- CURRENT_STATE.md refleja Fase 3.2 completada (65% Fase 3)
+- Progreso del POC: ~82% completado
+- PHASE_3.2_MESH_CLASSIFICATION_COMPLETE.md con detalles completos
+
+### Versión 2.4 - 2025-12-17
+
+**Portal Mode Implemented:**
+
+- ✅ Camera feed hiding capability
+- ✅ Toggle button UI (🌌 Portal ON / 📹 Normal AR)
+- ✅ Black background mode
+- ✅ Scene reconstruction mesh con occlusion material
+- ✅ Events: onPortalModeChanged
+- ✅ Methods: setPortalMode, getPortalModeState
 
 ### Versión 2.3 - 2025-12-16
 

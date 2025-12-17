@@ -23,6 +23,6 @@ export type {
 
 // Export types from module
 export type {
-    AlignmentDebugResponse, AlignmentResultResponse, AllModelIdsResponse, ModelDimensions, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse, Vector3
+    AlignmentDebugResponse, AlignmentResultResponse, AllModelIdsResponse, CollisionEvent, CollisionStatsResponse, ModelDimensions, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse, QualityStatsResponse, Vector3
 } from './src/ExpoARKitModule';
 

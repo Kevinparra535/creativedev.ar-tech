@@ -84,6 +84,12 @@ interface ExpoARKitModuleType {
   removeAllAnchors(viewTag: number): Promise<void>;
   undoLastModel(viewTag: number): Promise<void>;
   setPlaneVisibility(viewTag: number, visible: boolean): Promise<void>;
+  
+  // Portal Mode (Phase 3)
+  setPortalMode(viewTag: number, enabled: boolean): Promise<void>;
+  getPortalModeState(viewTag: number): Promise<boolean>;
+  getMeshClassificationStats(viewTag: number): Promise<Record<string, any>>;
+  
   getModelDimensions(viewTag: number, modelId: string): Promise<ModelDimensionsResponse>;
   getAllModelIds(viewTag: number): Promise<AllModelIdsResponse>;
   updateModelTransform(
@@ -149,6 +155,31 @@ interface ExpoARKitModuleType {
     virtualNormal: number[],
     realNormal: number[]
   ): Promise<AlignmentDebugResponse>;
+
+  // Collision Detection (Phase 3.3)
+  setCollisionDetection(viewTag: number, enabled: boolean): Promise<void>;
+  getCollisionDetectionState(viewTag: number): Promise<boolean>;
+  setCollisionDebugMode(viewTag: number, enabled: boolean): Promise<void>;
+  getCollisionStats(viewTag: number): Promise<CollisionStatsResponse>;
+  resetCollisionCount(viewTag: number): Promise<void>;
+  
+  // Quality Settings (Phase 3.4)
+  setOcclusionQuality(viewTag: number, quality: 'low' | 'medium' | 'high'): Promise<void>;
+  getOcclusionQuality(viewTag: number): Promise<string>;
+  setOcclusionEnabled(viewTag: number, enabled: boolean): Promise<void>;
+  getOcclusionEnabled(viewTag: number): Promise<boolean>;
+  setShowFPS(viewTag: number, show: boolean): Promise<void>;
+  getShowFPS(viewTag: number): Promise<boolean>;
+  getCurrentFPS(viewTag: number): Promise<number>;
+  getQualityStats(viewTag: number): Promise<QualityStatsResponse>;
+  
+  // Haptic Feedback & Boundary Warnings (Phase 3.5)
+  setHapticFeedback(viewTag: number, enabled: boolean): Promise<void>;
+  getHapticFeedbackState(viewTag: number): Promise<boolean>;
+  setBoundaryWarnings(viewTag: number, enabled: boolean): Promise<void>;
+  getBoundaryWarningsState(viewTag: number): Promise<boolean>;
+  setBoundaryWarningDistance(viewTag: number, distance: number): Promise<void>;
+  getBoundaryWarningDistance(viewTag: number): Promise<number>;
 }
 
 // Alignment Result Types
@@ -166,6 +197,42 @@ export interface AlignmentDebugResponse {
   success: boolean;
   angleDegrees?: number;
   error?: string;
+}
+
+// Collision Detection Types (Phase 3.3)
+export interface CollisionStatsResponse {
+  enabled: boolean;
+  debugMode: boolean;
+  totalCollisions: number;
+  modelsWithPhysics: number;
+  meshesWithPhysics: number;
+}
+
+export interface CollisionEvent {
+  modelId: string;
+  meshType: string;
+  contactPoint: Vector3;
+  collisionForce: number;
+  totalCollisions: number;
+}
+
+// Quality Settings Types (Phase 3.4)
+export interface QualityStatsResponse {
+  occlusionQuality: 'low' | 'medium' | 'high';
+  occlusionEnabled: boolean;
+  showFPS: boolean;
+  currentFPS: number;
+  meshCount: number;
+  modelCount: number;
+  isMeshReconstructionEnabled: boolean;
+}
+
+// Haptic Feedback & Boundary Warnings Types (Phase 3.5)
+export interface BoundaryWarningEvent {
+  distance: number;
+  warningThreshold: number;
+  meshType: string;
+  cameraPosition: Vector3;
 }
 
 // Get the native module and export it

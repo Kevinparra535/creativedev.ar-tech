@@ -2,6 +2,7 @@ import UIKit
 import SceneKit
 import ARKit
 import Metal
+import CoreHaptics
 import ExpoModulesCore
 
 class ExpoARKitView: ExpoView {
@@ -17,7 +18,39 @@ class ExpoARKitView: ExpoView {
   private var isMeshReconstructionEnabled: Bool = false
   private var meshNodes: [UUID: SCNNode] = [:]
   private var lastMeshUpdateAt: CFTimeInterval = 0
-  private let meshUpdateInterval: CFTimeInterval = 0.2
+  private var meshUpdateInterval: CFTimeInterval = 0.2
+
+  // Portal Mode (Phase 3: hide camera feed, show only 3D)
+  private var isPortalModeEnabled: Bool = false
+
+  // Occlusion materials by classification (Phase 3.2)
+  private var occlusionMaterialsByClassification: [ARMeshClassification: SCNMaterial] = [:]
+
+  // Collision Detection (Phase 3.3)
+  private var isCollisionDetectionEnabled: Bool = true
+  private var collisionDebugMode: Bool = false
+  private var collisionCount: Int = 0
+
+  // Quality Settings (Phase 3.4)
+  private var occlusionQuality: String = "medium" // low, medium, high
+  private var isOcclusionEnabled: Bool = true
+  private var showFPSCounter: Bool = false
+  
+  // FPS Monitoring
+  private var fpsDisplayLink: CADisplayLink?
+  private var fpsFrameCount: Int = 0
+  private var fpsLastTimestamp: CFTimeInterval = 0
+  private var currentFPS: Double = 0
+  private var fpsLabelNode: SCNNode?
+
+  // Haptic Feedback & Boundary Warnings (Phase 3.5)
+  private var isHapticFeedbackEnabled: Bool = true
+  private var isBoundaryWarningsEnabled: Bool = true
+  private var boundaryWarningDistance: Float = 0.5 // meters
+  private var lastBoundaryWarningAt: CFTimeInterval = 0
+  private let boundaryWarningThrottle: CFTimeInterval = 1.0 // seconds
+  private var cameraMonitoringTimer: Timer?
+  private var hapticEngine: CHHapticEngine?
 
   private lazy var occlusionMaterial: SCNMaterial = {
     let material = SCNMaterial()
@@ -110,6 +143,9 @@ class ExpoARKitView: ExpoView {
   let onModelPlaced = EventDispatcher()
   let onPlacementPreviewUpdated = EventDispatcher()
   let onScanGuidanceUpdated = EventDispatcher()
+  let onPortalModeChanged = EventDispatcher()
+  let onModelCollision = EventDispatcher()
+  let onBoundaryWarning = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -128,6 +164,9 @@ class ExpoARKitView: ExpoView {
     // Set delegates
     sceneView.delegate = self
     sceneView.session.delegate = self
+    
+    // Setup physics world for collision detection
+    sceneView.scene.physicsWorld.contactDelegate = self
 
     // Enable default lighting
     sceneView.autoenablesDefaultLighting = true
@@ -257,8 +296,566 @@ class ExpoARKitView: ExpoView {
     )
 
     let geometry = SCNGeometry(sources: [vertexSource], elements: [element])
-    geometry.materials = [occlusionMaterial]
+    
+    // Use classification-specific material if available (iOS 14+)
+    if #available(iOS 14.0, *), let classification = mesh.classification {
+      let primaryClassification = getPrimaryMeshClassification(from: classification)
+      let material = getOcclusionMaterial(for: primaryClassification)
+      geometry.materials = [material]
+    } else {
+      // Fallback to default occlusion material
+      geometry.materials = [occlusionMaterial]
+    }
+    
     return geometry
+  }
+  
+  // MARK: - Collision Detection Helper (Phase 3.3)
+  private func addPhysicsBodyToModel(_ modelNode: SCNNode, modelId: String) {
+    // Set node name for identification in collision detection
+    modelNode.name = "model_\(modelId)"
+    
+    // Calculate bounding box for physics shape
+    let (min, max) = modelNode.boundingBox
+    let size = SCNVector3(
+      max.x - min.x,
+      max.y - min.y,
+      max.z - min.z
+    )
+    let center = SCNVector3(
+      (min.x + max.x) / 2,
+      (min.y + max.y) / 2,
+      (min.z + max.z) / 2
+    )
+    
+    // Create box shape for better performance than mesh
+    let boxGeometry = SCNBox(
+      width: CGFloat(size.x),
+      height: CGFloat(size.y),
+      length: CGFloat(size.z),
+      chamferRadius: 0
+    )
+    
+    let physicsShape = SCNPhysicsShape(geometry: boxGeometry, options: nil)
+    let physicsBody = SCNPhysicsBody(type: .dynamic, shape: physicsShape)
+    
+    // Configure physics properties
+    physicsBody.categoryBitMask = 1 << 0 // Model category
+    physicsBody.contactTestBitMask = 1 << 1 // Test against meshes
+    physicsBody.collisionBitMask = 1 << 1 // Collide with meshes
+    
+    // Reduce physics forces for stability
+    physicsBody.mass = 1.0
+    physicsBody.friction = 0.5
+    physicsBody.restitution = 0.1
+    physicsBody.damping = 0.9
+    physicsBody.angularDamping = 0.9
+    
+    // Disable gravity by default (models float in AR)
+    physicsBody.isAffectedByGravity = false
+    
+    modelNode.physicsBody = physicsBody
+    
+    // Adjust position if center offset exists
+    if center.x != 0 || center.y != 0 || center.z != 0 {
+      modelNode.pivot = SCNMatrix4MakeTranslation(center.x, center.y, center.z)
+    }
+    
+    print("✅ Physics body added to model \(modelId): size=\(size), center=\(center)")
+  }
+
+  /// Get primary classification from mesh classification buffer
+  @available(iOS 14.0, *)
+  private func getPrimaryMeshClassification(from classificationSource: ARGeometrySource) -> ARMeshClassification {
+    let buffer = classificationSource.buffer
+    let stride = classificationSource.stride
+    let count = classificationSource.count
+    
+    var classificationCounts: [ARMeshClassification: Int] = [:]
+    
+    buffer.contents().withMemoryRebound(to: UInt8.self, capacity: count * stride) { ptr in
+      for i in 0..<count {
+        let byteValue = ptr[i * stride]
+        if let classification = ARMeshClassification(rawValue: Int(byteValue)) {
+          classificationCounts[classification, default: 0] += 1
+        }
+      }
+    }
+    
+    // Return most common classification, or .none if empty
+    return classificationCounts.max(by: { $0.value < $1.value })?.key ?? .none
+  }
+
+  // MARK: - Portal Mode (Phase 3)
+
+  /// Enable/disable Portal Mode (hide camera feed, show only 3D models with occlusion)
+  func setPortalMode(_ enabled: Bool) {
+    guard isInitialized else { return }
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self else { return }
+
+      self.isPortalModeEnabled = enabled
+
+      // Hide/show camera feed
+      if enabled {
+        // Portal Mode: Hide camera, show only 3D with black background
+        self.sceneView.scene.background.contents = UIColor.black
+        
+        // Make AR session render invisible by not showing the camera image
+        // Note: ARSCNView doesn't have direct control over camera rendering,
+        // but we can simulate it by making the background opaque
+        self.sceneView.rendersCameraGrain = false
+        self.sceneView.rendersMotionBlur = false
+      } else {
+        // Normal AR Mode: Show camera feed
+        self.sceneView.scene.background.contents = UIColor.clear
+        self.sceneView.rendersCameraGrain = true
+        self.sceneView.rendersMotionBlur = true
+      }
+
+      // Emit event to React Native
+      self.onPortalModeChanged([
+        "enabled": enabled,
+        "meshReconstructionEnabled": self.isMeshReconstructionEnabled
+      ])
+    }
+  }
+
+  /// Get current portal mode state
+  func getPortalModeState() -> Bool {
+    return isPortalModeEnabled
+  }
+
+  /// Get statistics of mesh classifications currently in scene
+  func getMeshClassificationStats() -> [String: Any] {
+    var stats: [String: Int] = [:]
+    var totalMeshes = 0
+    
+    if #available(iOS 14.0, *) {
+      for (_, node) in meshNodes {
+        totalMeshes += 1
+        // Note: We'd need to store classification per mesh node to get accurate stats
+        // For now, return basic info
+      }
+    }
+    
+    return [
+      "totalMeshes": totalMeshes,
+      "meshReconstructionEnabled": isMeshReconstructionEnabled,
+      "portalModeEnabled": isPortalModeEnabled
+    ]
+  }
+  
+  // MARK: - Collision Detection API (Phase 3.3)
+  
+  func setCollisionDetection(enabled: Bool) {
+    isCollisionDetectionEnabled = enabled
+    print("🎯 Collision detection: \(enabled ? "enabled" : "disabled")")
+  }
+  
+  func getCollisionDetectionState() -> Bool {
+    return isCollisionDetectionEnabled
+  }
+  
+  func setCollisionDebugMode(enabled: Bool) {
+    collisionDebugMode = enabled
+    print("🐛 Collision debug mode: \(enabled ? "enabled" : "disabled")")
+  }
+  
+  func getCollisionStats() -> [String: Any] {
+    return [
+      "enabled": isCollisionDetectionEnabled,
+      "debugMode": collisionDebugMode,
+      "totalCollisions": collisionCount,
+      "modelsWithPhysics": modelHistory.count,
+      "meshesWithPhysics": meshNodes.count
+    ]
+  }
+  
+  func resetCollisionCount() {
+    collisionCount = 0
+    print("🔄 Collision count reset")
+  }
+
+  // MARK: - Quality Settings (Phase 3.4)
+  
+  func setOcclusionQuality(quality: String) {
+    guard ["low", "medium", "high"].contains(quality) else {
+      print("⚠️ Invalid occlusion quality: \(quality). Using 'medium'.")
+      return
+    }
+    
+    occlusionQuality = quality
+    print("🎨 Occlusion quality set to: \(quality)")
+
+    // ARKit doesn't expose direct mesh density controls. Instead, we map
+    // quality presets to how often we process mesh updates (throttling).
+    // This avoids resetting tracking / removing anchors (which feels like a broken button).
+    switch quality {
+    case "high":
+      meshUpdateInterval = 0.1   // ~10 Hz
+    case "medium":
+      meshUpdateInterval = 0.2   // ~5 Hz
+    case "low":
+      meshUpdateInterval = 0.35  // ~3 Hz
+    default:
+      meshUpdateInterval = 0.2
+    }
+  }
+  
+  func getOcclusionQuality() -> String {
+    return occlusionQuality
+  }
+  
+  func setOcclusionEnabled(enabled: Bool) {
+    isOcclusionEnabled = enabled
+    print("🎨 Occlusion \(enabled ? "enabled" : "disabled")")
+    
+    // Toggle visibility of occlusion meshes
+    for (_, node) in meshNodes {
+      node.isHidden = !enabled
+    }
+  }
+  
+  func getOcclusionEnabled() -> Bool {
+    return isOcclusionEnabled
+  }
+  
+  func setShowFPS(show: Bool) {
+    showFPSCounter = show
+    print("📊 FPS counter \(show ? "enabled" : "disabled")")
+    
+    if show {
+      startFPSMonitoring()
+    } else {
+      stopFPSMonitoring()
+    }
+  }
+  
+  func getShowFPS() -> Bool {
+    return showFPSCounter
+  }
+  
+  func getCurrentFPS() -> Double {
+    return currentFPS
+  }
+  
+  private func startFPSMonitoring() {
+    guard fpsDisplayLink == nil else { return }
+    
+    fpsDisplayLink = CADisplayLink(target: self, selector: #selector(updateFPS))
+    fpsDisplayLink?.add(to: .main, forMode: .common)
+    fpsLastTimestamp = CACurrentMediaTime()
+    fpsFrameCount = 0
+    
+    print("📊 FPS monitoring started")
+  }
+  
+  private func stopFPSMonitoring() {
+    fpsDisplayLink?.invalidate()
+    fpsDisplayLink = nil
+    currentFPS = 0
+    
+    // Remove FPS label if exists
+    fpsLabelNode?.removeFromParentNode()
+    fpsLabelNode = nil
+    
+    print("📊 FPS monitoring stopped")
+  }
+  
+  @objc private func updateFPS() {
+    fpsFrameCount += 1
+    let currentTime = CACurrentMediaTime()
+    let elapsed = currentTime - fpsLastTimestamp
+    
+    // Update FPS every second
+    if elapsed >= 1.0 {
+      currentFPS = Double(fpsFrameCount) / elapsed
+      fpsFrameCount = 0
+      fpsLastTimestamp = currentTime
+      
+      // Optional: Create or update FPS label in scene
+      // For now, just print to console
+      // print("📊 FPS: \(String(format: "%.1f", currentFPS))")
+    }
+  }
+  
+  func getQualityStats() -> [String: Any] {
+    return [
+      "occlusionQuality": occlusionQuality,
+      "occlusionEnabled": isOcclusionEnabled,
+      "showFPS": showFPSCounter,
+      "currentFPS": currentFPS,
+      "meshCount": meshNodes.count,
+      "modelCount": modelHistory.count,
+      "isMeshReconstructionEnabled": isMeshReconstructionEnabled
+    ]
+  }
+
+  // MARK: - Haptic Feedback & Boundary Warnings (Phase 3.5)
+  
+  func setHapticFeedback(enabled: Bool) {
+    isHapticFeedbackEnabled = enabled
+    print("🎮 Haptic feedback \(enabled ? "enabled" : "disabled")")
+    
+    if enabled {
+      initializeHapticEngine()
+    } else {
+      stopHapticEngine()
+    }
+  }
+  
+  func getHapticFeedbackState() -> Bool {
+    return isHapticFeedbackEnabled
+  }
+  
+  func setBoundaryWarnings(enabled: Bool) {
+    isBoundaryWarningsEnabled = enabled
+    print("⚠️ Boundary warnings \(enabled ? "enabled" : "disabled")")
+    
+    if enabled {
+      startCameraMonitoring()
+    } else {
+      stopCameraMonitoring()
+    }
+  }
+  
+  func getBoundaryWarningsState() -> Bool {
+    return isBoundaryWarningsEnabled
+  }
+  
+  func setBoundaryWarningDistance(distance: Float) {
+    boundaryWarningDistance = max(0.1, min(distance, 2.0)) // Clamp between 0.1 and 2.0 meters
+    print("⚠️ Boundary warning distance set to: \(boundaryWarningDistance)m")
+  }
+  
+  func getBoundaryWarningDistance() -> Float {
+    return boundaryWarningDistance
+  }
+  
+  private func initializeHapticEngine() {
+    guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else {
+      print("⚠️ Device does not support haptics")
+      return
+    }
+    
+    do {
+      hapticEngine = try CHHapticEngine()
+      try hapticEngine?.start()
+      print("🎮 Haptic engine initialized")
+    } catch {
+      print("❌ Failed to initialize haptic engine: \\(error.localizedDescription)")
+    }
+  }
+  
+  private func stopHapticEngine() {
+    hapticEngine?.stop()
+    hapticEngine = nil
+    print("🎮 Haptic engine stopped")
+  }
+  
+  private func triggerCollisionHaptic(intensity: Float) {
+    guard let engine = hapticEngine else { return }
+    
+    do {
+      // Create haptic pattern based on collision intensity
+      let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+      let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8)
+      
+      let event = CHHapticEvent(
+        eventType: .hapticTransient,
+        parameters: [intensity, sharpness],
+        relativeTime: 0
+      )
+      
+      let pattern = try CHHapticPattern(events: [event], parameters: [])
+      let player = try engine.makePlayer(with: pattern)
+      try player.start(atTime: 0)
+      
+    } catch {
+      print("❌ Failed to play haptic: \\(error.localizedDescription)")
+    }
+  }
+  
+  private func triggerBoundaryWarningHaptic() {
+    guard let engine = hapticEngine else { return }
+    
+    do {
+      // Create warning pattern: two quick taps
+      let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+      let intensity1 = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.6)
+      let intensity2 = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.4)
+      
+      let event1 = CHHapticEvent(
+        eventType: .hapticTransient,
+        parameters: [intensity1, sharpness],
+        relativeTime: 0
+      )
+      let event2 = CHHapticEvent(
+        eventType: .hapticTransient,
+        parameters: [intensity2, sharpness],
+        relativeTime: 0.1
+      )
+      
+      let pattern = try CHHapticPattern(events: [event1, event2], parameters: [])
+      let player = try engine.makePlayer(with: pattern)
+      try player.start(atTime: 0)
+      
+    } catch {
+      print("❌ Failed to play boundary warning haptic: \\(error.localizedDescription)")
+    }
+  }
+  
+  private func startCameraMonitoring() {
+    stopCameraMonitoring() // Clean up any existing timer
+    
+    cameraMonitoringTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+      self?.checkCameraProximityToMeshes()
+    }
+    
+    print("📹 Camera proximity monitoring started")
+  }
+  
+  private func stopCameraMonitoring() {
+    cameraMonitoringTimer?.invalidate()
+    cameraMonitoringTimer = nil
+    print("📹 Camera proximity monitoring stopped")
+  }
+  
+  private func checkCameraProximityToMeshes() {
+    guard isBoundaryWarningsEnabled,
+          let cameraTransform = sceneView.session.currentFrame?.camera.transform else {
+      return
+    }
+    
+    let cameraPosition = SCNVector3(
+      cameraTransform.columns.3.x,
+      cameraTransform.columns.3.y,
+      cameraTransform.columns.3.z
+    )
+    
+    // Check distance to all mesh nodes
+    for (_, meshNode) in meshNodes {
+      let meshPosition = meshNode.worldPosition
+      let distance = distanceBetween(cameraPosition, meshPosition)
+      
+      if distance < boundaryWarningDistance {
+        let now = CACurrentMediaTime()
+        
+        // Throttle warnings to avoid spam
+        if now - lastBoundaryWarningAt >= boundaryWarningThrottle {
+          lastBoundaryWarningAt = now
+          
+          // Trigger haptic
+          if isHapticFeedbackEnabled {
+            triggerBoundaryWarningHaptic()
+          }
+          
+          // Get mesh classification
+          var meshType = "unknown"
+          if #available(iOS 14.0, *), let classification = meshNode.value(forKey: "meshClassification") as? ARMeshClassification {
+            meshType = classificationString(for: classification)
+          }
+          
+          // Notify React Native
+          DispatchQueue.main.async { [weak self] in
+            self?.onBoundaryWarning([
+              "distance": distance,
+              "warningThreshold": self?.boundaryWarningDistance ?? 0.5,
+              "meshType": meshType,
+              "cameraPosition": [
+                "x": cameraPosition.x,
+                "y": cameraPosition.y,
+                "z": cameraPosition.z
+              ]
+            ])
+          }
+          
+          break // Only warn once per check cycle
+        }
+      }
+    }
+  }
+  
+  private func distanceBetween(_ a: SCNVector3, _ b: SCNVector3) -> Float {
+    let dx = a.x - b.x
+    let dy = a.y - b.y
+    let dz = a.z - b.z
+    return sqrt(dx*dx + dy*dy + dz*dz)
+  }
+
+  // MARK: - Mesh Classification (Phase 3.2)
+
+  /// Get or create occlusion material for specific mesh classification
+  @available(iOS 12.0, *)
+  private func getOcclusionMaterial(for classification: ARMeshClassification) -> SCNMaterial {
+    // Check if we already have a material for this classification
+    if let existingMaterial = occlusionMaterialsByClassification[classification] {
+      return existingMaterial
+    }
+
+    // Create new material with optional debugging color
+    let material = SCNMaterial()
+    material.isDoubleSided = true
+    material.readsFromDepthBuffer = true
+    material.writesToDepthBuffer = true
+    
+    if #available(iOS 11.0, *) {
+      material.colorBufferWriteMask = []
+    }
+
+    // Optional: Add subtle tint for debugging (only visible in special render modes)
+    // In production, all occlusion materials are invisible (colorBufferWriteMask = [])
+    switch classification {
+    case .wall:
+      material.diffuse.contents = UIColor.clear // Wall
+    case .floor:
+      material.diffuse.contents = UIColor.clear // Floor
+    case .ceiling:
+      material.diffuse.contents = UIColor.clear // Ceiling
+    case .table:
+      material.diffuse.contents = UIColor.clear // Table
+    case .seat:
+      material.diffuse.contents = UIColor.clear // Seat
+    case .door:
+      material.diffuse.contents = UIColor.clear // Door
+    case .window:
+      material.diffuse.contents = UIColor.clear // Window
+    case .none:
+      material.diffuse.contents = UIColor.clear // Unclassified
+    @unknown default:
+      material.diffuse.contents = UIColor.clear // Unknown future types
+    }
+
+    // Cache the material
+    occlusionMaterialsByClassification[classification] = material
+    return material
+  }
+
+  /// Get string representation of mesh classification
+  @available(iOS 12.0, *)
+  private func classificationString(for classification: ARMeshClassification) -> String {
+    switch classification {
+    case .wall:
+      return "wall"
+    case .floor:
+      return "floor"
+    case .ceiling:
+      return "ceiling"
+    case .table:
+      return "table"
+    case .seat:
+      return "seat"
+    case .door:
+      return "door"
+    case .window:
+      return "window"
+    case .none:
+      return "none"
+    @unknown default:
+      return "unknown"
+    }
   }
 
   @available(iOS 13.0, *)
@@ -266,12 +863,18 @@ class ExpoARKitView: ExpoView {
     let mesh = meshAnchor.geometry
     let translation = meshAnchor.transform.columns.3
 
-    // NOTE: Full per-face classification requires additional parsing. For groundwork we emit "unknown".
+    // Extract primary classification from mesh
+    var primaryClassification = "none"
+    if #available(iOS 14.0, *), let classification = mesh.classification {
+      // Get most common classification from face buffer
+      primaryClassification = getMostCommonClassification(from: classification)
+    }
+
     return [
       "id": meshAnchor.identifier.uuidString,
       "vertexCount": mesh.vertices.count,
       "faceCount": mesh.faces.count,
-      "classification": "unknown",
+      "classification": primaryClassification,
       "centerX": Double(translation.x),
       "centerY": Double(translation.y),
       "centerZ": Double(translation.z),
@@ -279,6 +882,32 @@ class ExpoARKitView: ExpoView {
       "extentY": 0.0,
       "extentZ": 0.0
     ]
+  }
+
+  /// Get most common classification from mesh classification buffer
+  @available(iOS 14.0, *)
+  private func getMostCommonClassification(from classificationSource: ARGeometrySource) -> String {
+    let buffer = classificationSource.buffer
+    let stride = classificationSource.stride
+    let count = classificationSource.count
+    
+    var classificationCounts: [ARMeshClassification: Int] = [:]
+    
+    buffer.contents().withMemoryRebound(to: UInt8.self, capacity: count * stride) { ptr in
+      for i in 0..<count {
+        let byteValue = ptr[i * stride]
+        if let classification = ARMeshClassification(rawValue: Int(byteValue)) {
+          classificationCounts[classification, default: 0] += 1
+        }
+      }
+    }
+    
+    // Find most common classification
+    if let mostCommon = classificationCounts.max(by: { $0.value < $1.value })?.key {
+      return classificationString(for: mostCommon)
+    }
+    
+    return "none"
   }
 
   // Method to add a simple test object (red cube)
@@ -454,6 +1083,11 @@ class ExpoARKitView: ExpoView {
 
       // Save reference to current model
       self.currentModelNode = modelNode
+
+      // Add physics body for collision detection (Phase 3.3)
+      if self.isCollisionDetectionEnabled {
+        self.addPhysicsBodyToModel(modelNode, modelId: modelAnchor?.identifier.uuidString ?? "")
+      }
 
       // Add to model history for undo (if we have an anchor)
       if let anchor = modelAnchor {
@@ -1995,6 +2629,22 @@ extension ExpoARKitView: ARSCNViewDelegate {
     if #available(iOS 13.0, *), isMeshReconstructionEnabled, let meshAnchor = anchor as? ARMeshAnchor {
       if let geometry = buildOcclusionGeometry(from: meshAnchor) {
         node.geometry = geometry
+        
+        // Add physics body for collision detection (Phase 3.3)
+        if isCollisionDetectionEnabled {
+          let physicsShape = SCNPhysicsShape(geometry: geometry, options: nil)
+          let physicsBody = SCNPhysicsBody(type: .static, shape: physicsShape)
+          physicsBody.categoryBitMask = 1 << 1 // Mesh category
+          physicsBody.contactTestBitMask = 1 << 0 // Test against models
+          node.physicsBody = physicsBody
+          
+          // Store mesh classification for collision events
+          if #available(iOS 14.0, *), let classification = meshAnchor.geometry.classification {
+            let primaryClassification = getPrimaryMeshClassification(from: classification)
+            node.setValue(primaryClassification, forKey: "meshClassification")
+          }
+        }
+        
         meshNodes[meshAnchor.identifier] = node
         onMeshAdded([
           "mesh": meshAnchorToDictionary(meshAnchor),
@@ -2169,5 +2819,79 @@ extension ExpoARKitView: ARSessionDelegate {
     // If we want true anchor-following behavior, we should attach model nodes as children of
     // the ARKit-managed node in `renderer(_:didAdd:for:)` for that anchor (not done here).
     _ = anchors
+  }
+}
+
+// MARK: - SCNPhysicsContactDelegate
+extension ExpoARKitView: SCNPhysicsContactDelegate {
+  func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
+    guard isCollisionDetectionEnabled else { return }
+    
+    let nodeA = contact.nodeA
+    let nodeB = contact.nodeB
+    
+    // Determine which node is the model and which is the mesh
+    var modelNode: SCNNode?
+    var meshNode: SCNNode?
+    
+    if nodeA.name?.hasPrefix("model_") == true {
+      modelNode = nodeA
+      meshNode = nodeB
+    } else if nodeB.name?.hasPrefix("model_") == true {
+      modelNode = nodeB
+      meshNode = nodeA
+    }
+    
+    guard let model = modelNode, let mesh = meshNode else { return }
+    
+    // Extract model ID from node name
+    let modelId = model.name?.replacingOccurrences(of: "model_", with: "") ?? "unknown"
+    
+    // Get collision details
+    let contactPoint = contact.contactPoint
+    let collisionForce = contact.collisionImpulse
+    
+    // Increment collision counter
+    collisionCount += 1
+    
+    // Get mesh classification if available
+    var meshType = "unknown"
+    if #available(iOS 14.0, *), let classification = mesh.value(forKey: "meshClassification") as? ARMeshClassification {
+      meshType = classificationString(for: classification)
+    }
+    
+    // Notify React Native
+    DispatchQueue.main.async { [weak self] in
+      self?.onModelCollision([
+        "modelId": modelId,
+        "meshType": meshType,
+        "contactPoint": [
+          "x": contactPoint.x,
+          "y": contactPoint.y,
+          "z": contactPoint.z
+        ],
+        "collisionForce": collisionForce,
+        "totalCollisions": self?.collisionCount ?? 0
+      ])
+    }
+    
+    // Haptic feedback (Phase 3.5)
+    if isHapticFeedbackEnabled {
+      triggerCollisionHaptic(intensity: min(Float(collisionForce), 1.0))
+    }
+    
+    // Visual feedback in debug mode
+    if collisionDebugMode {
+      let sphere = SCNSphere(radius: 0.02)
+      sphere.firstMaterial?.diffuse.contents = UIColor.red
+      let sphereNode = SCNNode(geometry: sphere)
+      sphereNode.position = contactPoint
+      sceneView.scene.rootNode.addChildNode(sphereNode)
+      
+      // Remove after 2 seconds
+      DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        sphereNode.removeFromParentNode()
+      }
+    }
   }
 }

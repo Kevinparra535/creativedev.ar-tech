@@ -1,8 +1,8 @@
 # Estado Actual del Proyecto
 
 **Fecha:** 2025-12-17
-**Versión:** 1.4.0
-**Fase:** Model Alignment Complete + Occlusion Groundwork
+**Versión:** 1.8.0
+**Fase:** Quality Settings Complete
 
 ---
 
@@ -15,14 +15,22 @@ El proyecto ha completado las fases fundamentales del POC:
 - ✅ **Fase 1.5: Room Scanning** (vía expo-roomplan 1.2.1)
 - ✅ **Fase 1.7: SceneKit Preview + Apple Quick Look Gestures**
 - ✅ **Fase 2: Model Alignment System** (auto + manual + persistence)
-- 🔨 **Fase 3: Occlusion Rendering** (groundwork implementado)
+- ✅ **Fase 3.1: Portal Mode** (camera feed hiding)
+- ✅ **Fase 3.2: Mesh Classification** (surface type detection & materials)
+- ✅ **Fase 3.3: Collision Detection** (physics bodies + contact delegate + UI)
+- ✅ **Fase 3.4: Quality Settings** (occlusion quality + FPS counter + performance)
 
-**Progreso del POC:** ~75% completado
+**Progreso del POC:** ~88% completado
 
 **Últimos logros:**
-- Model Alignment completo (auto-alignment + manual adjustment + persistence)
-- Scene reconstruction mesh con material de oclusión (Fase 3 groundwork)
-- ARTestScreen integrado en navegación principal
+- ✅ Portal Mode completado (hide camera feed, toggle UI)
+- ✅ Scene reconstruction mesh con material de oclusión
+- ✅ **Mesh Classification implementado** (wall/floor/ceiling detection)
+- ✅ **Classification-specific materials** (different materials per surface type)
+- ✅ **Stats UI** (visualizar estadísticas de meshes detectados)
+- ✅ **Collision Detection completo** (physics, events, UI controls)
+- ✅ **Quality Settings completo** (occlusion quality selector, FPS monitoring)
+- ✅ Model Alignment completo (auto-alignment + manual adjustment + persistence)
 
 ---
 
@@ -381,7 +389,7 @@ creativedev.ar-tech/
   - UI polish (loading states, preview de transform)
   - Testing real-world en device
 
-### Fase 3: AR Inmersivo (15% 🔨)
+### Fase 3: AR Inmersivo (75% 🔨)
 
 - [x] **Occlusion Groundwork** ✅
   - Scene reconstruction habilitado (iOS 13+ con LiDAR)
@@ -390,12 +398,95 @@ creativedev.ar-tech/
   - Eventos `onMeshAdded/Updated/Removed` hacia React Native
   - Throttling de updates (5Hz) para evitar spam
 
-- [ ] **Pendiente (85%):**
-  - Mesh classification usage (wall/floor/ceiling)
-  - Toggle occlusion mode en UI
-  - Portal mode (reemplazo completo de realidad)
-  - Navegación inmersiva mejorada (6DOF)
-  - Sistema de materiales intercambiables
+- [x] **Portal Mode** ✅
+  - Flag `isPortalModeEnabled` en ExpoARKitView
+  - Método `setPortalMode()` para ocultar/mostrar camera feed
+  - Background negro cuando portal mode activo
+  - Método `getPortalModeState()` para query de estado
+  - Evento `onPortalModeChanged` hacia React Native
+  - Toggle UI en ARTestScreen con botón "🌌 Portal ON / 📹 Normal AR"
+  - Alert informativo sobre requerimientos de LiDAR
+
+- [x] **Mesh Classification** ✅
+  - Dictionary `occlusionMaterialsByClassification` para cache de materiales
+  - Método `getOcclusionMaterial(for: ARMeshClassification)` - crea material por tipo
+  - Método `classificationString(for:)` - convierte enum a string
+  - Método `buildOcclusionGeometry()` actualizado para usar material por clasificación
+  - Método `getPrimaryMeshClassification()` - lee buffer, cuenta, devuelve más común
+  - Método `getMostCommonClassification()` - versión string para eventos
+  - Método `getMeshClassificationStats()` - estadísticas de meshes detectados
+  - Eventos actualizados con clasificación real (no hardcoded "unknown")
+  - UI para mostrar stats: botón "📊 Mesh Stats" en ARTestScreen
+  - Modal con desglose de Total Meshes, Scene Reconstruction status, Portal Mode status
+  - Lista de superficies detectadas (wall/floor/ceiling/etc)
+  - Note informativo sobre requerimientos LiDAR
+
+- [x] **Collision Detection** ✅
+  - `SCNPhysicsBody` en modelos (dynamic body, bounding box shape)
+  - `SCNPhysicsBody` en meshes (static body, mesh shape)
+  - Category bitmasks: models (1<<0), meshes (1<<1)
+  - `SCNPhysicsContactDelegate` implementation en ExpoARKitView
+  - `physicsWorld(_:didBegin:)` method para detectar colisiones
+  - Evento `onModelCollision` hacia React Native con:
+    - modelId, meshType (classification), contactPoint, collisionForce, totalCollisions
+  - `collisionCount` tracking para estadísticas
+  - Debug mode: visualiza collision points con esferas rojas (2s timeout)
+  - API methods:
+    - `setCollisionDetection(enabled:)` - toggle on/off
+    - `getCollisionDetectionState()` - query status
+    - `setCollisionDebugMode(enabled:)` - visual debug
+    - `getCollisionStats()` - fetch statistics
+    - `resetCollisionCount()` - reset counter
+  - UI Controls en ARTestScreen:
+    - Toggle "⚡ Collision ON/OFF"
+    - Toggle "🐛 Debug ON/OFF"
+    - Botón "📈 Collision Stats"
+    - Botón "Reset Count"
+    - Alert de colisión (rojo, muestra modelo ID y surface type)
+  - Modal de estadísticas completo con:
+    - Collision Detection status
+    - Debug Mode status
+    - Total collisions count
+    - Models with physics count
+    - Meshes with physics count
+    - Info note sobre requisitos
+
+- [x] **Quality Settings** ✅ (NUEVO - 2025-12-17)
+  - State management: `occlusionQuality`, `isOcclusionEnabled`, `showFPSCounter`
+  - API methods:
+    - `setOcclusionQuality(quality:)` - low/medium/high selector
+    - `getOcclusionQuality()` - query current quality
+    - `setOcclusionEnabled(enabled:)` - toggle occlusion on/off
+    - `getOcclusionEnabled()` - query occlusion state
+    - `setShowFPS(show:)` - toggle FPS counter
+    - `getShowFPS()` - query FPS counter state
+    - `getCurrentFPS()` - get current FPS value
+    - `getQualityStats()` - comprehensive statistics
+  - FPS Monitoring:
+    - CADisplayLink-based FPS tracking
+    - Real-time FPS calculation (updates every second)
+    - `currentFPS` property expuesto a React Native
+  - UI Controls en ARTestScreen:
+    - Toggle "👁️ Occlusion ON/OFF"
+    - Toggle "📊 FPS ON/OFF"
+    - FPS Display (green badge showing current FPS)
+    - Botón "⚙️ Quality Stats" - abre modal completo
+  - Quality Settings Modal:
+    - Occlusion Quality selector (Low/Medium/High buttons)
+    - Occlusion Enabled status
+    - FPS Counter status
+    - Current FPS display
+    - Mesh Count
+    - Model Count
+    - Scene Reconstruction status
+    - Performance tips y best practices
+
+- [ ] **Pendiente (25%):**
+  - Performance optimization (LOD en meshes, culling agresivo)
+  - Sistema de materiales intercambiables para modelos
+  - Portal mode refinement (smooth transitions, fade effects)
+  - Haptical feedback en colisiones
+  - Boundary warnings (prevenir "caminar fuera del área")
 
 ---
 
@@ -424,13 +515,25 @@ creativedev.ar-tech/
    - Feedback visual de confidence score
    - Botón "Reset to Auto" en Manual
 
-### 2. Completar AR Inmersivo - Occlusion & Reality Replacement (Fase 3) 🔴
+### 2. Completar AR Inmersivo - Quality Settings (Fase 3.4) 🟡
 
-**Prioridad:** ALTA
-**Duración estimada:** 2-3 semanas
-**Estado:** 15% completado (groundwork listo)
+**Prioridad:** MEDIA
+**Duración estimada:** 1-2 días
+**Estado:** 0% completado
 
-**Prioridad:** Media (después de Fase 2)
+**Tareas:**
+1. **Quality Settings UI**
+   - Slider para occlusion mesh density (low/medium/high)
+   - Toggle para desactivar occlusion temporalmente (debug)
+   - FPS counter y performance monitor
+   - Settings persistence en AsyncStorage
+
+2. **Performance Optimization**
+   - LOD system para meshes (reduce geometry para mejor FPS)
+   - Culling agresivo de meshes fuera de viewport
+   - Throttling más inteligente de mesh updates
+
+**Prioridad:** Media (después de device testing)
 **Duración estimada:** 3-4 semanas
 
 **Objetivo:** Reemplazo completo de realidad con modelo 3D

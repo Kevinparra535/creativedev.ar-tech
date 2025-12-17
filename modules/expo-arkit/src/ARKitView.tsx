@@ -3,7 +3,7 @@ import { findNodeHandle, StyleSheet, ViewProps } from 'react-native';
 
 import { requireNativeViewManager } from 'expo-modules-core';
 
-import { AllModelIdsResponse, ExpoARKitModule, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse } from './ExpoARKitModule';
+import { AllModelIdsResponse, CollisionEvent, CollisionStatsResponse, ExpoARKitModule, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse, QualityStatsResponse } from './ExpoARKitModule';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
 
@@ -51,6 +51,11 @@ export interface ScanGuidanceUpdatedEvent {
   observedHeight?: number;
 }
 
+export interface PortalModeChangedEvent {
+  enabled: boolean;
+  meshReconstructionEnabled: boolean;
+}
+
 export interface ARKitViewProps extends ViewProps {
   onARInitialized?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
   onARError?: (event: { nativeEvent: { error: string } }) => void;
@@ -61,6 +66,9 @@ export interface ARKitViewProps extends ViewProps {
   onPlaneDetected?: (event: { nativeEvent: { plane: PlaneData; totalPlanes: number } }) => void;
   onPlaneUpdated?: (event: { nativeEvent: { plane: PlaneData } }) => void;
   onPlaneRemoved?: (event: { nativeEvent: { planeId: string; totalPlanes: number } }) => void;
+  onPortalModeChanged?: (event: { nativeEvent: PortalModeChangedEvent }) => void;
+  onModelCollision?: (event: { nativeEvent: CollisionEvent }) => void;
+  onBoundaryWarning?: (event: { nativeEvent: { distance: number; direction: string } }) => void;
 }
 
 export interface ARKitViewRef {
@@ -83,6 +91,9 @@ export interface ARKitViewRef {
   removeAllAnchors: () => void;
   undoLastModel: () => void;
   setPlaneVisibility: (visible: boolean) => void;
+  setPortalMode: (enabled: boolean) => void;
+  getPortalModeState: () => Promise<boolean>;
+  getMeshClassificationStats: () => Promise<Record<string, any>>;
   getModelDimensions: (modelId: string) => Promise<ModelDimensionsResponse>;
   getAllModelIds: () => Promise<AllModelIdsResponse>;
   updateModelTransform: (modelId: string, scale?: number[], rotation?: number[], position?: number[]) => Promise<ModelTransformResponse>;
@@ -91,6 +102,23 @@ export interface ARKitViewRef {
   setModelPosition: (modelId: string, position: number[]) => Promise<ModelTransformResponse>;
   getModelTransform: (modelId: string) => Promise<ModelTransformData>;
   getViewTag: () => number | null;
+  
+  // Collision Detection (Phase 3.3)
+  setCollisionDetection: (enabled: boolean) => Promise<void>;
+  getCollisionDetectionState: () => Promise<boolean>;
+  setCollisionDebugMode: (enabled: boolean) => Promise<void>;
+  getCollisionStats: () => Promise<CollisionStatsResponse>;
+  resetCollisionCount: () => Promise<void>;
+  
+  // Quality Settings (Phase 3.4)
+  setOcclusionQuality: (quality: 'low' | 'medium' | 'high') => Promise<void>;
+  getOcclusionQuality: () => Promise<string>;
+  setOcclusionEnabled: (enabled: boolean) => Promise<void>;
+  getOcclusionEnabled: () => Promise<boolean>;
+  setShowFPS: (show: boolean) => Promise<void>;
+  getShowFPS: () => Promise<boolean>;
+  getCurrentFPS: () => Promise<number>;
+  getQualityStats: () => Promise<QualityStatsResponse>;
 }
 
 export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) => {
@@ -304,6 +332,38 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error setting plane visibility:', error);
       }
     },
+
+    setPortalMode: async (enabled: boolean) => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+
+        console.log('Setting Portal Mode:', enabled);
+        await ExpoARKitModule.setPortalMode(viewId, enabled);
+      } catch (error) {
+        console.error('Error setting portal mode:', error);
+      }
+    },
+
+    getPortalModeState: async () => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return false;
+        }
+
+        const state = await ExpoARKitModule.getPortalModeState(viewId);
+        return state;
+      } catch (error) {
+        console.error('Error getting portal mode state:', error);
+        return false;
+      }
+    },
+
     getModelDimensions: async (modelId: string): Promise<ModelDimensionsResponse> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -424,6 +484,229 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       }
     },
     getViewTag: () => findNodeHandle(nativeRef.current),
+    getMeshClassificationStats: async (): Promise<Record<string, any>> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return { success: false, error: 'viewId is null' };
+        }
+
+        console.log('Calling getMeshClassificationStats with viewId:', viewId);
+        const result = await ExpoARKitModule.getMeshClassificationStats(viewId);
+        console.log('Mesh classification stats retrieved:', result);
+        return result;
+      } catch (error) {
+        console.error('Error getting mesh classification stats:', error);
+        return { success: false, error: String(error) };
+      }
+    },
+    
+    // Collision Detection (Phase 3.3)
+    setCollisionDetection: async (enabled: boolean): Promise<void> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+        await ExpoARKitModule.setCollisionDetection(viewId, enabled);
+      } catch (error) {
+        console.error('Error setting collision detection:', error);
+      }
+    },
+    
+    getCollisionDetectionState: async (): Promise<boolean> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return false;
+        }
+        return await ExpoARKitModule.getCollisionDetectionState(viewId);
+      } catch (error) {
+        console.error('Error getting collision detection state:', error);
+        return false;
+      }
+    },
+    
+    setCollisionDebugMode: async (enabled: boolean): Promise<void> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+        await ExpoARKitModule.setCollisionDebugMode(viewId, enabled);
+      } catch (error) {
+        console.error('Error setting collision debug mode:', error);
+      }
+    },
+    
+    getCollisionStats: async (): Promise<CollisionStatsResponse> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return { 
+            enabled: false, 
+            debugMode: false, 
+            totalCollisions: 0, 
+            modelsWithPhysics: 0, 
+            meshesWithPhysics: 0 
+          };
+        }
+        return await ExpoARKitModule.getCollisionStats(viewId);
+      } catch (error) {
+        console.error('Error getting collision stats:', error);
+        return { 
+          enabled: false, 
+          debugMode: false, 
+          totalCollisions: 0, 
+          modelsWithPhysics: 0, 
+          meshesWithPhysics: 0 
+        };
+      }
+    },
+    
+    resetCollisionCount: async (): Promise<void> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+        await ExpoARKitModule.resetCollisionCount(viewId);
+      } catch (error) {
+        console.error('Error resetting collision count:', error);
+      }
+    },
+    
+    // Quality Settings (Phase 3.4)
+    setOcclusionQuality: async (quality: 'low' | 'medium' | 'high'): Promise<void> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+        await ExpoARKitModule.setOcclusionQuality(viewId, quality);
+      } catch (error) {
+        console.error('Error setting occlusion quality:', error);
+      }
+    },
+    
+    getOcclusionQuality: async (): Promise<string> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return 'medium';
+        }
+        return await ExpoARKitModule.getOcclusionQuality(viewId);
+      } catch (error) {
+        console.error('Error getting occlusion quality:', error);
+        return 'medium';
+      }
+    },
+    
+    setOcclusionEnabled: async (enabled: boolean): Promise<void> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+        await ExpoARKitModule.setOcclusionEnabled(viewId, enabled);
+      } catch (error) {
+        console.error('Error setting occlusion enabled:', error);
+      }
+    },
+    
+    getOcclusionEnabled: async (): Promise<boolean> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return true;
+        }
+        return await ExpoARKitModule.getOcclusionEnabled(viewId);
+      } catch (error) {
+        console.error('Error getting occlusion enabled:', error);
+        return true;
+      }
+    },
+    
+    setShowFPS: async (show: boolean): Promise<void> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return;
+        }
+        await ExpoARKitModule.setShowFPS(viewId, show);
+      } catch (error) {
+        console.error('Error setting show FPS:', error);
+      }
+    },
+    
+    getShowFPS: async (): Promise<boolean> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return false;
+        }
+        return await ExpoARKitModule.getShowFPS(viewId);
+      } catch (error) {
+        console.error('Error getting show FPS:', error);
+        return false;
+      }
+    },
+    
+    getCurrentFPS: async (): Promise<number> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return 0;
+        }
+        return await ExpoARKitModule.getCurrentFPS(viewId);
+      } catch (error) {
+        console.error('Error getting current FPS:', error);
+        return 0;
+      }
+    },
+    
+    getQualityStats: async (): Promise<QualityStatsResponse> => {
+      try {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) {
+          console.error('viewId is null');
+          return {
+            occlusionQuality: 'medium',
+            occlusionEnabled: true,
+            showFPS: false,
+            currentFPS: 0,
+            meshCount: 0,
+            modelCount: 0,
+            isMeshReconstructionEnabled: false
+          };
+        }
+        return await ExpoARKitModule.getQualityStats(viewId) as QualityStatsResponse;
+      } catch (error) {
+        console.error('Error getting quality stats:', error);
+        return {
+          occlusionQuality: 'medium',
+          occlusionEnabled: true,
+          showFPS: false,
+          currentFPS: 0,
+          meshCount: 0,
+          modelCount: 0,
+          isMeshReconstructionEnabled: false
+        };
+      }
+    },
   }));
 
   return (
@@ -439,6 +722,9 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       onPlaneDetected={props.onPlaneDetected}
       onPlaneUpdated={props.onPlaneUpdated}
       onPlaneRemoved={props.onPlaneRemoved}
+      onPortalModeChanged={props.onPortalModeChanged}
+      onModelCollision={props.onModelCollision}
+      onBoundaryWarning={props.onBoundaryWarning}
     />
   );
 });

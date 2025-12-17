@@ -1,33 +1,71 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import * as DocumentPicker from 'expo-document-picker';
 
 import {
-  ARKitView,
-  ARKitViewRef,
-  PlaneDetectedEvent,
-  PlaneRemovedEvent,
-  PlaneUpdatedEvent
+    ARKitView,
+    ARKitViewRef,
+    AROnboardingModal,
+    PlaneDetectedEvent,
+    PlaneRemovedEvent,
+    PlaneUpdatedEvent
 } from '../ar/components';
 import { useFileManager } from '../ar/hooks/useFileManager';
 import { useModelTransformation } from '../ar/hooks/useModelTransformation';
 
 export const ARTestScreen = () => {
+  type Axis = 'x' | 'y' | 'z';
+
   const arViewRef = useRef<ARKitViewRef>(null);
+  const fpsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isARReady, setIsARReady] = useState(false);
   const [statusMessage, setStatusMessage] = useState('Initializing AR...');
   const [planeCount, setPlaneCount] = useState(0);
   const [isTapMode, setIsTapMode] = useState(false);
-  const [pendingModelPath, setPendingModelPath] = useState<string | null>(null);
   const [showPlanes, setShowPlanes] = useState(true);
   const [isScanning, setIsScanning] = useState(true);
   const [modelCount, setModelCount] = useState(0);
   const [showRoomScanPicker, setShowRoomScanPicker] = useState(false);
   const [showTransformControls, setShowTransformControls] = useState(false);
   const [loadedModelIds, setLoadedModelIds] = useState<string[]>([]);
+  
+  // Portal Mode (Phase 3)
+  const [isPortalMode, setIsPortalMode] = useState(false);
+  
+  // Mesh Classification Stats (Phase 3.2)
+  const [meshStats, setMeshStats] = useState<Record<string, any> | null>(null);
+  const [showMeshStats, setShowMeshStats] = useState(false);
+  
+  // Collision Detection (Phase 3.3)
+  const [isCollisionEnabled, setIsCollisionEnabled] = useState(true);
+  const [isCollisionDebugMode, setIsCollisionDebugMode] = useState(false);
+  const [collisionStats, setCollisionStats] = useState<any>(null);
+  const [showCollisionStats, setShowCollisionStats] = useState(false);
+  const [lastCollision, setLastCollision] = useState<string | null>(null);
+  
+  // Quality Settings (Phase 3.4)
+  const [occlusionQuality, setOcclusionQuality] = useState<'low' | 'medium' | 'high'>('medium');
+  const [isOcclusionEnabled, setIsOcclusionEnabled] = useState(true);
+  const [showFPSCounter, setShowFPSCounter] = useState(false);
+  const [currentFPS, setCurrentFPS] = useState<number>(0);
+  const [qualityStats, setQualityStats] = useState<any>(null);
+  const [showQualitySettings, setShowQualitySettings] = useState(false);
+
+  // Haptic Feedback & Boundary Warnings (Phase 3.5)
+  const [isHapticEnabled, setIsHapticEnabled] = useState(true);
+  const [isBoundaryWarningsEnabled, setIsBoundaryWarningsEnabled] = useState(true);
+  const [boundaryDistance, setBoundaryDistance] = useState(0.5); // meters
+  const [lastBoundaryWarning, setLastBoundaryWarning] = useState<string | null>(null);
+  const [showHapticSettings, setShowHapticSettings] = useState(false);
+
+  const [controlsCollapsed, setControlsCollapsed] = useState(false);
+
+  // Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // File manager hook for listing USDZ files
   const { usdzFiles, isLoading, error: fileError, listUsdzFiles, formatFileSize, formatDate } = useFileManager();
@@ -42,6 +80,68 @@ export const ARTestScreen = () => {
     updatePosition,
     getTransformation
   } = useModelTransformation(arViewRef);
+
+  // Check if first time user - show onboarding
+  useEffect(() => {
+    const checkFirstTime = async () => {
+      try {
+        const hasSeenOnboarding = await AsyncStorage.getItem('ar_test_onboarding_seen');
+        if (!hasSeenOnboarding) {
+          setShowOnboarding(true);
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      }
+    };
+
+    checkFirstTime();
+  }, []);
+
+  const handleCloseOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem('ar_test_onboarding_seen', 'true');
+      setShowOnboarding(false);
+    } catch (error) {
+      console.error('Error saving onboarding status:', error);
+      setShowOnboarding(false);
+    }
+  };
+
+  const handleShowOnboarding = () => {
+    setShowOnboarding(true);
+  };
+
+  useEffect(() => {
+    if (!showFPSCounter) {
+      if (fpsIntervalRef.current) {
+        clearInterval(fpsIntervalRef.current);
+        fpsIntervalRef.current = null;
+      }
+      return;
+    }
+
+    if (fpsIntervalRef.current) {
+      clearInterval(fpsIntervalRef.current);
+      fpsIntervalRef.current = null;
+    }
+
+    fpsIntervalRef.current = setInterval(async () => {
+      try {
+        if (!arViewRef.current) return;
+        const fps = await arViewRef.current.getCurrentFPS();
+        setCurrentFPS(fps);
+      } catch (error) {
+        console.error('Error polling FPS:', error);
+      }
+    }, 500);
+
+    return () => {
+      if (fpsIntervalRef.current) {
+        clearInterval(fpsIntervalRef.current);
+        fpsIntervalRef.current = null;
+      }
+    };
+  }, [showFPSCounter]);
 
   const handleARInitialized = (event: { nativeEvent: { success: boolean; message: string } }) => {
     const { success, message } = event.nativeEvent;
@@ -147,13 +247,6 @@ export const ARTestScreen = () => {
     }
   };
 
-  const handleAddTestObject = () => {
-    if (arViewRef.current) {
-      arViewRef.current.addTestObject();
-      Alert.alert('Object Added', 'A red cube has been added to the AR scene!');
-    }
-  };
-
   const handleLoadTestModel = async () => {
     if (!arViewRef.current) return;
 
@@ -181,7 +274,6 @@ export const ARTestScreen = () => {
 
       if (isTapMode) {
         setStatusMessage('Tap mode ready! Tap on a plane to place the model.');
-        setPendingModelPath(file.uri);
         arViewRef.current.placeModelOnTap(file.uri, 1);
       } else {
         setStatusMessage(`Loading ${file.name}...`);
@@ -201,7 +293,6 @@ export const ARTestScreen = () => {
       setStatusMessage('Tap mode activated. Import a model and tap on a plane to place it.');
     } else {
       setStatusMessage('Camera mode activated. Models will appear in front of the camera.');
-      setPendingModelPath(null);
     }
   };
 
@@ -234,7 +325,7 @@ export const ARTestScreen = () => {
     setShowTransformControls(true);
   };
 
-  const handleScaleChange = async (axis: 'x' | 'y' | 'z', value: number) => {
+  const handleScaleChange = async (axis: Axis, value: number) => {
     if (!selectedModelId) return;
 
     const currentTransform = transformations[selectedModelId];
@@ -252,7 +343,7 @@ export const ARTestScreen = () => {
     }
   };
 
-  const handleRotationChange = async (axis: 'x' | 'y' | 'z', value: number) => {
+  const handleRotationChange = async (axis: Axis, value: number) => {
     if (!selectedModelId) return;
 
     const currentTransform = transformations[selectedModelId];
@@ -270,7 +361,7 @@ export const ARTestScreen = () => {
     }
   };
 
-  const handlePositionChange = async (axis: 'x' | 'y' | 'z', value: number) => {
+  const handlePositionChange = async (axis: Axis, value: number) => {
     if (!selectedModelId) return;
 
     const currentTransform = transformations[selectedModelId];
@@ -297,6 +388,241 @@ export const ARTestScreen = () => {
     }
   };
 
+  const handleTogglePortalMode = async () => {
+    if (!arViewRef.current) return;
+
+    const newMode = !isPortalMode;
+    setIsPortalMode(newMode);
+    await arViewRef.current.setPortalMode(newMode);
+    
+    if (newMode) {
+      setStatusMessage('Portal Mode: Camera feed hidden, 3D only');
+      Alert.alert(
+        'Portal Mode Enabled',
+        'Camera feed is now hidden. You\'ll see only 3D models with occlusion.\n\nNote: Scene reconstruction (occlusion mesh) requires LiDAR device.'
+      );
+    } else {
+      setStatusMessage('Normal AR Mode: Camera feed visible');
+    }
+  };
+
+  const handleShowMeshStats = async () => {
+    if (!arViewRef.current) return;
+
+    try {
+      const stats = await arViewRef.current.getMeshClassificationStats();
+      setMeshStats(stats);
+      setShowMeshStats(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get mesh classification stats');
+      console.error('Mesh stats error:', error);
+    }
+  };
+  
+  // Collision Detection Handlers (Phase 3.3)
+  const handleModelCollision = (event: any) => {
+    const { modelId, meshType, collisionForce, totalCollisions } = event.nativeEvent;
+    const message = `Model ${modelId.substring(0, 8)} hit ${meshType}!\nForce: ${collisionForce.toFixed(2)}\nTotal: ${totalCollisions}`;
+    setLastCollision(message);
+    console.log('🔴 Collision detected:', event.nativeEvent);
+  };
+  
+  const handleToggleCollision = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const newState = !isCollisionEnabled;
+      await arViewRef.current.setCollisionDetection(newState);
+      setIsCollisionEnabled(newState);
+    } catch (error) {
+      console.error('Error toggling collision:', error);
+    }
+  };
+  
+  const handleToggleCollisionDebug = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const newState = !isCollisionDebugMode;
+      await arViewRef.current.setCollisionDebugMode(newState);
+      setIsCollisionDebugMode(newState);
+    } catch (error) {
+      console.error('Error toggling collision debug:', error);
+    }
+  };
+  
+  const handleShowCollisionStats = async () => {
+    if (!arViewRef.current) return;
+
+    try {
+      const stats = await arViewRef.current.getCollisionStats();
+      setCollisionStats(stats);
+      setShowCollisionStats(true);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get collision stats');
+      console.error('Collision stats error:', error);
+    }
+  };
+  
+  const handleResetCollisionCount = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      await arViewRef.current.resetCollisionCount();
+      setLastCollision(null);
+      Alert.alert('Reset', 'Collision count reset to 0');
+    } catch (error) {
+      console.error('Error resetting collision count:', error);
+    }
+  };
+
+  // Quality Settings Handlers (Phase 3.4)
+  const handleSetOcclusionQuality = async (quality: 'low' | 'medium' | 'high') => {
+    if (!arViewRef.current) return;
+    
+    try {
+      await arViewRef.current.setOcclusionQuality(quality);
+      setOcclusionQuality(quality);
+      Alert.alert('Quality Updated', `Occlusion quality set to: ${quality}`);
+    } catch (error) {
+      console.error('Error setting occlusion quality:', error);
+    }
+  };
+  
+  const handleToggleOcclusion = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const newState = !isOcclusionEnabled;
+      await arViewRef.current.setOcclusionEnabled(newState);
+      setIsOcclusionEnabled(newState);
+      Alert.alert(
+        newState ? 'Occlusion Enabled' : 'Occlusion Disabled',
+        newState
+          ? 'Scene reconstruction occlusion is active.'
+          : 'Scene reconstruction occlusion is inactive.'
+      );
+    } catch (error) {
+      console.error('Error toggling occlusion:', error);
+    }
+  };
+  
+  const handleToggleFPS = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const newState = !showFPSCounter;
+      await arViewRef.current.setShowFPS(newState);
+      setShowFPSCounter(newState);
+
+      if (!newState) setCurrentFPS(0);
+    } catch (error) {
+      console.error('Error toggling FPS:', error);
+    }
+  };
+  
+  const handleShowQualitySettings = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const stats = await arViewRef.current.getQualityStats();
+      setQualityStats(stats);
+      setShowQualitySettings(true);
+    } catch (error) {
+      console.error('Error fetching quality stats:', error);
+      Alert.alert('Error', 'Failed to load quality statistics');
+    }
+  };
+
+  // Phase 3.5: Haptic Feedback & Boundary Warnings Handlers
+  const handleToggleHaptic = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const newState = !isHapticEnabled;
+      await arViewRef.current.setHapticFeedback(newState);
+      setIsHapticEnabled(newState);
+      Alert.alert(
+        newState ? 'Haptic Feedback Enabled' : 'Haptic Feedback Disabled',
+        newState
+          ? 'You will feel vibrations when models collide with scene meshes.'
+          : 'Haptic feedback on collisions is disabled.'
+      );
+    } catch (error) {
+      console.error('Error toggling haptic feedback:', error);
+    }
+  };
+
+  const handleToggleBoundaryWarnings = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const newState = !isBoundaryWarningsEnabled;
+      await arViewRef.current.setBoundaryWarnings(newState);
+      setIsBoundaryWarningsEnabled(newState);
+      Alert.alert(
+        newState ? 'Boundary Warnings Enabled' : 'Boundary Warnings Disabled',
+        newState
+          ? 'You will be warned when approaching real walls or obstacles.'
+          : 'Boundary proximity warnings are disabled.'
+      );
+    } catch (error) {
+      console.error('Error toggling boundary warnings:', error);
+    }
+  };
+
+  const handleSetBoundaryDistance = async (distance: number) => {
+    if (!arViewRef.current) return;
+    
+    try {
+      await arViewRef.current.setBoundaryWarningDistance(distance);
+      setBoundaryDistance(distance);
+    } catch (error) {
+      console.error('Error setting boundary distance:', error);
+    }
+  };
+
+  const handleBoundaryWarning = (event: {
+    nativeEvent: {
+      distance: number;
+      warningThreshold: number;
+      meshType: string;
+      cameraPosition: { x: number; y: number; z: number };
+    };
+  }) => {
+    const { distance, warningThreshold, meshType, cameraPosition } = event.nativeEvent;
+    const warningText = `⚠️ ${meshType.toUpperCase()} - ${(distance * 100).toFixed(0)}cm away`;
+    setLastBoundaryWarning(warningText);
+    
+    console.log('⚠️ Boundary Warning:', {
+      distance: `${(distance * 100).toFixed(0)}cm`,
+      threshold: `${(warningThreshold * 100).toFixed(0)}cm`,
+      meshType,
+      cameraPosition
+    });
+    
+    // Auto-clear after 3 seconds
+    setTimeout(() => setLastBoundaryWarning(null), 3000);
+  };
+
+  const handleShowHapticSettings = async () => {
+    if (!arViewRef.current) return;
+    
+    try {
+      const hapticState = await arViewRef.current.getHapticFeedbackState();
+      const boundaryState = await arViewRef.current.getBoundaryWarningsState();
+      const distance = await arViewRef.current.getBoundaryWarningDistance();
+      
+      setIsHapticEnabled(hapticState);
+      setIsBoundaryWarningsEnabled(boundaryState);
+      setBoundaryDistance(distance);
+      setShowHapticSettings(true);
+    } catch (error) {
+      console.error('Error fetching haptic settings:', error);
+      Alert.alert('Error', 'Failed to load haptic settings');
+    }
+  };
+
   const handleOpenRoomScanPicker = () => {
     listUsdzFiles(); // Refresh the list
     setShowRoomScanPicker(true);
@@ -311,7 +637,6 @@ export const ARTestScreen = () => {
 
       if (isTapMode) {
         setStatusMessage('Tap mode ready! Tap on a plane to place the room scan.');
-        setPendingModelPath(fileUri);
         arViewRef.current.placeModelOnTap(fileUri, 1);
       } else {
         arViewRef.current.loadModel(fileUri, 1, [0, 0, -1]);
@@ -348,6 +673,8 @@ export const ARTestScreen = () => {
         onPlaneDetected={handlePlaneDetected}
         onPlaneUpdated={handlePlaneUpdated}
         onPlaneRemoved={handlePlaneRemoved}
+        onModelCollision={handleModelCollision}
+        onBoundaryWarning={handleBoundaryWarning}
       />
 
       <View style={styles.overlay}>
@@ -369,74 +696,226 @@ export const ARTestScreen = () => {
           )}
         </View>
 
-        <View style={styles.controlsContainer}>
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.button, styles.buttonToggle, isTapMode && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
-              onPress={handleToggleMode}
-              disabled={!isARReady}
-            >
-              <Text style={styles.buttonText}>{isTapMode ? 'Camera Mode' : 'Tap Mode'}</Text>
-            </TouchableOpacity>
+        {/* Help Button - Top Right */}
+        <TouchableOpacity
+          style={styles.helpButton}
+          onPress={handleShowOnboarding}
+        >
+          <Text style={styles.helpButtonText}>?</Text>
+        </TouchableOpacity>
 
+        <View style={styles.bottomControls} pointerEvents="box-none">
+          <View style={styles.controlsToggleRow} pointerEvents="box-none">
             <TouchableOpacity
-              style={[styles.button, styles.buttonInfo, showPlanes && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
-              onPress={handleTogglePlanes}
+              style={[styles.controlsToggleButton, !isARReady && styles.buttonDisabled]}
+              onPress={() => setControlsCollapsed(prev => !prev)}
               disabled={!isARReady}
             >
-              <Text style={styles.buttonText}>{showPlanes ? 'Hide Planes' : 'Show Planes'}</Text>
+              <Text style={styles.controlsToggleText}>
+                {controlsCollapsed ? '▲ Controls' : '▼ Controls'}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.button, styles.buttonWarning, !isARReady && styles.buttonDisabled, modelCount === 0 && styles.buttonDisabled]}
-              onPress={handleUndo}
-              disabled={!isARReady || modelCount === 0}
+          {!controlsCollapsed && (
+            <ScrollView
+              style={styles.controlsScroll}
+              contentContainerStyle={styles.controlsContainer}
+              showsVerticalScrollIndicator={false}
             >
-              <Text style={styles.buttonText}>Undo</Text>
-            </TouchableOpacity>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonToggle, isTapMode && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleMode}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isTapMode ? 'Camera Mode' : 'Tap Mode'}</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.button, styles.buttonDanger, !isARReady && styles.buttonDisabled]}
-              onPress={handleClearAllModels}
-              disabled={!isARReady}
-            >
-              <Text style={styles.buttonText}>Clear All</Text>
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, showPlanes && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleTogglePlanes}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{showPlanes ? 'Hide Planes' : 'Show Planes'}</Text>
+                </TouchableOpacity>
+              </View>
 
-          {/* <TouchableOpacity
-            style={[styles.button, !isARReady && styles.buttonDisabled]}
-            onPress={handleAddTestObject}
-            disabled={!isARReady}
-          >
-            <Text style={styles.buttonText}>Add Red Cube</Text>
-          </TouchableOpacity> */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonPortal, isPortalMode && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleTogglePortalMode}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isPortalMode ? '🌌 Portal ON' : '📹 Normal AR'}</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.buttonSecondary, !isARReady && styles.buttonDisabled]}
-            onPress={handleLoadTestModel}
-            disabled={!isARReady}
-          >
-            <Text style={styles.buttonText}>Import USDZ Model</Text>
-          </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, !isARReady && styles.buttonDisabled]}
+                  onPress={handleShowMeshStats}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>📊 Mesh Stats</Text>
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity
-            style={[styles.button, styles.buttonRoomScan, !isARReady && styles.buttonDisabled]}
-            onPress={handleOpenRoomScanPicker}
-            disabled={!isARReady}
-          >
-            <Text style={styles.buttonText}>📦 Load Room Scan</Text>
-          </TouchableOpacity>
+              {/* Collision Detection Controls (Phase 3.3) */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonWarning, isCollisionEnabled && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleCollision}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isCollisionEnabled ? '⚡ Collision ON' : '⚡ Collision OFF'}</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.buttonTransform, !isARReady && styles.buttonDisabled, modelCount === 0 && styles.buttonDisabled]}
-            onPress={handleOpenTransformControls}
-            disabled={!isARReady || modelCount === 0}
-          >
-            <Text style={styles.buttonText}>🎛️ Transform Model</Text>
-          </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, !isARReady && styles.buttonDisabled]}
+                  onPress={handleShowCollisionStats}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>📈 Collision Stats</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, isCollisionDebugMode && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleCollisionDebug}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isCollisionDebugMode ? '🐛 Debug ON' : '🐛 Debug OFF'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonDanger, !isARReady && styles.buttonDisabled]}
+                  onPress={handleResetCollisionCount}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>Reset Count</Text>
+                </TouchableOpacity>
+              </View>
+
+              {lastCollision && (
+                <View style={styles.collisionAlert}>
+                  <Text style={styles.collisionAlertTitle}>🔴 Collision Detected!</Text>
+                  <Text style={styles.collisionAlertText}>{lastCollision}</Text>
+                </View>
+              )}
+
+              {lastBoundaryWarning && (
+                <View style={styles.boundaryWarningAlert}>
+                  <Text style={styles.boundaryWarningText}>{lastBoundaryWarning}</Text>
+                </View>
+              )}
+
+              {/* Quality Settings Controls (Phase 3.4) */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, isOcclusionEnabled && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleOcclusion}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isOcclusionEnabled ? '👁️ Occlusion ON' : '👁️ Occlusion OFF'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, !isARReady && styles.buttonDisabled]}
+                  onPress={handleShowQualitySettings}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>⚙️ Quality Stats</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, showFPSCounter && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleFPS}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{showFPSCounter ? '📊 FPS ON' : '📊 FPS OFF'}</Text>
+                </TouchableOpacity>
+
+                {showFPSCounter && (
+                  <View style={[styles.button, styles.fpsDisplay]}>
+                    <Text style={styles.fpsText}>{currentFPS.toFixed(1)} FPS</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Haptic Feedback & Boundary Warnings Controls (Phase 3.5) */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, isHapticEnabled && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleHaptic}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isHapticEnabled ? '📳 Haptic ON' : '📳 Haptic OFF'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, !isARReady && styles.buttonDisabled]}
+                  onPress={handleShowHapticSettings}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>⚙️ Haptic Settings</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, isBoundaryWarningsEnabled && styles.buttonToggleActive, !isARReady && styles.buttonDisabled]}
+                  onPress={handleToggleBoundaryWarnings}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>{isBoundaryWarningsEnabled ? '⚠️ Boundary ON' : '⚠️ Boundary OFF'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonWarning, !isARReady && styles.buttonDisabled, modelCount === 0 && styles.buttonDisabled]}
+                  onPress={handleUndo}
+                  disabled={!isARReady || modelCount === 0}
+                >
+                  <Text style={styles.buttonText}>Undo</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonDanger, !isARReady && styles.buttonDisabled]}
+                  onPress={handleClearAllModels}
+                  disabled={!isARReady}
+                >
+                  <Text style={styles.buttonText}>Clear All</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSecondary, !isARReady && styles.buttonDisabled]}
+                onPress={handleLoadTestModel}
+                disabled={!isARReady}
+              >
+                <Text style={styles.buttonText}>Import USDZ Model</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, styles.buttonRoomScan, !isARReady && styles.buttonDisabled]}
+                onPress={handleOpenRoomScanPicker}
+                disabled={!isARReady}
+              >
+                <Text style={styles.buttonText}>📦 Load Room Scan</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, styles.buttonTransform, !isARReady && styles.buttonDisabled, modelCount === 0 && styles.buttonDisabled]}
+                onPress={handleOpenTransformControls}
+                disabled={!isARReady || modelCount === 0}
+              >
+                <Text style={styles.buttonText}>🎛️ Transform Model</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
         </View>
       </View>
 
@@ -559,20 +1038,435 @@ export const ARTestScreen = () => {
                           style={styles.compactSliderControl}
                           minimumValue={-2}
                           maximumValue={2}
-                          value={transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0}
-                          onValueChange={(value) => handlePositionChange(axis as 'x' | 'y' | 'z', value)}
+                          value={transformations[selectedModelId]?.position?.[axis as Axis] ?? 0}
+                          onValueChange={(value) => handlePositionChange(axis as Axis, value)}
                           minimumTrackTintColor="#34C759"
                           maximumTrackTintColor="#3A3A3C"
                           thumbTintColor="#34C759"
                         />
                         <Text style={styles.compactValue}>
-                          {(transformations[selectedModelId]?.position?.[axis as 'x' | 'y' | 'z'] ?? 0).toFixed(1)}
+                          {(transformations[selectedModelId]?.position?.[axis as Axis] ?? 0).toFixed(1)}
                         </Text>
                       </View>
                     ))}
                   </View>
                 </View>
               )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Mesh Classification Stats Modal */}
+      <Modal
+        visible={showMeshStats}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowMeshStats(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={() => setShowMeshStats(false)}
+        >
+          <TouchableOpacity
+            style={styles.statsPanel}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.statsHeader}>
+              <Text style={styles.statsTitle}>📊 Mesh Classification Stats</Text>
+              <TouchableOpacity
+                style={styles.transformCloseButton}
+                onPress={() => setShowMeshStats(false)}
+              >
+                <Text style={styles.transformCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.statsContent}>
+              {meshStats && (
+                <View>
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Total Meshes:</Text>
+                    <Text style={styles.statValue}>{meshStats.totalMeshes || 0}</Text>
+                  </View>
+                  
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Scene Reconstruction:</Text>
+                    <Text style={[styles.statValue, meshStats.meshReconstructionEnabled ? styles.statEnabled : styles.statDisabled]}>
+                      {meshStats.meshReconstructionEnabled ? '✅ Enabled' : '❌ Disabled'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Portal Mode:</Text>
+                    <Text style={[styles.statValue, meshStats.portalModeEnabled ? styles.statEnabled : styles.statDisabled]}>
+                      {meshStats.portalModeEnabled ? '✅ Active' : 'Inactive'}
+                    </Text>
+                  </View>
+
+                  {meshStats.meshClassifications && Object.keys(meshStats.meshClassifications).length > 0 && (
+                    <>
+                      <Text style={styles.statsSubtitle}>Detected Surfaces:</Text>
+                      {Object.entries(meshStats.meshClassifications).map(([type, count]) => (
+                        <View key={type} style={styles.statRow}>
+                          <Text style={styles.statLabel}>{type}:</Text>
+                          <Text style={styles.statValue}>{count as number}</Text>
+                        </View>
+                      ))}
+                    </>
+                  )}
+
+                  {(!meshStats.meshClassifications || Object.keys(meshStats.meshClassifications).length === 0) && (
+                    <View style={styles.statsNote}>
+                      <Text style={styles.statsNoteText}>
+                        ℹ️ No surface classifications detected yet.
+                        {'\n\n'}
+                        Scene reconstruction requires:
+                        {'\n'}• LiDAR device (iPhone 12 Pro+ / iPad Pro 2020+)
+                        {'\n'}• iOS 13.0+
+                        {'\n\n'}
+                        Move your device slowly to scan the environment.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {!meshStats && (
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>Loading mesh statistics...</Text>
+                </View>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Collision Detection Stats Modal (Phase 3.3) */}
+      <Modal
+        visible={showCollisionStats}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowCollisionStats(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={() => setShowCollisionStats(false)}
+        >
+          <TouchableOpacity
+            style={styles.statsPanel}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.statsHeader}>
+              <Text style={styles.statsTitle}>⚡ Collision Detection Stats</Text>
+              <TouchableOpacity
+                style={styles.transformCloseButton}
+                onPress={() => setShowCollisionStats(false)}
+              >
+                <Text style={styles.transformCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.statsContent}>
+              {collisionStats && (
+                <View>
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Collision Detection:</Text>
+                    <Text style={[styles.statValue, collisionStats.enabled ? styles.statEnabled : styles.statDisabled]}>
+                      {collisionStats.enabled ? '✅ Enabled' : '❌ Disabled'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Debug Mode:</Text>
+                    <Text style={[styles.statValue, collisionStats.debugMode ? styles.statEnabled : styles.statDisabled]}>
+                      {collisionStats.debugMode ? '✅ Active' : 'Inactive'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Total Collisions:</Text>
+                    <Text style={styles.statValue}>{collisionStats.totalCollisions || 0}</Text>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Models with Physics:</Text>
+                    <Text style={styles.statValue}>{collisionStats.modelsWithPhysics || 0}</Text>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Meshes with Physics:</Text>
+                    <Text style={styles.statValue}>{collisionStats.meshesWithPhysics || 0}</Text>
+                  </View>
+
+                  <View style={styles.statsNote}>
+                    <Text style={styles.statsNoteText}>
+                      ℹ️ Collision Detection Info:
+                      {'\n\n'}
+                      • Models use dynamic physics bodies
+                      {'\n'}• Meshes use static physics bodies
+                      {'\n'}• Debug mode shows collision points
+                      {'\n'}• Red spheres appear at contact points
+                      {'\n\n'}
+                      Requires scene reconstruction mesh from LiDAR scanning.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {!collisionStats && (
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>Loading collision statistics...</Text>
+                </View>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Quality Settings Modal (Phase 3.4) */}
+      <Modal
+        visible={showQualitySettings}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowQualitySettings(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPress={() => setShowQualitySettings(false)}
+        >
+          <TouchableOpacity
+            style={styles.statsPanel}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.statsHeader}>
+              <Text style={styles.statsTitle}>⚙️ Quality & Performance Settings</Text>
+              <TouchableOpacity
+                style={styles.transformCloseButton}
+                onPress={() => setShowQualitySettings(false)}
+              >
+                <Text style={styles.transformCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.statsContent}>
+              {qualityStats && (
+                <View>
+                  {/* Occlusion Quality Selector */}
+                  <Text style={styles.statsSubtitle}>Occlusion Quality:</Text>
+                  <View style={styles.qualityButtonRow}>
+                    <TouchableOpacity
+                      style={[styles.qualityButton, occlusionQuality === 'low' && styles.qualityButtonActive]}
+                      onPress={() => handleSetOcclusionQuality('low')}
+                    >
+                      <Text style={[styles.qualityButtonText, occlusionQuality === 'low' && styles.qualityButtonTextActive]}>Low</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.qualityButton, occlusionQuality === 'medium' && styles.qualityButtonActive]}
+                      onPress={() => handleSetOcclusionQuality('medium')}
+                    >
+                      <Text style={[styles.qualityButtonText, occlusionQuality === 'medium' && styles.qualityButtonTextActive]}>Medium</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.qualityButton, occlusionQuality === 'high' && styles.qualityButtonActive]}
+                      onPress={() => handleSetOcclusionQuality('high')}
+                    >
+                      <Text style={[styles.qualityButtonText, occlusionQuality === 'high' && styles.qualityButtonTextActive]}>High</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Occlusion Enabled:</Text>
+                    <Text style={[styles.statValue, qualityStats.occlusionEnabled ? styles.statEnabled : styles.statDisabled]}>
+                      {qualityStats.occlusionEnabled ? '✅ Yes' : '❌ No'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>FPS Counter:</Text>
+                    <Text style={[styles.statValue, qualityStats.showFPS ? styles.statEnabled : styles.statDisabled]}>
+                      {qualityStats.showFPS ? '✅ Active' : 'Inactive'}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Current FPS:</Text>
+                    <Text style={styles.statValue}>{qualityStats.currentFPS.toFixed(1)}</Text>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Mesh Count:</Text>
+                    <Text style={styles.statValue}>{qualityStats.meshCount}</Text>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Model Count:</Text>
+                    <Text style={styles.statValue}>{qualityStats.modelCount}</Text>
+                  </View>
+
+                  <View style={styles.statRow}>
+                    <Text style={styles.statLabel}>Scene Reconstruction:</Text>
+                    <Text style={[styles.statValue, qualityStats.isMeshReconstructionEnabled ? styles.statEnabled : styles.statDisabled]}>
+                      {qualityStats.isMeshReconstructionEnabled ? '✅ Enabled' : '❌ Disabled'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.statsNote}>
+                    <Text style={styles.statsNoteText}>
+                      ℹ️ Performance Tips:
+                      {'\n\n'}
+                      • Lower occlusion quality for better FPS
+                      {'\n'}• Disable occlusion temporarily for debugging
+                      {'\n'}• Scene reconstruction requires LiDAR device
+                      {'\n'}• Target FPS: 60 (ideal), 30+ (acceptable)
+                      {'\n\n'}
+                      Occlusion quality affects mesh density and processing overhead.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {!qualityStats && (
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>Loading quality statistics...</Text>
+                </View>
+              )}
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Haptic Feedback & Boundary Warnings Settings Modal (Phase 3.5) */}
+      <Modal
+        visible={showHapticSettings}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowHapticSettings(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowHapticSettings(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={() => {}}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>📳 Haptic Feedback & Boundary Settings</Text>
+              <TouchableOpacity onPress={() => setShowHapticSettings(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {/* Haptic Feedback Section */}
+              <View style={styles.statsSection}>
+                <Text style={styles.statsTitle}>Haptic Feedback</Text>
+                
+                <View style={styles.statRow}>
+                  <Text style={styles.statLabel}>Status:</Text>
+                  <Text style={[styles.statValue, isHapticEnabled ? styles.statEnabled : styles.statDisabled]}>
+                    {isHapticEnabled ? '✅ Enabled' : '❌ Disabled'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, isHapticEnabled && styles.buttonToggleActive]}
+                  onPress={handleToggleHaptic}
+                >
+                  <Text style={styles.buttonText}>{isHapticEnabled ? 'Disable Haptics' : 'Enable Haptics'}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>
+                    Haptic feedback provides tactile vibrations when 3D models collide with scene meshes (walls, floors, etc).
+                    Collision intensity determines vibration strength.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Boundary Warnings Section */}
+              <View style={styles.statsSection}>
+                <Text style={styles.statsTitle}>Boundary Warnings</Text>
+                
+                <View style={styles.statRow}>
+                  <Text style={styles.statLabel}>Status:</Text>
+                  <Text style={[styles.statValue, isBoundaryWarningsEnabled ? styles.statEnabled : styles.statDisabled]}>
+                    {isBoundaryWarningsEnabled ? '✅ Enabled' : '❌ Disabled'}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonInfo, isBoundaryWarningsEnabled && styles.buttonToggleActive]}
+                  onPress={handleToggleBoundaryWarnings}
+                >
+                  <Text style={styles.buttonText}>{isBoundaryWarningsEnabled ? 'Disable Warnings' : 'Enable Warnings'}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>
+                    Boundary warnings alert you when your camera approaches real walls or obstacles.
+                    Helps prevent collisions with physical environment.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Warning Distance Slider */}
+              <View style={styles.statsSection}>
+                <Text style={styles.statsTitle}>Warning Distance</Text>
+                
+                <View style={styles.statRow}>
+                  <Text style={styles.statLabel}>Current Distance:</Text>
+                  <Text style={styles.statValue}>{(boundaryDistance * 100).toFixed(0)} cm</Text>
+                </View>
+
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>10 cm</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={0.1}
+                    maximumValue={2.0}
+                    step={0.1}
+                    value={boundaryDistance}
+                    onValueChange={handleSetBoundaryDistance}
+                    minimumTrackTintColor="#4A90E2"
+                    maximumTrackTintColor="#ccc"
+                    thumbTintColor="#4A90E2"
+                  />
+                  <Text style={styles.sliderLabel}>200 cm</Text>
+                </View>
+
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>
+                    Adjust the distance at which boundary warnings trigger.
+                    Lower values = closer to walls before warning.
+                    Higher values = more advance notice.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Tips Section */}
+              <View style={styles.statsSection}>
+                <View style={styles.statsNote}>
+                  <Text style={styles.statsNoteText}>
+                    ℹ️ Usage Tips:
+                    {'\n\n'}
+                    • Haptics require iOS device with Taptic Engine
+                    {'\n'}• Boundary warnings use LiDAR scene reconstruction
+                    {'\n'}• Warnings throttled to prevent spam (1 per second)
+                    {'\n'}• Double-tap haptic pattern for boundary warnings
+                    {'\n'}• Collision haptics scale with impact force
+                  </Text>
+                </View>
+              </View>
             </ScrollView>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -649,6 +1543,12 @@ export const ARTestScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Onboarding Modal */}
+      <AROnboardingModal
+        visible={showOnboarding}
+        onClose={handleCloseOnboarding}
+      />
     </SafeAreaView>
   );
 };
@@ -714,9 +1614,60 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 1
   },
+  helpButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(74, 144, 226, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)'
+  },
+  helpButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold'
+  },
   controlsContainer: {
-    padding: 16,
-    gap: 16
+    padding: 12,
+    gap: 12
+  },
+  bottomControls: {
+    marginBottom: 16,
+    pointerEvents: 'box-none'
+  },
+  controlsToggleRow: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    pointerEvents: 'box-none'
+  },
+  controlsToggleButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12
+  },
+  controlsToggleText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  controlsScroll: {
+    marginHorizontal: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    borderRadius: 12,
+    maxHeight: '42%'
   },
   buttonRow: {
     flexDirection: 'row',
@@ -724,7 +1675,8 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#007AFF',
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderRadius: 8,
     alignItems: 'center'
   },
@@ -750,6 +1702,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#5AC8FA'
   },
+  buttonPortal: {
+    flex: 1,
+    backgroundColor: '#5856D6'
+  },
   buttonRoomScan: {
     backgroundColor: '#AF52DE'
   },
@@ -762,7 +1718,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600'
   },
   infoBox: {
@@ -1005,6 +1961,161 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     width: 50,
     textAlign: 'right'
+  },
+  // Mesh Stats Modal styles
+  statsPanel: {
+    backgroundColor: '#1C1C1E',
+    borderRadius: 20,
+    marginHorizontal: 20,
+    marginVertical: 100,
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E'
+  },
+  statsTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600'
+  },
+  statsContent: {
+    padding: 20
+  },
+  statsSubtitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+    marginBottom: 8
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2C2C2E'
+  },
+  statLabel: {
+    color: '#8E8E93',
+    fontSize: 15
+  },
+  statValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600'
+  },
+  statEnabled: {
+    color: '#34C759'
+  },
+  statDisabled: {
+    color: '#FF3B30'
+  },
+  statsNote: {
+    backgroundColor: '#2C2C2E',
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16
+  },
+  statsNoteText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    lineHeight: 20
+  },
+  // Collision Alert (Phase 3.3)
+  collisionAlert: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 12,
+    marginHorizontal: 16,
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 5
+  },
+  collisionAlertTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4
+  },
+  collisionAlertText: {
+    color: '#fff',
+    fontSize: 13,
+    lineHeight: 18
+  },
+  // Boundary Warning Alert (Phase 3.5)
+  boundaryWarningAlert: {
+    backgroundColor: '#FF9500',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: '#FF9500',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 3
+  },
+  boundaryWarningText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center'
+  },
+  // Quality Settings (Phase 3.4)
+  qualityButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 8
+  },
+  qualityButton: {
+    flex: 1,
+    backgroundColor: '#2C2C2E',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center'
+  },
+  qualityButtonActive: {
+    backgroundColor: '#5856D6',
+    borderColor: '#fff'
+  },
+  qualityButtonText: {
+    color: '#8E8E93',
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  qualityButtonTextActive: {
+    color: '#fff'
+  },
+  fpsDisplay: {
+    backgroundColor: '#1C1C1E',
+    borderWidth: 1,
+    borderColor: '#34C759',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  fpsText: {
+    color: '#34C759',
+    fontSize: 14,
+    fontWeight: 'bold'
   },
   // Old transform styles (keep for compatibility)
   transformContainer: {

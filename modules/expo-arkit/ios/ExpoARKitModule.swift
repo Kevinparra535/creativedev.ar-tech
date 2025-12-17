@@ -150,6 +150,254 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Portal Mode (Phase 3: hide camera feed, show only 3D)
+    AsyncFunction("setPortalMode") { (viewTag: Int, enabled: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setPortalMode(enabled)
+      }
+    }
+
+    AsyncFunction("getPortalModeState") { (viewTag: Int) -> Bool in
+      var state = false
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        state = view.getPortalModeState()
+      }
+      return state
+    }
+
+    // Get mesh classification statistics (Phase 3.2)
+    AsyncFunction("getMeshClassificationStats") { (viewTag: Int) -> [String: Any] in
+      var stats: [String: Any] = [:]
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          stats = ["error": "Could not find ARKit view with tag \(viewTag)"]
+          return
+        }
+        stats = view.getMeshClassificationStats()
+      }
+      return stats
+    }
+    
+    // Collision Detection API (Phase 3.3)
+    AsyncFunction("setCollisionDetection") { (viewTag: Int, enabled: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setCollisionDetection(enabled: enabled)
+      }
+    }
+    
+    AsyncFunction("getCollisionDetectionState") { (viewTag: Int) -> Bool in
+      var state = false
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          return
+        }
+        state = view.getCollisionDetectionState()
+      }
+      return state
+    }
+    
+    AsyncFunction("setCollisionDebugMode") { (viewTag: Int, enabled: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setCollisionDebugMode(enabled: enabled)
+      }
+    }
+    
+    AsyncFunction("getCollisionStats") { (viewTag: Int) -> [String: Any] in
+      var stats: [String: Any] = [:]
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          stats = ["error": "Could not find ARKit view with tag \(viewTag)"]
+          return
+        }
+        stats = view.getCollisionStats()
+      }
+      return stats
+    }
+    
+    AsyncFunction("resetCollisionCount") { (viewTag: Int) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.resetCollisionCount()
+      }
+    }
+
+    // Quality Settings (Phase 3.4)
+    AsyncFunction("setOcclusionQuality") { (viewTag: Int, quality: String) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setOcclusionQuality(quality: quality)
+      }
+    }
+    
+    AsyncFunction("getOcclusionQuality") { (viewTag: Int) -> String in
+      var quality = "medium"
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        quality = view.getOcclusionQuality()
+      }
+      return quality
+    }
+    
+    AsyncFunction("setOcclusionEnabled") { (viewTag: Int, enabled: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setOcclusionEnabled(enabled: enabled)
+      }
+    }
+    
+    AsyncFunction("getOcclusionEnabled") { (viewTag: Int) -> Bool in
+      var enabled = true
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        enabled = view.getOcclusionEnabled()
+      }
+      return enabled
+    }
+    
+    AsyncFunction("setShowFPS") { (viewTag: Int, show: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setShowFPS(show: show)
+      }
+    }
+    
+    AsyncFunction("getShowFPS") { (viewTag: Int) -> Bool in
+      var show = false
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        show = view.getShowFPS()
+      }
+      return show
+    }
+    
+    AsyncFunction("getCurrentFPS") { (viewTag: Int) -> Double in
+      var fps: Double = 0
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        fps = view.getCurrentFPS()
+      }
+      return fps
+    }
+    
+    AsyncFunction("getQualityStats") { (viewTag: Int) -> [String: Any] in
+      var stats: [String: Any] = [:]
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        stats = view.getQualityStats()
+      }
+      return stats
+    }
+
+    // Haptic Feedback & Boundary Warnings (Phase 3.5)
+    AsyncFunction("setHapticFeedback") { (viewTag: Int, enabled: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setHapticFeedback(enabled: enabled)
+      }
+    }
+    
+    AsyncFunction("getHapticFeedbackState") { (viewTag: Int) -> Bool in
+      var state = false
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        state = view.getHapticFeedbackState()
+      }
+      return state
+    }
+    
+    AsyncFunction("setBoundaryWarnings") { (viewTag: Int, enabled: Bool) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setBoundaryWarnings(enabled: enabled)
+      }
+    }
+    
+    AsyncFunction("getBoundaryWarningsState") { (viewTag: Int) -> Bool in
+      var state = false
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        state = view.getBoundaryWarningsState()
+      }
+      return state
+    }
+    
+    AsyncFunction("setBoundaryWarningDistance") { (viewTag: Int, distance: Float) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        view.setBoundaryWarningDistance(distance: distance)
+      }
+    }
+    
+    AsyncFunction("getBoundaryWarningDistance") { (viewTag: Int) -> Float in
+      var distance: Float = 0.5
+      DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: ExpoARKitView.self) else {
+          print("Error: Could not find ARKit view with tag \(viewTag)")
+          return
+        }
+        distance = view.getBoundaryWarningDistance()
+      }
+      return distance
+    }
+
     // Module-level async function to get model dimensions
     AsyncFunction("getModelDimensions") { (viewTag: Int, modelId: String) -> [String: Any] in
       var result: [String: Any] = [:]
@@ -561,7 +809,10 @@ public class ExpoARKitModule: Module {
         "onPlaneSelected",
         "onMeshAdded",
         "onMeshUpdated",
-        "onMeshRemoved"
+        "onMeshRemoved",
+        "onPortalModeChanged",
+        "onModelCollision",
+        "onBoundaryWarning"
       )
     }
 
