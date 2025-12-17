@@ -1,8 +1,8 @@
 # Estado Actual del Proyecto
 
-**Fecha:** 2025-12-16
-**Versión:** 1.3.0
-**Fase:** Model Manipulation Complete + Room Scanning + Apple-Style Gestures
+**Fecha:** 2025-12-17
+**Versión:** 1.4.0
+**Fase:** Model Alignment Complete + Occlusion Groundwork
 
 ---
 
@@ -14,10 +14,15 @@ El proyecto ha completado las fases fundamentales del POC:
 - ✅ Fase 1: Model Loading, Tap-to-Place y Manipulación de Modelos
 - ✅ **Fase 1.5: Room Scanning** (vía expo-roomplan 1.2.1)
 - ✅ **Fase 1.7: SceneKit Preview + Apple Quick Look Gestures**
+- ✅ **Fase 2: Model Alignment System** (auto + manual + persistence)
+- 🔨 **Fase 3: Occlusion Rendering** (groundwork implementado)
 
-**Progreso del POC:** ~65% completado
+**Progreso del POC:** ~75% completado
 
-**Último logro:** Sistema de gestos avanzado Apple Quick Look para preview de modelos 3D (model rotation, momentum, simultaneous gestures)
+**Últimos logros:**
+- Model Alignment completo (auto-alignment + manual adjustment + persistence)
+- Scene reconstruction mesh con material de oclusión (Fase 3 groundwork)
+- ARTestScreen integrado en navegación principal
 
 ---
 
@@ -345,59 +350,85 @@ creativedev.ar-tech/
 - [x] Modal UI para seleccionar room scans
 - [ ] Sistema de alineación automática (Fase 2)
 
-### Fase 2: Model Alignment (35% 🔨)
+### Fase 2: Model Alignment (80% ✅)
 
-- [x] **Bounding Box Extraction (Swift)** ✅
-  - Método `getBoundingBox()` para extraer dimensiones en world space
-  - Método `getModelDimensions()` retorna dimensiones completas
-  - Método `getAllModelIds()` lista todos los modelos
-  - Tracking automático de `modelId` en eventos
+- [x] **Phase 2.1: Auto-Alignment** ✅
+  - Servicio `modelAlignment.ts` con algoritmos de matching
+  - Hook `useAutoAlignment.ts` con state management
+  - Screen `AutoAlignmentTestScreen.tsx` para testing
+  - Persistencia: guarda alignment aplicado
+  - Documentación: `PHASE_2_AUTO_ALIGNMENT_TEST.md`
+
+- [x] **Phase 2.2: Manual Adjustment** ✅
+  - Hook `useManualAdjustment.ts` para control manual
+  - Componente `AlignmentControls.tsx` con sliders (pos/rot/scale)
+  - Screen `ManualAlignmentScreen.tsx` con AR view + controles
+  - Persistencia: guarda transforms on Apply + restaura último
+  - Documentación: `PHASE_2_2_MANUAL_ALIGNMENT_TEST.md`
+
+- [x] **Phase 2.3: Persistence** ✅
+  - Servicio `alignmentStorage.ts` con AsyncStorage
+  - Save/load para auto y manual alignment
+  - Timestamps y metadata incluidos
+
 - [x] **Native Bridge Integration** ✅
-  - Métodos expuestos en ExpoARKitModule
-  - TypeScript types completos (ModelDimensionsResponse, etc.)
-  - Métodos imperativos en ARKitViewRef
-- [ ] Matching automático de dimensiones (room scan vs modelo)
-- [ ] UI de ajuste manual (drag/rotate/scale modelo completo)
-- [ ] Persistencia de transformación en Spatial Anchors
-- [ ] Validación de escala metros reales
+  - Métodos: `getModelDimensions()`, `getAllModelIds()`, `updateModelTransform()`
+  - TypeScript types completos
+  - Bounding box extraction en Swift
 
-### Fase 3: AR Inmersivo (0% ⏳)
+- [ ] **Pendiente (20%):**
+  - Integración end-to-end (flujo completo entre screens)
+  - UI polish (loading states, preview de transform)
+  - Testing real-world en device
 
-- [ ] Occlusion rendering (depth-based)
-- [ ] Reemplazo de realidad (ocultar cámara real)
-- [ ] Navegación inmersiva mejorada (6DOF)
-- [ ] Sistema de materiales intercambiables
-- [ ] Portal mode (solo modelo, sin realidad)
+### Fase 3: AR Inmersivo (15% 🔨)
+
+- [x] **Occlusion Groundwork** ✅
+  - Scene reconstruction habilitado (iOS 13+ con LiDAR)
+  - ARMeshAnchor handling en `renderer(_:didAdd/didUpdate/didRemove:for:)`
+  - Material de oclusión (writes depth, no color, colorBufferWriteMask=[])
+  - Eventos `onMeshAdded/Updated/Removed` hacia React Native
+  - Throttling de updates (5Hz) para evitar spam
+
+- [ ] **Pendiente (85%):**
+  - Mesh classification usage (wall/floor/ceiling)
+  - Toggle occlusion mode en UI
+  - Portal mode (reemplazo completo de realidad)
+  - Navegación inmersiva mejorada (6DOF)
+  - Sistema de materiales intercambiables
 
 ---
 
 ## Próximos Pasos Inmediatos
 
-### 1. Implementar Model Alignment (Fase 2) 🔴
+### 1. Completar Model Alignment (Fase 2) 🟡
+
+**Prioridad:** MEDIA
+**Duración estimada:** 3-5 días
+**Estado:** 80% completado
+
+**Tareas restantes:**
+1. **Testing en Device Real**
+   - Probar auto-alignment con room scans reales
+   - Validar manual adjustment con modelos de arquitecto
+   - Verificar persistencia entre sesiones
+
+2. **Integración End-to-End**
+   - Crear flujo unificado entre screens
+   - Agregar navegación clara entre Auto → Manual
+   - Botón "Use Last Alignment" para restaurar
+
+3. **UI Polish**
+   - Loading states mejorados
+   - Preview de transformación (ghost model)
+   - Feedback visual de confidence score
+   - Botón "Reset to Auto" en Manual
+
+### 2. Completar AR Inmersivo - Occlusion & Reality Replacement (Fase 3) 🔴
 
 **Prioridad:** ALTA
 **Duración estimada:** 2-3 semanas
-
-**Objetivo:** Alinear el modelo 3D del arquitecto con el room scan
-
-**Tareas:**
-1. **Dimension Matching**
-   - Algoritmo de matching dimensiones (room scan vs modelo arquitecto)
-   - Validación de escala (metros reales)
-   - Auto-scaling basado en dimensiones
-
-2. **Manual Adjustment UI**
-   - Controles de transformación (position, rotation, scale)
-   - Sliders para ajuste fino
-   - Vista de comparación (overlay)
-   - Guardar transformación en Spatial Anchor
-
-3. **Persistence**
-   - Guardar alineación entre sesiones
-   - Cargar configuración guardada
-   - Múltiples configuraciones por proyecto
-
-### 3. AR Inmersivo - Occlusion & Reality Replacement (Fase 3) 🟡
+**Estado:** 15% completado (groundwork listo)
 
 **Prioridad:** Media (después de Fase 2)
 **Duración estimada:** 3-4 semanas

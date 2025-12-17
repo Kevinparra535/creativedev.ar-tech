@@ -1,9 +1,9 @@
 # Plan: AR Inmersivo para Visualización de Diseño de Interiores
 
 **Documento:** Plan técnico completo para implementación AR avanzada
-**Versión:** 2.1
-**Fecha:** 2025-12-10
-**Estado:** Fase 0 completada - Listo para Fase 1
+**Versión:** 2.4
+**Fecha:** 2025-12-17
+**Estado:** Fase 2 completada (80%) - Occlusion Groundwork (15%)
 
 ---
 
@@ -13,12 +13,13 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 
 ### Estado Actual
 
-- ✅ Modelo 3D renderizado con Three.js
-- ✅ expo-camera como fondo
-- ✅ Tracking básico con expo-sensors (orientación del dispositivo)
-- ❌ NO tiene spatial mapping
-- ❌ NO tiene room scanning
-- ❌ NO tiene occlusion/reemplazo de realidad
+- ✅ ARKit nativo con SceneKit (Three.js removido)
+- ✅ Plane Detection con clasificación completa
+- ✅ Room Scanning con RoomPlan API (export USDZ)
+- ✅ Model Alignment System (auto + manual + persistence)
+- 🔨 Scene reconstruction mesh (occlusion groundwork)
+- ⏳ Occlusion rendering completo (en progreso)
+- ⏳ Reality replacement (portal mode)
 
 ### Objetivo del POC
 
@@ -269,48 +270,95 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 
 ---
 
-#### **FASE 2: Model Loading & Alignment** (2-3 semanas)
+#### **FASE 2: Model Loading & Alignment** ✅ COMPLETADA (80%)
 
-**Objetivo:** Cargar modelo del arquitecto y alinearlo con escaneo
+**Duración:** 2 semanas (completado)
+**Estado:** 80% completado (core listo, falta testing/polish)
 
-**Componentes:**
+**Objetivo:** Cargar modelo del arquitecto y alinearlo con escaneo ✅
 
-1. **Model Upload:**
+**Componentes implementados:**
+
+1. **Model Upload:** ✅
    - Soporte para USDZ/USD (formato nativo iOS)
-   - Conversión desde glTF/FBX si es necesario
-   - Validación de escala y dimensiones
+   - DocumentPicker acepta todos los archivos
+   - Validación de escala y dimensiones (bounding box)
+   - Native methods: `getModelDimensions()`, `getAllModelIds()`
 
-2. **Alignment System:**
-   - Algoritmo de matching dimensiones
-   - UI para ajuste manual (drag/rotate/scale)
-   - Guardar transformación en Spatial Anchor
+2. **Auto-Alignment System (Phase 2.1):** ✅
+   - Algoritmo de matching dimensiones (`modelAlignment.ts`)
+   - `calculateOptimalScale()` - Factor de escala óptimo
+   - `checkProportionCompatibility()` - Validación de proporciones
+   - `calculateAutoAlignment()` - Alineación automática completa
+   - Hook `useAutoAlignment.ts` con state management
+   - Screen `AutoAlignmentTestScreen.tsx` para testing step-by-step
+   - Persistencia: guarda alignment aplicado en AsyncStorage
 
-**Entregable:** Modelo 3D alineado con espacio real
+3. **Manual Adjustment UI (Phase 2.2):** ✅
+   - Hook `useManualAdjustment.ts` para control manual de transforms
+   - Componente `AlignmentControls.tsx` con sliders precisos
+   - Screen `ManualAlignmentScreen.tsx` con AR view integrado
+   - Sliders: Position X/Y/Z, Rotation X/Y/Z, Scale X/Y/Z
+   - Persistencia: save on Apply + restore on load
+
+4. **Persistence System (Phase 2.3):** ✅
+   - Servicio `alignmentStorage.ts` usando AsyncStorage
+   - Save/load para auto y manual alignment
+   - Timestamps y metadata incluidos
+
+**Pendiente (20%):**
+- [ ] Testing en device real con room scans reales
+- [ ] Integración end-to-end (flujo unificado entre screens)
+- [ ] UI polish (loading states, preview de transform)
+- [ ] Bot restante
+
+**Entregable:** ✅ Modelo 3D alineado con espacio real (auto + manual + persistence)
+
+**Fecha de finalización:** 2025-12-17
 
 ---
 
-#### **FASE 3: AR Visualization** (3-4 semanas)
+#### **FASE 3: AR Visualization** 🔨 EN PROGRESO (15%)
+
+**Duración estimada:** 2-3 semanas
+**Estado:** Occlusion groundwork implementado
 
 **Objetivo:** Ver modelo en AR reemplazando la realidad
 
-**Componentes:**
+**Componentes implementados:**
 
-1. **ARSession Setup:**
-   - World Tracking configuration
-   - Scene reconstruction mesh
-   - Depth buffer para occlusion
+1. **Occlusion Groundwork (15%):** ✅
+   - Scene reconstruction mesh habilitado (iOS 13+ con LiDAR)
+   - `ARWorldTrackingConfiguration.sceneReconstruction = .meshWithClassification`
+   - ARMeshAnchor handling en `renderer(_:didAdd/didUpdate/didRemove:for:)`
+   - Material de oclusión implementado:
+     - `writesToDepthBuffer = true`
+     - `readsFromDepthBuffer = true`
+     - `colorBufferWriteMask = []` (invisible pero ocluye)
+   - Eventos `onMeshAdded/Updated/Removed` hacia React Native
+   - Throttling de updates (5Hz) para evitar spam
+   - Función `buildOcclusionGeometry()` para convertir ARMeshAnchor a SCNGeometry
 
-2. **Rendering:**
-   - Si SceneKit: Renderizar modelo directamente
-   - Si Three.js: Bridge WebGL con ARKit camera
-   - Occlusion shader (ocultar realidad física)
+**Pendiente (85%):**
 
-3. **Navigation:**
-   - Tracking 6DOF continuo
+2. **ARSession Setup completo:**
+   - Depth buffer optimization
+   - Scene reconstruction configuration refinement
+   - Performance monitoring
+
+3. **Rendering avanzado:**
+   - Portal mode (reemplazo completo de realidad)
+   - Mesh classification usage (wall/floor/ceiling diferenciados)
+   - Toggle occlusion mode en UI
+   - Occlusion quality settings
+
+4. **Navigation inmersiva:**
+   - Tracking 6DOF continuo optimizado
    - Update de cámara en tiempo real
-   - Handling de tracking loss
+   - Handling de tracking loss mejorado
+   - Collision detection con mesh real
 
-**Entregable:** Usuario puede caminar dentro del diseño 3D
+**Entregable:** Usuario puede caminar dentro del diseño 3D con oclusión realista
 
 ---
 
@@ -377,6 +425,54 @@ El usuario necesita implementar una experiencia AR **avanzada** para que arquite
 ## ✅ Decisiones Finales (Confirmadas 2025-12-08)
 
 ### 1. Rendering Engine: **SceneKit** ✅
+
+- Reescribir lógica 3D actual de Three.js a SceneKit nativo
+- Mejor performance e integración con ARKit
+- Menor complejidad de bridge
+
+### 2. Hardware Disponible: **iPhone 14 Pro Max** ✅
+
+- Dispositivo con LiDAR confirmado
+- Compatible con RoomPlan API
+- iOS 16+ soportado
+
+### 3. Nivel de Experiencia: **Swift Básico** ✅
+
+- Fase 0 estimada en 1.5-2 semanas
+- Recursos de aprendizaje complementarios necesarios
+- Tutoriales de Apple recomendados
+
+### 4. Estado: **FASE 2 COMPLETADA (80%)** ✅
+
+**Logros:**
+
+- ✅ Módulo nativo expo-arkit completamente funcional
+- ✅ ARView con SceneKit + ARKit integrado
+- ✅ Bridge React Native ↔ Swift operativo
+- ✅ Sistema de eventos y métodos imperativo implementado
+- ✅ Plane Detection con clasificación y visualización
+- ✅ Tap-to-Place con raycast a planos
+- ✅ Sistema de gestos táctiles completo (5 gestos)
+- ✅ Undo/Redo y gestión de modelos
+- ✅ Room Scanning vía expo-roomplan
+- ✅ Export de geometría escaneada como USDZ
+- ✅ **SceneKit Preview con gestos Apple Quick Look**
+- ✅ **Model rotation con momentum/inercia**
+- ✅ **Gestos simultáneos (pinch+pan, rotation+pan)**
+- ✅ **Preset camera views (Front/Right/Top/Perspective)**
+- ✅ **Model Alignment System completo:**
+  - Auto-alignment con algoritmos de matching
+  - Manual adjustment con sliders precisos
+  - Persistence system (AsyncStorage)
+  - Native methods para transforms
+- ✅ **Occlusion Groundwork (Fase 3 - 15%):**
+  - Scene reconstruction mesh habilitado
+  - Material de oclusión implementado
+  - Mesh events hacia React Native
+
+**Progreso del POC:** ~75% completado
+
+**Próximo paso:** Completar Fase 3 - Occlusion rendering y portal mode
 
 - Reescribir lógica 3D actual de Three.js a SceneKit nativo
 - Mejor performance e integración con ARKit

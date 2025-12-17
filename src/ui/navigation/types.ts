@@ -6,6 +6,8 @@ export type RootStackParamList = {
   Modal: undefined;
   ARTest: undefined;
   RoomPlanTestScreen: undefined;
+  AutoAlignmentTest: undefined;
+  ManualAlignment: undefined;
   ModelPreview: undefined;
   GuidedModelSelect: { mode?: 'floor' | 'wall' } | undefined;
   GuidedWalkthrough: {

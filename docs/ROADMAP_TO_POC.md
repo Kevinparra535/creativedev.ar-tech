@@ -1,8 +1,8 @@
 # Roadmap al POC Completo
 
-**Fecha:** 2025-12-12
-**Progreso Actual:** 60% completado
-**Tiempo Estimado Restante:** 5-7 semanas
+**Fecha:** 2025-12-17
+**Progreso Actual:** 75% completado
+**Tiempo Estimado Restante:** 3-4 semanas
 
 ---
 
@@ -13,11 +13,13 @@ Has completado **las bases fundamentales** del POC:
 - ✅ Plane Detection con clasificación y visualización
 - ✅ Model Loading y manipulación táctil (5 gestos)
 - ✅ Room Scanning con export USDZ (vía expo-roomplan)
+- ✅ **Model Alignment System completo** (auto + manual + persistence)
+- 🔨 **Occlusion Groundwork** (scene reconstruction + mesh handling)
 
 **Para alcanzar la visión completa del POC**, necesitas implementar:
-1. **Integración Room Scan ↔ AR View** (3-5 días)
-2. **Model Alignment System** (2-3 semanas)
-3. **AR Inmersivo con Occlusion** (3-4 semanas)
+1. ✅ ~~Integración Room Scan ↔ AR View~~ (COMPLETADO)
+2. 🔨 **Completar Model Alignment testing** (3-5 días)
+3. 🔴 **AR Inmersivo con Occlusion** (2-3 semanas)
 
 ---
 
@@ -33,50 +35,78 @@ Has completado **las bases fundamentales** del POC:
 
 ## Fases Pendientes
 
-### 🔴 Fase 1.5: Completar Room Scanning Integration (15% restante)
+### ✅ Fase 1.5: Room Scanning Integration (COMPLETADA)
 
-**Duración:** 3-5 días
-**Prioridad:** CRÍTICA
+**Estado:** 100% completado
+**Fecha finalización:** 2025-12-12
 
-#### Lo que YA funciona:
+#### Implementado:
 - ✅ RoomPlanTestScreen escanea habitaciones
 - ✅ Export automático a USDZ (Parametric mode)
 - ✅ File location tracking
+- ✅ **Integración con ARTestScreen**
+  - Botón "Load Room Scan" agregado
+  - File picker con lista de scans guardados
+  - Modal UI para selección de archivos
+- ✅ **File Management System**
+  - Hook `useFileManager.ts` lista archivos USDZ
+  - Preview de metadata (tamaño, fecha)
+  - Carga de modelos en AR view (Camera Mode y Tap-to-Place)
+- ✅ **ARTestScreen navegable**
+  - Expuesto en Home y AppNavigator
+  - Accesible desde menú principal
 
-#### Lo que FALTA:
-- [ ] **Integrar con ARTestScreen**
-  - Agregar botón "Cargar Room Scan"
-  - File picker para seleccionar scans guardados
-  - Pasar file path del USDZ a `loadModel()` en ARKitView
-
-- [ ] **File Management System**
-  - Listar archivos USDZ en Documents folder
-  - Preview de scans (metadata: fecha, dimensiones)
-  - Sistema de nombres descriptivos (e.g., "Living Room - 2025-12-12")
-
-- [ ] **Auto-scaling**
-  - Detectar dimensiones del modelo escaneado
-  - Aplicar escala apropiada automáticamente
-  - Centrar modelo en origen de AR
-
-**Archivos a modificar:**
-- `src/ui/screens/ARTestScreen.tsx` - Agregar UI de file picker
-- `src/ui/ar/hooks/useRoomPlan.ts` - Retornar file path del export
-- Posiblemente crear `src/utils/fileManager.ts` para listar USDZ
-
-**Criterio de éxito:** Usuario puede escanear habitación → ver modelo escaneado en AR view
+**Archivos creados:**
+- `src/ui/ar/hooks/useFileManager.ts`
+- `src/ui/screens/ARTestScreen.tsx` (actualizado)
+- `src/ui/navigation/AppNavigator.tsx` (ruta ARTest)
 
 ---
 
-### 🔴 Fase 2: Model Alignment System (0%)
+### ✅ Fase 2: Model Alignment System (80%)
 
-**Duración:** 2-3 semanas
-**Prioridad:** CRÍTICA
+**Duración:** Completado en 2 semanas
+**Estado:** 80% completado (core listo, falta testing/polish)
 
 #### Objetivo:
-Alinear el modelo 3D del arquitecto con el room scan capturado
+Alinear el modelo 3D del arquitecto con el room scan capturado ✅
 
-#### Componentes a implementar:
+#### Componentes implementados:
+
+**1. Auto-Alignment (Phase 2.1)** ✅
+- ✅ Servicio `modelAlignment.ts`
+  - `calculateOptimalScale()` - Factor de escala óptimo
+  - `checkProportionCompatibility()` - Validación de proporciones
+  - `calculateAutoAlignment()` - Alineación automática completa
+- ✅ Hook `useAutoAlignment.ts` con state management
+- ✅ Screen `AutoAlignmentTestScreen.tsx` para testing step-by-step
+- ✅ Persistencia: guarda alignment aplicado en AsyncStorage
+- ✅ Tests unitarios en `modelAlignment.test.ts`
+
+**2. Manual Adjustment (Phase 2.2)** ✅
+- ✅ Hook `useManualAdjustment.ts` para control manual de transforms
+- ✅ Componente `AlignmentControls.tsx` con sliders precisos
+  - Position X/Y/Z (-5 a +5m, step 0.01m)
+  - Rotation X/Y/Z (0-360°, step 1°)
+  - Scale X/Y/Z (0.1 a 3x, step 0.01)
+- ✅ Screen `ManualAlignmentScreen.tsx` con AR view integrado
+- ✅ Persistencia: save on Apply + restore on load
+
+**3. Persistence System (Phase 2.3)** ✅
+- ✅ Servicio `alignmentStorage.ts` usando AsyncStorage
+  - `saveLastManualAlignment()` / `loadLastManualAlignment()`
+  - `saveLastAutoAlignment()` / `loadLastAutoAlignment()`
+  - Timestamps y metadata incluidos
+- ✅ Integración en ambos hooks (auto y manual)
+
+**4. Native Module Support** ✅
+- ✅ `getModelDimensions()` - Extrae bounding box en world space
+- ✅ `getAllModelIds()` - Lista todos los modelos cargados
+- ✅ `updateModelTransform()` - Aplica transforms completos
+- ✅ `setModelScale/Position/Rotation()` - Setters individuales
+- ✅ `getModelTransform()` - Lee transforms actuales
+
+#### Pendiente (último 20%):
 
 **1. Dimension Matching (1 semana)**
 - [ ] Algoritmo para comparar dimensiones

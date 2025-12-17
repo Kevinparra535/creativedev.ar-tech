@@ -1,6 +1,7 @@
 import UIKit
 import SceneKit
 import ARKit
+import Metal
 import ExpoModulesCore
 
 class ExpoARKitView: ExpoView {
@@ -11,6 +12,24 @@ class ExpoARKitView: ExpoView {
 
   // Track detected planes count for React Native events
   private var detectedPlanesCount: Int = 0
+
+  // Scene reconstruction mesh (Phase 3 groundwork: occlusion)
+  private var isMeshReconstructionEnabled: Bool = false
+  private var meshNodes: [UUID: SCNNode] = [:]
+  private var lastMeshUpdateAt: CFTimeInterval = 0
+  private let meshUpdateInterval: CFTimeInterval = 0.2
+
+  private lazy var occlusionMaterial: SCNMaterial = {
+    let material = SCNMaterial()
+    material.diffuse.contents = UIColor.clear
+    material.isDoubleSided = true
+    material.readsFromDepthBuffer = true
+    material.writesToDepthBuffer = true
+    if #available(iOS 11.0, *) {
+      material.colorBufferWriteMask = []
+    }
+    return material
+  }()
 
   // Anchor management for tap-to-place functionality
   private var modelAnchors: [UUID: ARAnchor] = [:]
@@ -136,6 +155,12 @@ class ExpoARKitView: ExpoView {
     config.planeDetection = [.horizontal, .vertical]
     config.environmentTexturing = .automatic
 
+    // Phase 3 groundwork: enable scene reconstruction mesh when available (LiDAR devices)
+    if #available(iOS 13.0, *), ARWorldTrackingConfiguration.supportsSceneReconstruction(.meshWithClassification) {
+      config.sceneReconstruction = .meshWithClassification
+      isMeshReconstructionEnabled = true
+    }
+
     // Check if device supports AR
     if ARWorldTrackingConfiguration.isSupported {
       sceneView.session.run(config)
@@ -175,6 +200,85 @@ class ExpoARKitView: ExpoView {
         ])
       }
     }
+  }
+
+  @available(iOS 13.0, *)
+  private func buildOcclusionGeometry(from meshAnchor: ARMeshAnchor) -> SCNGeometry? {
+    let mesh = meshAnchor.geometry
+
+    let faces = mesh.faces
+    guard faces.primitiveType == .triangle else { return nil }
+
+    let vertices = mesh.vertices
+    let vertexCount = vertices.count
+    guard vertexCount > 0 else { return nil }
+
+    // Copy vertices into a tightly packed float3 array.
+    let vertexStrideOut = MemoryLayout<Float>.size * 3
+    let vertexDataLength = vertexCount * vertexStrideOut
+    var vertexData = Data(count: vertexDataLength)
+
+    vertexData.withUnsafeMutableBytes { (destRawBuffer: UnsafeMutableRawBufferPointer) in
+      guard let destBase = destRawBuffer.baseAddress else { return }
+      let srcBase = vertices.buffer.contents()
+      for i in 0..<vertexCount {
+        let src = srcBase.advanced(by: vertices.stride * i)
+        let dst = destBase.advanced(by: i * vertexStrideOut)
+        dst.copyMemory(from: src, byteCount: vertexStrideOut)
+      }
+    }
+
+    let vertexSource = SCNGeometrySource(
+      data: vertexData,
+      semantic: .vertex,
+      vectorCount: vertexCount,
+      usesFloatComponents: true,
+      componentsPerVector: 3,
+      bytesPerComponent: MemoryLayout<Float>.size,
+      dataOffset: 0,
+      dataStride: vertexStrideOut
+    )
+
+    // Copy index buffer as-is.
+    let indexCount = faces.count * faces.indexCountPerPrimitive
+    let indexDataLength = indexCount * faces.bytesPerIndex
+    var indexData = Data(count: indexDataLength)
+    indexData.withUnsafeMutableBytes { (destRawBuffer: UnsafeMutableRawBufferPointer) in
+      guard let destBase = destRawBuffer.baseAddress else { return }
+      let srcBase = faces.buffer.contents()
+      destBase.copyMemory(from: srcBase, byteCount: indexDataLength)
+    }
+
+    let element = SCNGeometryElement(
+      data: indexData,
+      primitiveType: .triangles,
+      primitiveCount: faces.count,
+      bytesPerIndex: faces.bytesPerIndex
+    )
+
+    let geometry = SCNGeometry(sources: [vertexSource], elements: [element])
+    geometry.materials = [occlusionMaterial]
+    return geometry
+  }
+
+  @available(iOS 13.0, *)
+  private func meshAnchorToDictionary(_ meshAnchor: ARMeshAnchor) -> [String: Any] {
+    let mesh = meshAnchor.geometry
+    let translation = meshAnchor.transform.columns.3
+
+    // NOTE: Full per-face classification requires additional parsing. For groundwork we emit "unknown".
+    return [
+      "id": meshAnchor.identifier.uuidString,
+      "vertexCount": mesh.vertices.count,
+      "faceCount": mesh.faces.count,
+      "classification": "unknown",
+      "centerX": Double(translation.x),
+      "centerY": Double(translation.y),
+      "centerZ": Double(translation.z),
+      "extentX": 0.0,
+      "extentY": 0.0,
+      "extentZ": 0.0
+    ]
   }
 
   // Method to add a simple test object (red cube)
@@ -1888,6 +1992,18 @@ class ExpoARKitView: ExpoView {
 // Based on Apple's official TrackingAndVisualizingPlanes sample
 extension ExpoARKitView: ARSCNViewDelegate {
   func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+    if #available(iOS 13.0, *), isMeshReconstructionEnabled, let meshAnchor = anchor as? ARMeshAnchor {
+      if let geometry = buildOcclusionGeometry(from: meshAnchor) {
+        node.geometry = geometry
+        meshNodes[meshAnchor.identifier] = node
+        onMeshAdded([
+          "mesh": meshAnchorToDictionary(meshAnchor),
+          "totalMeshes": meshNodes.count
+        ])
+      }
+      return
+    }
+
     // Place content only for anchors found by plane detection.
     guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
 
@@ -1943,6 +2059,22 @@ extension ExpoARKitView: ARSCNViewDelegate {
   }
 
   func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
+    if #available(iOS 13.0, *), isMeshReconstructionEnabled, let meshAnchor = anchor as? ARMeshAnchor {
+      let now = CACurrentMediaTime()
+      guard now - lastMeshUpdateAt >= meshUpdateInterval else { return }
+      lastMeshUpdateAt = now
+
+      if meshNodes[meshAnchor.identifier] != nil, let geometry = buildOcclusionGeometry(from: meshAnchor) {
+        node.geometry = geometry
+      }
+
+      onMeshUpdated([
+        "mesh": meshAnchorToDictionary(meshAnchor),
+        "totalMeshes": meshNodes.count
+      ])
+      return
+    }
+
     // Update only anchors and nodes set up by `renderer(_:didAdd:for:)`.
     guard let planeAnchor = anchor as? ARPlaneAnchor,
           let plane = node.childNodes.first as? Plane
@@ -1990,6 +2122,15 @@ extension ExpoARKitView: ARSCNViewDelegate {
   }
 
   func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+    if #available(iOS 13.0, *), isMeshReconstructionEnabled, let meshAnchor = anchor as? ARMeshAnchor {
+      meshNodes.removeValue(forKey: meshAnchor.identifier)
+      onMeshRemoved([
+        "meshId": meshAnchor.identifier.uuidString,
+        "totalMeshes": meshNodes.count
+      ])
+      return
+    }
+
     guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
 
     // Update count
