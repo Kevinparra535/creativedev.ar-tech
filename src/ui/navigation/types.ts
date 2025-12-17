@@ -1,12 +1,11 @@
-import { RealWallData } from '../../../modules/expo-arkit/src/ARWallScanningView';
-import type { AlignmentResultResponse } from '../../../modules/expo-arkit/src/ExpoARKitModule';
-import { WallData } from '../../../modules/expo-arkit/src/SceneKitPreviewView';
+import type { AlignmentResultResponse, RealWallData, WallData } from 'expo-arkit';
 
 export type RootStackParamList = {
   Home: undefined;
   Modal: undefined;
   ARTest: undefined;
   RoomPlanTestScreen: undefined;
+  FloatingModelTest: { modelPath?: string } | undefined;
   AutoAlignmentTest: undefined;
   ManualAlignment: undefined;
   ModelPreview: undefined;

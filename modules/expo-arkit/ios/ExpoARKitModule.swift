@@ -514,6 +514,17 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Module-level async function to load model for SIMPLE preview (SceneKit, minimal)
+    AsyncFunction("loadModelForSimplePreview") { (viewTag: Int, path: String) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SimpleModelPreviewView.self) else {
+          print("Error: Could not find SimpleModelPreviewView with tag \(viewTag)")
+          return
+        }
+        view.loadModel(path: path)
+      }
+    }
+
     // Module-level async function to deselect wall in preview
     AsyncFunction("deselectWall") { (viewTag: Int) -> Void in
       DispatchQueue.main.async { [weak self] in
@@ -825,6 +836,14 @@ public class ExpoARKitModule: Module {
         "onPreviewLoadError",
         "onPreviewTapFeedback",
         "onPreviewCameraChanged"
+      )
+    }
+
+    // ViewManager definition for Simple Model Preview
+    View(SimpleModelPreviewView.self) {
+      Events(
+        "onSimpleModelLoaded",
+        "onSimpleLoadError"
       )
     }
 

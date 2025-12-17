@@ -84,12 +84,12 @@ interface ExpoARKitModuleType {
   removeAllAnchors(viewTag: number): Promise<void>;
   undoLastModel(viewTag: number): Promise<void>;
   setPlaneVisibility(viewTag: number, visible: boolean): Promise<void>;
-  
+
   // Portal Mode (Phase 3)
   setPortalMode(viewTag: number, enabled: boolean): Promise<void>;
   getPortalModeState(viewTag: number): Promise<boolean>;
   getMeshClassificationStats(viewTag: number): Promise<Record<string, any>>;
-  
+
   getModelDimensions(viewTag: number, modelId: string): Promise<ModelDimensionsResponse>;
   getAllModelIds(viewTag: number): Promise<AllModelIdsResponse>;
   updateModelTransform(
@@ -118,15 +118,17 @@ interface ExpoARKitModuleType {
 
   // SceneKit Preview functions
   loadModelForPreview(viewTag: number, path: string): Promise<void>;
+  // Simple Model Preview (minimal, no controls)
+  loadModelForSimplePreview(viewTag: number, path: string): Promise<void>;
   deselectWall(viewTag: number): Promise<void>;
   getSelectedWallData(viewTag: number): Promise<any>;
-  
+
   // SceneKit Preview camera controls
   resetPreviewCamera(viewTag: number): Promise<void>;
   fitModelToView(viewTag: number): Promise<void>;
   togglePreviewGrid(viewTag: number): Promise<void>;
   togglePreviewBoundingBox(viewTag: number): Promise<void>;
-  
+
   // SceneKit Preview preset camera views
   setPreviewCameraViewFront(viewTag: number): Promise<void>;
   setPreviewCameraViewRight(viewTag: number): Promise<void>;
@@ -162,7 +164,7 @@ interface ExpoARKitModuleType {
   setCollisionDebugMode(viewTag: number, enabled: boolean): Promise<void>;
   getCollisionStats(viewTag: number): Promise<CollisionStatsResponse>;
   resetCollisionCount(viewTag: number): Promise<void>;
-  
+
   // Quality Settings (Phase 3.4)
   setOcclusionQuality(viewTag: number, quality: 'low' | 'medium' | 'high'): Promise<void>;
   getOcclusionQuality(viewTag: number): Promise<string>;
@@ -172,7 +174,7 @@ interface ExpoARKitModuleType {
   getShowFPS(viewTag: number): Promise<boolean>;
   getCurrentFPS(viewTag: number): Promise<number>;
   getQualityStats(viewTag: number): Promise<QualityStatsResponse>;
-  
+
   // Haptic Feedback & Boundary Warnings (Phase 3.5)
   setHapticFeedback(viewTag: number, enabled: boolean): Promise<void>;
   getHapticFeedbackState(viewTag: number): Promise<boolean>;

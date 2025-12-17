@@ -11,33 +11,17 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Button
-        title='🧪 AR Test (Room Scans + Tools)'
-        onPress={() => navigation.navigate('ARTest')}
-      />
-      <Button
         title='Go to Room Plan Test'
         onPress={() => navigation.navigate('RoomPlanTestScreen')}
       />
       <Button
-        title='🎯 Auto-Alignment Test (Phase 2)'
-        onPress={() => navigation.navigate('AutoAlignmentTest')}
-      />
-      <Button
-        title='🎚️ Manual Alignment (Phase 2.2)'
-        onPress={() => navigation.navigate('ManualAlignment')}
+        title='🧪 Floating Model Test (NEW)'
+        onPress={() => navigation.navigate('FloatingModelTest')}
       />
       <Button
         title='Wall Anchor System'
         onPress={() => navigation.navigate('ModelPreview')}
       />
-      {/* <Button
-        title='Guided Walkthrough (New)'
-        onPress={() => navigation.navigate('GuidedModelSelect', { mode: 'floor' })}
-      />
-      <Button
-        title='Guided Wall Walkthrough (New)'
-        onPress={() => navigation.navigate('GuidedModelSelect', { mode: 'wall' })}
-      /> */}
     </SafeAreaView>
   );
 };

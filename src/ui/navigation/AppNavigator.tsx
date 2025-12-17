@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AlignmentViewScreen } from '@/ui/screens/AlignmentViewScreen';
 import { ARTestScreen } from '@/ui/screens/ARTestScreen';
 import AutoAlignmentTestScreen from '@/ui/screens/AutoAlignmentTestScreen';
+import { FloatingModelTestScreen } from '@/ui/screens/FloatingModelTestScreen';
 import { GuidedModelSelectScreen } from '@/ui/screens/GuidedModelSelectScreen';
 import { GuidedWalkthroughScreen } from '@/ui/screens/GuidedWalkthroughScreen';
 import { GuidedWallWalkthroughScreen } from '@/ui/screens/GuidedWallWalkthroughScreen';
@@ -28,6 +29,11 @@ export function AppNavigator() {
         <Stack.Screen name='Home' component={HomeScreen} options={{ title: 'Home' }} />
         <Stack.Screen name='ARTest' component={ARTestScreen} options={{ title: 'AR Test' }} />
         <Stack.Screen name='RoomPlanTestScreen' component={RoomPlanTestScreen} />
+        <Stack.Screen
+          name='FloatingModelTest'
+          component={FloatingModelTestScreen}
+          options={{ title: '🧪 Floating Model Test' }}
+        />
         <Stack.Screen
           name='AutoAlignmentTest'
           component={AutoAlignmentTestScreen}

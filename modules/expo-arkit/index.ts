@@ -13,6 +13,10 @@ export type {
     WallData
 } from './src/SceneKitPreviewView';
 
+// Export Simple Model Preview view (minimal)
+export { SimpleModelPreviewView } from './src/SimpleModelPreviewView';
+export type { SimpleLoadErrorEvent, SimpleModelLoadedEvent, SimpleModelPreviewViewRef } from './src/SimpleModelPreviewView';
+
 // Export AR Wall Scanning view
 export { ARWallScanningView } from './src/ARWallScanningView';
 export type {

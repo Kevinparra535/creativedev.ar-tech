@@ -34,58 +34,63 @@ Crear una experiencia de alineación **interactiva e inmersiva** que transforme 
 ❌ Experiencia "funcional" no "memorable"
 ```
 
-### Solución Propuesta (AlignmentView v2 - Interactive)
+### Solución Propuesta (AlignmentView v2 - Guided Scan)
+
+**Inspirado en RoomPlan de Apple:**
 
 ```
-✅ Modelo flota siguiendo cámara (como RoomPlan)
-✅ Escaneo multi-pared con feedback visual en tiempo real
-✅ Paredes detectadas se iluminan en verde al hacer match
-✅ Progress indicator: "3/5 paredes detectadas"
-✅ Cuando suficientes matches → botón "Anclar Modelo" enabled
-✅ Haptic feedback al detectar cada pared
+✅ Modelo YA ANCLADO desde el inicio (usando pared de referencia)
+✅ Paredes del modelo coloreadas como guía:
+   🔴 ROJO = Sin escanear (usuario debe escanear esta área)
+   🟢 VERDE = Escaneada y matched (confirmado)
+✅ Guided scan: Sistema INDICA qué paredes escanear
+✅ Progress indicator: "3/5 paredes escaneadas"
+✅ A medida que detecta planos → Pared cambia de rojo a verde
+✅ Haptic feedback al detectar cada match
 ✅ Experiencia premium diferenciadora
 ```
 
-### UX Flow Propuesto
+### UX Flow Propuesto (Tipo RoomPlan)
 
 ```
 ┌─────────────────────────────────────┐
-│ 1. INICIO                            │
-│ - Modelo aparece flotando           │
-│ - Semi-transparente (alpha 0.7)     │
-│ - Sigue movimiento de cámara        │
+│ 1. INICIO (AlignmentView)           │
+│ - Modelo se carga                   │
+│ - Alineación inicial con realWall   │
+│   (pared seleccionada en paso prev) │
+│ - Modelo aparece ANCLADO en espacio │
+│ - TODAS las paredes = ROJAS 🔴      │
 └─────────────────────────────────────┘
             ↓
 ┌─────────────────────────────────────┐
-│ 2. ESCANEO ACTIVO                   │
+│ 2. GUIDED SCAN                      │
+│ - Usuario VE dónde están las paredes│
+│ - Sistema indica qué escanear       │
 │ - Usuario mueve dispositivo         │
 │ - Detección de planos continua      │
-│ - Comparación en tiempo real        │
-│   modelo-walls vs planos reales     │
 └─────────────────────────────────────┘
             ↓
 ┌─────────────────────────────────────┐
-│ 3. MATCH VISUAL                     │
-│ - Pared detectada → Highlight verde│
+│ 3. MATCH VISUAL (Rojo → Verde)      │
+│ - Plano detectado hace match        │
+│ - Pared modelo cambia ROJA → VERDE │
 │ - Haptic feedback (light impact)    │
-│ - Counter: "1/5 paredes detectadas" │
-│ - Modelo ajusta orientación suave   │
+│ - Counter: "1/5 paredes escaneadas" │
 └─────────────────────────────────────┘
             ↓
 ┌─────────────────────────────────────┐
 │ 4. SUFICIENTES MATCHES (3+)         │
-│ - Botón "Anclar Modelo" enabled     │
+│ - ≥3 paredes VERDES                 │
+│ - Botón "Finalizar" enabled         │
 │ - Color: verde brillante            │
-│ - Animación pulse sutil             │
 └─────────────────────────────────────┘
             ↓
 ┌─────────────────────────────────────┐
-│ 5. ANCLAJE FINAL                    │
-│ - Usuario presiona "Anclar"         │
-│ - Cálculo alignment multi-wall      │
-│ - Transformación aplicada           │
-│ - Modelo solidifica (alpha → 1.0)   │
-│ - Planos disabled                   │
+│ 5. MULTI-WALL CALCULATION           │
+│ - Usuario presiona "Finalizar"      │
+│ - Usa TODAS las paredes verdes      │
+│ - Optimiza alignment multi-wall     │
+│ - Transformación final aplicada     │
 │ - Navigate → ImmersiveView          │
 └─────────────────────────────────────┘
 ```
@@ -96,36 +101,44 @@ Crear una experiencia de alineación **interactiva e inmersiva** que transforme 
 
 ### Diferenciación vs Competencia
 
-| Aspecto | Standard AR Apps | Nuestro POC |
-|---------|------------------|-------------|
-| **Alineación** | Manual (arrastrar/rotar) | Auto multi-wall + Interactive scan |
-| **Feedback** | Ninguno o mínimo | Visual en tiempo real (green walls) |
+| Aspecto | Standard AR Apps | Nuestro POC (RoomPlan-like) |
+|---------|------------------|-----------------------------|
+| **Alineación** | Manual (arrastrar/rotar) | Auto multi-wall con pared de referencia |
+| **Feedback** | Ninguno o mínimo | Visual en tiempo real (🔴 → 🟢) |
+| **Guía** | Usuario explora sin dirección | Sistema INDICA qué escanear |
+| **Contexto** | Usuario no sabe dónde va | Usuario VE modelo en posición final |
 | **Precisión** | Variable (single-point) | Alta (3-5 wall constraints) |
-| **UX** | Técnico/funcional | Premium/memorable |
-| **Learning Curve** | Alta (requiere skill) | Baja (guided scan) |
+| **UX** | Técnico/funcional | Premium/memorable (RoomPlan style) |
+| **Learning Curve** | Alta (requiere skill) | Baja (guided scan visual) |
 
 ### Ventajas Técnicas
 
-1. **Multi-Wall = Mayor Precisión**:
-   - Single wall: 4 DOF constraint (position + normal)
-   - 3+ walls: Over-constrained system → mejor solve
+1. **Modelo Anclado = Mejor Performance**: 
+   - No overhead de tracking continuo
+   - Modelo estático consume menos recursos
+   - 60 FPS garantizado
 
-2. **Real-Time Feedback = Confidence**:
+2. **Guided Scan = Mejor UX**:
+   - Usuario tiene contexto visual CLARO
+   - Sistema INDICA qué escanear (rojo)
+   - Feedback inmediato (rojo → verde)
+   - No confusión sobre qué hacer
+
+3. **Multi-Wall = Mayor Precisión**: 
+   - Single wall: 4 DOF constraint
+   - 3+ walls: Over-constrained system → mejor solve
+   - Usa pared de referencia ya validada
+
+4. **Real-Time Feedback = Confidence**:
    - Usuario ve progress instant
-   - Green walls = validación visual
+   - 🟢 Green walls = validación visual
+   - Haptic feedback confirma detección
    - No "espera ciega"
 
-3. **Floating Model = Context**:
-   - Usuario ve modelo mientras escanea
-   - Puede comparar mentalmente dimensiones
-   - Orientación dinámica ayuda a matching
-
-4. **Extensible**:
-   - Base para features futuras (floor matching, ceiling, furniture)
+5. **Extensible**:
+   - Base para features futuras (floor matching, ceiling)
    - Multi-room scanning
-   - Model library integration
-
----
+   - Color-coded guidance para otros elementos
 
 ## 🏗️ Arquitectura Propuesta
 
@@ -134,25 +147,25 @@ Crear una experiencia de alineación **interactiva e inmersiva** que transforme 
 ```
 src/
 ├── services/
-│   └── wallMatchingService.ts       (NEW - ~200 líneas)
+│   └── wallMatchingService.ts       (NEW - ~150 líneas)
 │       ├── interface WallMatch
-│       ├── compareWallWithPlane()
-│       ├── calculateMatchConfidence()
-│       └── findBestMatches()
+│       ├── checkPlaneMatchesModelWall()  (Compara plano con pared YA anclada)
+│       └── calculateMatchConfidence()
 │
 ├── ui/
 │   ├── components/
 │   │   └── ScanProgressPanel.tsx    (NEW - ~150 líneas)
 │   │       ├── Progress bar
-│   │       ├── Wall counter
-│   │       └── "Anclar Modelo" button
+│   │       ├── Wall counter ("3/5 escaneadas")
+│   │       └── "Finalizar" button
 │   │
 │   └── screens/
-│       └── AlignmentViewScreen.tsx   (REFACTOR - ~400 líneas)
-│           ├── Estado: floating model mode
+│       └── AlignmentViewScreen.tsx   (REFACTOR - ~350 líneas)
+│           ├── Cargar modelo + alinear con realWall
+│           ├── Colorear paredes ROJAS al inicio
 │           ├── Plane detection handler
-│           ├── Wall matching loop
-│           └── Multi-wall calculation
+│           ├── Wall matching loop (Rojo → Verde)
+│           └── Multi-wall calculation final
 ```
 
 ### Módulos Swift a Extender
@@ -160,13 +173,14 @@ src/
 ```
 modules/expo-arkit/ios/
 ├── ExpoARKitView.swift
-│   ├── setPlaneHighlightColor()     (NEW METHOD)
-│   └── highlightPlaneNode()         (NEW METHOD)
+│   ├── setModelWallColor()          (NEW METHOD - Color paredes del modelo)
+│   ├── findWallNode()               (NEW HELPER - Encuentra pared en modelo)
+│   └── getCurrentModelTransform()   (NEW METHOD - Posición actual del modelo)
 │
 └── ExpoARKitModule.swift
-    ├── startFloatingModel()          (WRAPPER)
-    ├── highlightPlane()              (WRAPPER)
-    └── applyMultiWallAlignment()     (EXTEND EXISTING)
+    ├── setModelWallColor()           (WRAPPER - Bridge a React Native)
+    ├── getModelTransform()           (WRAPPER - Bridge a React Native)
+    └── calculateAlignmentMultiWalls() (EXTEND EXISTING)
 ```
 
 ### Flujo de Datos
@@ -231,44 +245,71 @@ modules/expo-arkit/ios/
 
 ---
 
-### Fase 1: Floating Model (Proof of Concept)
+### Fase 1: Modelo Anclado + Color de Paredes
 
 **Duración:** 2 días  
-**Objetivo:** Modelo flota siguiendo cámara
+**Objetivo:** Cargar modelo, anclarlo con pared de referencia, colorear paredes rojas
 
 **Tareas React Native:**
 
 - [ ] Modificar AlignmentViewScreen.tsx
-  - Estado: `floatingMode = true`
-  - Llamar `startPlacementPreview` en mount
-  - Disable tap-to-place
-  - Model semi-transparent (alpha 0.7)
+  - Cargar modelo al iniciar AR session
+  - Aplicar alineación inicial con `realWall` (recibida de WallScanningScreen)
+  - Extraer lista de paredes del modelo USDZ
+  - Estado: `scannedWalls: Set<number>` para track paredes escaneadas
+  - Colorear TODAS las paredes ROJAS (🔴) al inicio
 
 **Tareas Swift:**
 
-- [ ] Verificar `startPlacementPreview` method en ExpoARKitModule
-- [ ] Confirmar que reticle sigue cámara smooth
-- [ ] Ajustar distancia default (2m frente a cámara)
-- [ ] Test performance (should be 60fps)
+- [ ] Implementar `setModelWallColor(modelId: String, wallIndex: Int, color: UIColor)` method
+  ```swift
+  func setModelWallColor(modelId: String, wallIndex: Int, color: UIColor) {
+    guard let modelNode = loadedModelNodes[modelId] else { return }
+    
+    // Find wall geometry by index or name
+    let wallNode = findWallNode(in: modelNode, atIndex: wallIndex)
+    
+    // Apply colored material overlay
+    if let geometry = wallNode?.geometry {
+      let material = SCNMaterial()
+      material.diffuse.contents = color.withAlphaComponent(0.6)
+      material.transparency = 0.6
+      material.isDoubleSided = true
+      geometry.firstMaterial = material
+    }
+  }
+  ```
+
+- [ ] Implementar `findWallNode(in: SCNNode, atIndex: Int) -> SCNNode?` helper
+  - Buscar nodos con nombre "wall_XX" o por índice
+  - Recorrer jerarquía del modelo
+
+- [ ] Implementar `getCurrentModelTransform(modelId: String) -> simd_float4x4` method
+  - Retorna transformación actual del modelo en world space
+
+- [ ] Bridge methods a React Native en ExpoARKitModule.swift
 
 **Criterios de Éxito:**
 
-- ✅ Modelo visible flotando frente a cámara
-- ✅ Sigue movimiento del dispositivo smooth
-- ✅ Semi-transparente (alpha 0.7)
+- ✅ Modelo carga y se ancla con pared de referencia (realWall)
+- ✅ Todas las paredes se colorean ROJAS al inicio
+- ✅ Modelo visible en posición correcta en AR
 - ✅ Performance >30fps
+- ✅ Color es visible pero NO opaca geometría original (transparency 0.6)
 
 **Riesgos:**
 
-- ⚠️ Lag en tracking (mitigar: reducir poly count si needed)
-- ⚠️ Model scale incorrect (ajustar en preview phase)
+- ⚠️ Identificar paredes en modelo USDZ puede ser complejo
+  - **Mitigación:** Establecer convención de nombres ("wall_01", "wall_02", etc.) en modelos 3D
+- ⚠️ Color puede no ser visible si materiales son muy opacos
+  - **Mitigación:** Usar transparency 0.6 + isDoubleSided = true
 
 ---
 
-### Fase 2: Wall Matching Engine
+### Fase 2: Wall Matching Engine (Modelo Anclado)
 
 **Duración:** 2 días  
-**Objetivo:** Comparar paredes del modelo vs planos detectados
+**Objetivo:** Detectar planos reales que coinciden con paredes del modelo YA anclado
 
 **Tareas TypeScript:**
 
@@ -276,25 +317,31 @@ modules/expo-arkit/ios/
 
   ```typescript
   interface WallMatch {
+    wallIndex: number; // Índice de pared en modelo
     detectedPlane: PlaneDetectedEvent;
-    modelWall: VirtualWallData;
     confidence: number; // 0-1
-    dimensionError: number; // meters
-    angleError: number; // degrees
+    distanceError: number; // meters (distance between plane and model wall)
+    angleError: number; // degrees (angle between normals)
   }
 
   class WallMatchingService {
-    compareWallWithPlane(
-      wall: VirtualWallData, 
-      plane: PlaneDetectedEvent
-    ): WallMatch | null;
+    /**
+     * Check if detected plane matches a model wall position
+     * Model is ALREADY ANCHORED, so we compare world positions
+     */
+    checkPlaneMatchesModelWall(
+      plane: PlaneDetectedEvent,
+      modelWall: VirtualWallData,
+      modelTransform: simd_float4x4 // Current model position in world
+    ): { matches: boolean; confidence: number };
     
-    calculateMatchConfidence(match: WallMatch): number;
-    
-    findBestMatches(
-      modelWalls: VirtualWallData[], 
-      detectedPlanes: PlaneDetectedEvent[]
-    ): WallMatch[];
+    /**
+     * Calculate confidence based on distance and angle errors
+     */
+    calculateMatchConfidence(
+      distanceError: number,
+      angleError: number
+    ): number;
   }
   ```
 
@@ -302,10 +349,11 @@ modules/expo-arkit/ios/
 
   ```typescript
   // 1. Filter: Only vertical planes (classification = wall)
-  // 2. Compare dimensions: width, height (tolerance ±10%)
-  // 3. Compare normal vectors (angle tolerance ±15°)
-  // 4. Calculate confidence score
-  // 5. Return matches sorted by confidence
+  // 2. Transform model wall to world space using modelTransform
+  // 3. Compare world positions: distance < 30cm
+  // 4. Compare normal vectors: angle < 20°
+  // 5. Calculate confidence: 1 - (normalized_errors)
+  // 6. Return match if confidence > 0.7
   ```
 
 **Tareas React Native:**
@@ -315,82 +363,56 @@ modules/expo-arkit/ios/
   ```typescript
   useEffect(() => {
     const sub = arViewRef.current?.onPlaneDetected((plane) => {
-      // Add to detected planes array
-      // Run wall matching
-      // Update UI if match found
+      // Check each UNSCANNED wall
+      modelWalls.forEach((wall, index) => {
+        if (scannedWalls.has(index)) return; // Skip already scanned
+        
+        // Check if plane matches this wall position
+        const { matches, confidence } = wallMatchingService.checkPlaneMatchesModelWall(
+          plane,
+          wall,
+          currentModelTransform
+        );
+        
+        if (matches && confidence > 0.7) {
+          // Mark as scanned
+          setScannedWalls(prev => new Set(prev).add(index));
+          
+          // Change wall color: RED → GREEN
+          ExpoARKitModule.setModelWallColor(viewTag, modelId, index, '#00FF00');
+          
+          // Haptic feedback
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      });
     });
     return () => sub?.remove();
-  }, []);
+  }, [modelWalls, scannedWalls, currentModelTransform]);
   ```
 
 - [ ] State management:
 
   ```typescript
-  const [detectedPlanes, setDetectedPlanes] = useState<PlaneDetectedEvent[]>([]);
-  const [wallMatches, setWallMatches] = useState<WallMatch[]>([]);
+  const [modelWalls, setModelWalls] = useState<VirtualWallData[]>([]);
+  const [scannedWalls, setScannedWalls] = useState<Set<number>>(new Set());
+  const [currentModelTransform, setCurrentModelTransform] = useState<simd_float4x4 | null>(null);
   ```
 
 **Criterios de Éxito:**
 
 - ✅ Detecta planos verticales (wall classification)
-- ✅ Compara dimensiones con tolerancia ±10%
+- ✅ Compara posiciones world space correctamente
+- ✅ Tolerancias: distance < 30cm, angle < 20°
 - ✅ Calcula confidence score correctamente
+- ✅ Pared cambia de ROJA a VERDE al hacer match
 - ✅ Log muestra matches en console
 
 ---
 
-### Fase 3: Visual Feedback System
+### Fase 3: Visual Feedback + Progress Panel
 
 **Duración:** 1 día  
-**Objetivo:** Highlight paredes detectadas en verde
-
-**Tareas Swift:**
-
-- [ ] Implementar `setPlaneHighlightColor` method
-
-  ```swift
-  func setPlaneHighlightColor(planeId: UUID, color: UIColor) {
-    guard let planeNode = planeNodes[planeId] else { return }
-    
-    // Update plane material color
-    let material = planeNode.geometry?.firstMaterial
-    material?.diffuse.contents = color.withAlphaComponent(0.6)
-    
-    // Optionally: add glow effect
-    if color == .green {
-      addGlowEffect(to: planeNode)
-    }
-  }
-  ```
-
-- [ ] Bridge to React Native:
-
-  ```swift
-  AsyncFunction("highlightPlane") { (viewTag: Int, planeId: String, color: String) in
-    // Parse color string (hex or name)
-    // Call setPlaneHighlightColor
-  }
-  ```
-
-**Tareas React Native:**
-
-- [ ] Cuando wall match detectado:
-
-  ```typescript
-  if (match.confidence > 0.8) {
-    await ExpoARKitModule.highlightPlane(
-      viewRef.current.nativeTag, 
-      match.detectedPlane.id, 
-      '#00FF00' // green
-    );
-    
-    // Haptic feedback
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    // Update counter
-    setMatchedWallsCount(prev => prev + 1);
-  }
-  ```
+**Objetivo:** UI panel que muestra progreso y permite finalizar
 
 **Tareas UI:**
 
@@ -398,29 +420,46 @@ modules/expo-arkit/ios/
 
   ```tsx
   interface ScanProgressPanelProps {
-    matchedWalls: number;
-    requiredWalls: number; // default: 3
-    onAnchorPress: () => void;
+    scannedWalls: number;
+    totalWalls: number;
+    onFinishPress: () => void;
+    isCalculating?: boolean;
   }
 
-  export const ScanProgressPanel = ({ matchedWalls, requiredWalls, onAnchorPress }) => {
-    const isReady = matchedWalls >= requiredWalls;
+  export const ScanProgressPanel = ({ scannedWalls, totalWalls, onFinishPress, isCalculating }) => {
+    const minRequired = 3;
+    const isReady = scannedWalls >= minRequired && !isCalculating;
+    const progress = Math.min(1, scannedWalls / minRequired);
     
     return (
       <View style={styles.panel}>
+        <Text style={styles.title}>Escaneo de Paredes</Text>
+        
         <Text style={styles.counter}>
-          {matchedWalls}/{requiredWalls} paredes detectadas
+          {scannedWalls}/{totalWalls} paredes escaneadas
         </Text>
         
-        <ProgressBar progress={matchedWalls / requiredWalls} />
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        </View>
+        
+        {scannedWalls < minRequired && (
+          <Text style={styles.hint}>
+            Escanea al menos {minRequired} paredes para continuar
+          </Text>
+        )}
         
         <TouchableOpacity 
           disabled={!isReady}
-          onPress={onAnchorPress}
+          onPress={onFinishPress}
           style={[styles.button, isReady && styles.buttonEnabled]}
         >
           <Text style={styles.buttonText}>
-            {isReady ? '✅ Anclar Modelo' : '🔍 Escaneando...'}
+            {isCalculating 
+              ? '⏳ Calculando...'
+              : isReady 
+                ? '✅ Finalizar' 
+                : `🔍 ${scannedWalls}/${minRequired}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -428,12 +467,26 @@ modules/expo-arkit/ios/
   };
   ```
 
+**Tareas React Native:**
+
+- [ ] Integrar ScanProgressPanel en AlignmentViewScreen
+
+  ```typescript
+  <ScanProgressPanel
+    scannedWalls={scannedWalls.size}
+    totalWalls={modelWalls.length}
+    onFinishPress={handleFinishAlignment}
+    isCalculating={isCalculating}
+  />
+  ```
+
 **Criterios de Éxito:**
 
-- ✅ Planos matched se iluminan en verde
-- ✅ Haptic feedback al detectar match
-- ✅ Progress panel muestra "3/5 paredes detectadas"
-- ✅ Botón "Anclar" enabled cuando ≥3 matches
+- ✅ Panel muestra "3/5 paredes escaneadas"
+- ✅ Progress bar se actualiza en tiempo real
+- ✅ Botón "Finalizar" enabled cuando ≥3 paredes escaneadas
+- ✅ Hint text indica cuántas paredes faltan
+- ✅ Estado "Calculando..." visible al presionar Finalizar
 
 ---
 
@@ -573,78 +626,140 @@ modules/expo-arkit/ios/
 
 #### 1. AlignmentViewScreen - Estado Actual vs Nuevo
 
-**Problema:** Actual implementación usa tap-to-place + auto-align. Nuevo enfoque usa floating model + multi-scan.
+**Problema:** Actual implementación usa tap-to-place + auto-align single-wall. Nuevo enfoque usa modelo anclado + guided multi-wall scan.
 
 **Solución:**
 
 ```typescript
-// OLD (remove):
+// OLD (remove o comentar):
 const handleModelPlaced = (event: ModelPlacedEvent) => { ... }
-useEffect(() => { /* auto-load model with tap */ }, []);
+const handleCalculateAlignment = async () => { /* single-wall calc */ }
 
-// NEW (add):
-const [floatingMode, setFloatingMode] = useState(true);
+// NEW (agregar):
+const [scannedWalls, setScannedWalls] = useState<Set<number>>(new Set());
+const [modelWalls, setModelWalls] = useState<VirtualWallData[]>([]);
+
+// Load model y alinear con realWall al inicio
 useEffect(() => {
-  if (floatingMode) {
-    arViewRef.current?.startPlacementPreview(modelPath, 1.0);
+  if (arReady && modelId) {
+    // Initial alignment con pared de referencia
+    const initialAlignment = await wallAnchorService.calculateAlignment(
+      virtualWall,
+      realWall
+    );
+    await wallAnchorService.applyAlignment(viewTag, modelId, initialAlignment);
+    
+    // Colorear todas las paredes ROJAS
+    modelWalls.forEach((wall, index) => {
+      ExpoARKitModule.setModelWallColor(viewTag, modelId, index, '#FF0000');
+    });
   }
-}, [floatingMode]);
+}, [arReady, modelId]);
 ```
 
 **Estrategia:** Crear branch backup antes de refactor. Keep old implementation commented durante testing.
 
 #### 2. Plane Detection Events - Frecuencia
 
-**Problema:** `onPlaneDetected` puede disparar muy frecuente (10+ eventos/segundo).
+**Problema:** `onPlaneDetected` puede disparar muy frecuente (10+ eventos/segundo), causando exceso de checks.
 
-**Solución:** Throttle wall matching calculation:
+**Solución:** Throttle matching check + early return si pared ya escaneada:
 
 ```typescript
-const debouncedWallMatching = useMemo(
-  () => debounce((planes) => {
-    const matches = wallMatchingService.findBestMatches(modelWalls, planes);
-    setWallMatches(matches);
-  }, 500), // 500ms debounce
-  [modelWalls]
-);
+useEffect(() => {
+  const subscription = arViewRef.current?.onPlaneDetected((plane) => {
+    // Early return si todas las paredes ya escaneadas
+    if (scannedWalls.size >= modelWalls.length) return;
+    
+    // Check solo paredes NO escaneadas
+    for (const [index, wall] of modelWalls.entries()) {
+      if (scannedWalls.has(index)) continue; // Skip scanned
+      
+      const { matches, confidence } = wallMatchingService.checkPlaneMatchesModelWall(
+        plane,
+        wall,
+        currentModelTransform
+      );
+      
+      if (matches && confidence > 0.7) {
+        // Mark as scanned (solo una vez)
+        setScannedWalls(prev => new Set(prev).add(index));
+        ExpoARKitModule.setModelWallColor(viewTag, modelId, index, '#00FF00');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        break; // Stop checking más paredes para este plano
+      }
+    }
+  });
+  
+  return () => subscription?.remove();
+}, [scannedWalls, modelWalls, currentModelTransform]);
 ```
 
-#### 3. Swift Plane Highlighting - Performance
+#### 3. Swift Model Wall Coloring - Performance
 
-**Problema:** Actualizar materiales de planos en cada frame puede causar lag.
+**Problema:** Cambiar materiales de paredes en cada update puede causar lag.
 
 **Solución:**
 
-- Solo highlight planos matched (max 5)
-- Cache materials pre-created
-- Update only cuando match status changes
+- Cache materials pre-created (red, green)
+- Solo update cuando estado cambia (no re-colorear si ya verde)
+- Aplicar material overlay sin reemplazar material original
 
 ```swift
-private var highlightedPlanes: Set<UUID> = []
-private var greenMaterial: SCNMaterial = createGreenMaterial()
-private var grayMaterial: SCNMaterial = createGrayMaterial()
+private var wallColorCache: [Int: UIColor] = [:] // Track current colors
 
-func highlightPlane(id: UUID, matched: Bool) {
-  guard let node = planeNodes[id] else { return }
+func setModelWallColor(modelId: String, wallIndex: Int, color: UIColor) {
+  // Skip si ya tiene ese color
+  if wallColorCache[wallIndex] == color { return }
   
-  // Skip if already correct state
-  if matched && highlightedPlanes.contains(id) { return }
-  if !matched && !highlightedPlanes.contains(id) { return }
+  guard let modelNode = loadedModelNodes[modelId] else { return }
+  guard let wallNode = findWallNode(in: modelNode, atIndex: wallIndex) else { return }
   
-  // Update
-  node.geometry?.firstMaterial = matched ? greenMaterial : grayMaterial
-  
-  if matched {
-    highlightedPlanes.insert(id)
-  } else {
-    highlightedPlanes.remove(id)
+  // Apply overlay material (no replace original)
+  if let geometry = wallNode.geometry {
+    let overlay = SCNMaterial()
+    overlay.diffuse.contents = color.withAlphaComponent(0.6)
+    overlay.transparency = 0.6
+    overlay.isDoubleSided = true
+    geometry.firstMaterial = overlay
   }
+  
+  // Update cache
+  wallColorCache[wallIndex] = color
 }
 ```
 
-#### 4. Multi-Wall Calculation - Over-Constrained System
+#### 4. Identificación de Paredes en Modelo USDZ
 
-**Problema:** 5+ paredes puede crear sistema sobre-determinado con soluciones contradictorias.
+**Problema:** Modelos USDZ pueden tener naming inconsistente o sin estructura clara.
+
+**Solución:** Establecer convención de nombres + fallback hierarchy search:
+
+```swift
+func findWallNode(in modelNode: SCNNode, atIndex: Int) -> SCNNode? {
+  // Strategy 1: Por nombre con convención ("wall_01", "wall_02", etc.)
+  if let namedNode = modelNode.childNode(withName: "wall_\(String(format: "%02d", index))", recursively: true) {
+    return namedNode
+  }
+  
+  // Strategy 2: Por tipo de geometría (planos verticales grandes)
+  var wallNodes: [SCNNode] = []
+  modelNode.enumerateChildNodes { node, _ in
+    if isWallGeometry(node.geometry) {
+      wallNodes.append(node)
+    }
+  }
+  
+  // Return por índice si encontrado
+  return wallNodes.indices.contains(index) ? wallNodes[index] : nil
+}
+
+func isWallGeometry(_ geometry: SCNGeometry?) -> Bool {
+  // Detect si es plano vertical grande (típico de paredes)
+  // Check: tipo box o plane, altura > ancho, Y-axis aligned
+  return /* implementation */
+}
+```
 
 **Solución:** Least-squares optimization + weight by confidence:
 
