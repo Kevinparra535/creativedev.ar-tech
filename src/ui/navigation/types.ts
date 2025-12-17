@@ -1,4 +1,5 @@
 import { RealWallData } from '../../../modules/expo-arkit/src/ARWallScanningView';
+import type { AlignmentResultResponse } from '../../../modules/expo-arkit/src/ExpoARKitModule';
 import { WallData } from '../../../modules/expo-arkit/src/SceneKitPreviewView';
 
 export type RootStackParamList = {
@@ -24,6 +25,13 @@ export type RootStackParamList = {
   };
   AlignmentView: {
     modelPath: string;
+    virtualWall: WallData;
+    realWall: RealWallData;
+  };
+  ImmersiveView: {
+    modelPath: string;
+    modelId: string;
+    alignment: AlignmentResultResponse;
     virtualWall: WallData;
     realWall: RealWallData;
   };

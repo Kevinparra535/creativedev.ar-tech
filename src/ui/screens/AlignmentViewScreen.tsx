@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,10 +14,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
-    ARKitView,
-    ARKitViewRef,
-    ExpoARKitModule,
-    ModelPlacedEvent
+  ARKitView,
+  ARKitViewRef,
+  ExpoARKitModule,
+  ModelPlacedEvent
 } from '../../../modules/expo-arkit';
 import type { AlignmentResultResponse } from '../../../modules/expo-arkit/src/ExpoARKitModule';
 import { wallAnchorService } from '../../services/wallAnchorService';
@@ -233,6 +233,10 @@ export const AlignmentViewScreen = () => {
       console.log('🎯 Applying alignment to model:', modelIdToAlign);
       await wallAnchorService.applyAlignment(viewTag, modelIdToAlign, alignmentResult);
 
+      // CRITICAL: Disable plane detection and anchor updates
+      // This prevents the model from moving after alignment
+      arViewRef.current?.setPlaneVisibility(false);
+
       setIsApplying(false);
       setAlignmentApplied(true);
 
@@ -354,18 +358,26 @@ export const AlignmentViewScreen = () => {
   };
 
   const handleFinish = () => {
+    if (!modelId || !alignment) {
+      Alert.alert('Error', 'No hay modelo o alineación disponible');
+      return;
+    }
+
     Alert.alert(
-      'Finalizar',
-      '¿Deseas guardar esta alineación y volver al inicio?',
+      'Continuar a Vista Inmersiva',
+      'El modelo está alineado. ¿Deseas entrar en modo inmersivo?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Finalizar',
+          text: 'Continuar',
           onPress: () => {
-            // Reset workflow
-            wallAnchorService.reset();
-            // Navigate to home
-            navigation.navigate('Home');
+            navigation.navigate('ImmersiveView', {
+              modelPath,
+              modelId,
+              alignment,
+              virtualWall,
+              realWall,
+            });
           },
         },
       ]
@@ -507,7 +519,7 @@ export const AlignmentViewScreen = () => {
               !alignmentApplied && styles.disabledButtonText,
             ]}
           >
-            Finalizar ✓
+            Continuar a Vista Inmersiva →
           </Text>
         </TouchableOpacity>
       </View>

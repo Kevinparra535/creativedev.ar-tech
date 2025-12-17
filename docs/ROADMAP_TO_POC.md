@@ -9,6 +9,7 @@
 ## Resumen Ejecutivo
 
 Has completado **las bases fundamentales** del POC:
+
 - ✅ ARKit setup completo con módulo nativo Swift
 - ✅ Plane Detection con clasificación y visualización
 - ✅ Model Loading y manipulación táctil (5 gestos)
@@ -17,6 +18,7 @@ Has completado **las bases fundamentales** del POC:
 - 🔨 **Occlusion Groundwork** (scene reconstruction + mesh handling)
 
 **Para alcanzar la visión completa del POC**, necesitas implementar:
+
 1. ✅ ~~Integración Room Scan ↔ AR View~~ (COMPLETADO)
 2. 🔨 **Completar Model Alignment testing** (3-5 días)
 3. 🔴 **AR Inmersivo con Occlusion** (2-3 semanas)
@@ -40,7 +42,8 @@ Has completado **las bases fundamentales** del POC:
 **Estado:** 100% completado
 **Fecha finalización:** 2025-12-12
 
-#### Implementado:
+#### Implementado
+
 - ✅ RoomPlanTestScreen escanea habitaciones
 - ✅ Export automático a USDZ (Parametric mode)
 - ✅ File location tracking
@@ -57,6 +60,7 @@ Has completado **las bases fundamentales** del POC:
   - Accesible desde menú principal
 
 **Archivos creados:**
+
 - `src/ui/ar/hooks/useFileManager.ts`
 - `src/ui/screens/ARTestScreen.tsx` (actualizado)
 - `src/ui/navigation/AppNavigator.tsx` (ruta ARTest)
@@ -68,12 +72,14 @@ Has completado **las bases fundamentales** del POC:
 **Duración:** Completado en 2 semanas
 **Estado:** 80% completado (core listo, falta testing/polish)
 
-#### Objetivo:
+#### Objetivo
+
 Alinear el modelo 3D del arquitecto con el room scan capturado ✅
 
-#### Componentes implementados:
+#### Componentes implementados
 
 **1. Auto-Alignment (Phase 2.1)** ✅
+
 - ✅ Servicio `modelAlignment.ts`
   - `calculateOptimalScale()` - Factor de escala óptimo
   - `checkProportionCompatibility()` - Validación de proporciones
@@ -84,6 +90,7 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
 - ✅ Tests unitarios en `modelAlignment.test.ts`
 
 **2. Manual Adjustment (Phase 2.2)** ✅
+
 - ✅ Hook `useManualAdjustment.ts` para control manual de transforms
 - ✅ Componente `AlignmentControls.tsx` con sliders precisos
   - Position X/Y/Z (-5 a +5m, step 0.01m)
@@ -93,6 +100,7 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
 - ✅ Persistencia: save on Apply + restore on load
 
 **3. Persistence System (Phase 2.3)** ✅
+
 - ✅ Servicio `alignmentStorage.ts` usando AsyncStorage
   - `saveLastManualAlignment()` / `loadLastManualAlignment()`
   - `saveLastAutoAlignment()` / `loadLastAutoAlignment()`
@@ -100,15 +108,17 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
 - ✅ Integración en ambos hooks (auto y manual)
 
 **4. Native Module Support** ✅
+
 - ✅ `getModelDimensions()` - Extrae bounding box en world space
 - ✅ `getAllModelIds()` - Lista todos los modelos cargados
 - ✅ `updateModelTransform()` - Aplica transforms completos
 - ✅ `setModelScale/Position/Rotation()` - Setters individuales
 - ✅ `getModelTransform()` - Lee transforms actuales
 
-#### Pendiente (último 20%):
+#### Pendiente (último 20%)
 
 **1. Dimension Matching (1 semana)**
+
 - [ ] Algoritmo para comparar dimensiones
   - Extraer bounding box del room scan (USDZ metadata)
   - Extraer bounding box del modelo del arquitecto
@@ -121,6 +131,7 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
   - Aplicar transformación inicial
 
 **2. Manual Adjustment UI (1 semana)**
+
 - [ ] Controles de transformación en ARTestScreen
   - Sliders para Position (X, Y, Z)
   - Sliders para Rotation (Y-axis principalmente)
@@ -133,6 +144,7 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
   - Indicadores de diferencias de dimensión
 
 **3. Persistence System (3-5 días)**
+
 - [ ] Guardar configuración de alineación
   - JSON con transformación (position, rotation, scale)
   - Asociar a proyecto específico
@@ -143,6 +155,7 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
   - Re-aplicar transformación al cargar sesión
 
 **Archivos a crear:**
+
 - `src/services/modelAlignment.ts` - Lógica de matching
 - `src/ui/components/AlignmentControls.tsx` - UI de ajuste
 - `src/storage/alignmentStorage.ts` - Persistencia
@@ -156,12 +169,14 @@ Alinear el modelo 3D del arquitecto con el room scan capturado ✅
 **Duración:** 3-4 semanas
 **Prioridad:** ALTA (corazón del POC)
 
-#### Objetivo:
+#### Objetivo
+
 Reemplazar la realidad física con el modelo 3D del diseño
 
-#### Componentes a implementar:
+#### Componentes a implementar
 
 **1. Occlusion Rendering (1.5-2 semanas)**
+
 - [ ] Custom Shader en Swift
   - Shader para ocultar cámara real
   - Renderizar solo modelo 3D sobre fondo negro/blanco
@@ -173,10 +188,12 @@ Reemplazar la realidad física con el modelo 3D del diseño
   - Toggle modo "Full Immersion" vs "AR Mix"
 
 **Archivos a modificar:**
+
 - `modules/expo-arkit/ios/ExpoARKitView.swift` - Configurar occlusion
 - Crear `modules/expo-arkit/ios/Shaders/OcclusionShader.metal`
 
 **2. Immersive Navigation (1 semana)**
+
 - [ ] 6DOF Tracking mejorado
   - Validar tracking continuo al caminar
   - Handling de tracking loss (relocalization)
@@ -188,6 +205,7 @@ Reemplazar la realidad física con el modelo 3D del diseño
   - Basado en room scan geometry
 
 **3. Materials System (1 semana - Nice-to-have)**
+
 - [ ] Intercambio de materiales
   - Seleccionar superficie del modelo
   - UI con galería de materiales
@@ -195,6 +213,7 @@ Reemplazar la realidad física con el modelo 3D del diseño
   - Persistir selecciones
 
 **Archivos a crear:**
+
 - `modules/expo-arkit/ios/ImmersiveRenderer.swift` - Rendering inmersivo
 - `src/ui/screens/ImmersiveARScreen.tsx` - Nueva pantalla inmersiva
 - `src/ui/components/MaterialPicker.tsx` - UI de materiales
@@ -268,29 +287,37 @@ SEMANA 8 (Buffer)
 ## Riesgos y Mitigaciones
 
 ### Riesgo 1: Occlusion Rendering Complejo
+
 **Problema:** Custom shaders en Metal son complejos
 **Mitigación:**
+
 - Estudiar ejemplos de Apple (Scene Reconstruction sample)
 - Empezar con occlusion simple (background blanco)
 - Iterar hacia depth-based occlusion
 
 ### Riesgo 2: Alineación Imprecisa
+
 **Problema:** Auto-matching puede no ser perfecto
 **Mitigación:**
+
 - Priorizar UI de ajuste manual robusto
 - Múltiples puntos de referencia (esquinas, puertas)
 - Sistema de validación visual (overlay)
 
 ### Riesgo 3: Performance con Occlusion
+
 **Problema:** Rendering inmersivo consume batería/procesamiento
 **Mitigación:**
+
 - LOD (Level of Detail) para modelos grandes
 - Optimización de mesh (reduce polys)
 - Testing temprano en dispositivo real
 
 ### Riesgo 4: Curva de Aprendizaje Metal Shaders
+
 **Problema:** Si no hay experiencia con Metal
 **Mitigación:**
+
 - Fase 3 tiene buffer de 3-4 semanas
 - Recursos: Metal by Example, Apple docs
 - Considerar SceneKit shaders (más simple) primero
@@ -304,6 +331,7 @@ SEMANA 8 (Buffer)
 **Completar Fase 1.5 → 100%**
 
 1. **Modificar useRoomPlan.ts**
+
    ```typescript
    // Retornar file path del USDZ exportado
    const startScanning = async (scanName: string) => {
@@ -333,15 +361,18 @@ SEMANA 8 (Buffer)
 ## Recursos de Aprendizaje
 
 ### Para Fase 2 (Model Alignment)
+
 - [ARKit World Anchors](https://developer.apple.com/documentation/arkit/arworldanchor)
 - [SceneKit Bounding Box](https://developer.apple.com/documentation/scenekit/scnnode/1407975-boundingbox)
 
 ### Para Fase 3 (Occlusion)
+
 - [ARKit Scene Reconstruction](https://developer.apple.com/documentation/arkit/arkit_in_ios/environmental_analysis/visualizing_a_point_cloud_using_scene_depth)
 - [Metal Shading Language Guide](https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf)
 - [SceneKit Rendering Techniques](https://developer.apple.com/documentation/scenekit/scntechnique)
 
 ### Ejemplos de Apple
+
 - [Tracking and Visualizing Planes](https://developer.apple.com/documentation/arkit/tracking_and_visualizing_planes)
 - [Creating a Multiuser AR Experience](https://developer.apple.com/documentation/arkit/arkit_in_ios/tracking_and_visualizing_planes)
 
@@ -368,12 +399,14 @@ Antes de empezar Fase 3, considera:
 ## Conclusión
 
 **Has construido una base sólida** (60% completo):
+
 - ✅ Módulo ARKit nativo funcional
 - ✅ Plane detection y visualización
 - ✅ Model manipulation completo
 - ✅ Room scanning operativo
 
 **Lo que falta es el "diferenciador":**
+
 - 🔴 Model Alignment (alinear diseño con espacio real)
 - 🔴 Reality Replacement (experiencia inmersiva)
 

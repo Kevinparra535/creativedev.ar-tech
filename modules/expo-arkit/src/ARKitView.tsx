@@ -3,7 +3,16 @@ import { findNodeHandle, StyleSheet, ViewProps } from 'react-native';
 
 import { requireNativeViewManager } from 'expo-modules-core';
 
-import { AllModelIdsResponse, CollisionEvent, CollisionStatsResponse, ExpoARKitModule, ModelDimensionsResponse, ModelTransformData, ModelTransformResponse, QualityStatsResponse } from './ExpoARKitModule';
+import {
+  AllModelIdsResponse,
+  CollisionEvent,
+  CollisionStatsResponse,
+  ExpoARKitModule,
+  ModelDimensionsResponse,
+  ModelTransformData,
+  ModelTransformResponse,
+  QualityStatsResponse
+} from './ExpoARKitModule';
 
 const NativeARKitView = requireNativeViewManager('ExpoARKit');
 
@@ -59,7 +68,9 @@ export interface PortalModeChangedEvent {
 export interface ARKitViewProps extends ViewProps {
   onARInitialized?: (event: { nativeEvent: { success: boolean; message: string } }) => void;
   onARError?: (event: { nativeEvent: { error: string } }) => void;
-  onModelLoaded?: (event: { nativeEvent: { success: boolean; message: string; path: string; modelId: string } }) => void;
+  onModelLoaded?: (event: {
+    nativeEvent: { success: boolean; message: string; path: string; modelId: string };
+  }) => void;
   onModelPlaced?: (event: { nativeEvent: ModelPlacedEvent }) => void;
   onPlacementPreviewUpdated?: (event: { nativeEvent: PlacementPreviewUpdatedEvent }) => void;
   onScanGuidanceUpdated?: (event: { nativeEvent: ScanGuidanceUpdatedEvent }) => void;
@@ -78,7 +89,12 @@ export interface ARKitViewRef {
   startPlacementPreview: (path: string, scale?: number) => void;
   stopPlacementPreview: () => void;
   confirmPlacement: () => void;
-  startScanGuidance: (path: string, scale: number, targetWidth: number, targetLength: number) => void;
+  startScanGuidance: (
+    path: string,
+    scale: number,
+    targetWidth: number,
+    targetLength: number
+  ) => void;
   startWallScanGuidance: (
     path: string,
     scale: number,
@@ -96,20 +112,25 @@ export interface ARKitViewRef {
   getMeshClassificationStats: () => Promise<Record<string, any>>;
   getModelDimensions: (modelId: string) => Promise<ModelDimensionsResponse>;
   getAllModelIds: () => Promise<AllModelIdsResponse>;
-  updateModelTransform: (modelId: string, scale?: number[], rotation?: number[], position?: number[]) => Promise<ModelTransformResponse>;
+  updateModelTransform: (
+    modelId: string,
+    scale?: number[],
+    rotation?: number[],
+    position?: number[]
+  ) => Promise<ModelTransformResponse>;
   setModelScale: (modelId: string, scale: number[]) => Promise<ModelTransformResponse>;
   setModelRotation: (modelId: string, rotation: number[]) => Promise<ModelTransformResponse>;
   setModelPosition: (modelId: string, position: number[]) => Promise<ModelTransformResponse>;
   getModelTransform: (modelId: string) => Promise<ModelTransformData>;
   getViewTag: () => number | null;
-  
+
   // Collision Detection (Phase 3.3)
   setCollisionDetection: (enabled: boolean) => Promise<void>;
   getCollisionDetectionState: () => Promise<boolean>;
   setCollisionDebugMode: (enabled: boolean) => Promise<void>;
   getCollisionStats: () => Promise<CollisionStatsResponse>;
   resetCollisionCount: () => Promise<void>;
-  
+
   // Quality Settings (Phase 3.4)
   setOcclusionQuality: (quality: 'low' | 'medium' | 'high') => Promise<void>;
   getOcclusionQuality: () => Promise<string>;
@@ -219,7 +240,12 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
       }
     },
 
-    startScanGuidance: async (path: string, scale: number, targetWidth: number, targetLength: number) => {
+    startScanGuidance: async (
+      path: string,
+      scale: number,
+      targetWidth: number,
+      targetLength: number
+    ) => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId == null) {
@@ -398,7 +424,12 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return { success: false, error: String(error) };
       }
     },
-    updateModelTransform: async (modelId: string, scale?: number[], rotation?: number[], position?: number[]): Promise<ModelTransformResponse> => {
+    updateModelTransform: async (
+      modelId: string,
+      scale?: number[],
+      rotation?: number[],
+      position?: number[]
+    ): Promise<ModelTransformResponse> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId == null) {
@@ -407,7 +438,13 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         }
 
         console.log('Calling updateModelTransform with viewId:', viewId, 'modelId:', modelId);
-        const result = await ExpoARKitModule.updateModelTransform(viewId, modelId, scale, rotation, position);
+        const result = await ExpoARKitModule.updateModelTransform(
+          viewId,
+          modelId,
+          scale,
+          rotation,
+          position
+        );
         console.log('Model transform updated:', result);
         return result;
       } catch (error) {
@@ -423,7 +460,14 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
           return { success: false, error: 'viewId is null' };
         }
 
-        console.log('Calling setModelScale with viewId:', viewId, 'modelId:', modelId, 'scale:', scale);
+        console.log(
+          'Calling setModelScale with viewId:',
+          viewId,
+          'modelId:',
+          modelId,
+          'scale:',
+          scale
+        );
         const result = await ExpoARKitModule.setModelScale(viewId, modelId, scale);
         console.log('Model scale set:', result);
         return result;
@@ -432,7 +476,10 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return { success: false, error: String(error) };
       }
     },
-    setModelRotation: async (modelId: string, rotation: number[]): Promise<ModelTransformResponse> => {
+    setModelRotation: async (
+      modelId: string,
+      rotation: number[]
+    ): Promise<ModelTransformResponse> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId == null) {
@@ -440,7 +487,14 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
           return { success: false, error: 'viewId is null' };
         }
 
-        console.log('Calling setModelRotation with viewId:', viewId, 'modelId:', modelId, 'rotation:', rotation);
+        console.log(
+          'Calling setModelRotation with viewId:',
+          viewId,
+          'modelId:',
+          modelId,
+          'rotation:',
+          rotation
+        );
         const result = await ExpoARKitModule.setModelRotation(viewId, modelId, rotation);
         console.log('Model rotation set:', result);
         return result;
@@ -449,7 +503,10 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return { success: false, error: String(error) };
       }
     },
-    setModelPosition: async (modelId: string, position: number[]): Promise<ModelTransformResponse> => {
+    setModelPosition: async (
+      modelId: string,
+      position: number[]
+    ): Promise<ModelTransformResponse> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId == null) {
@@ -457,7 +514,14 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
           return { success: false, error: 'viewId is null' };
         }
 
-        console.log('Calling setModelPosition with viewId:', viewId, 'modelId:', modelId, 'position:', position);
+        console.log(
+          'Calling setModelPosition with viewId:',
+          viewId,
+          'modelId:',
+          modelId,
+          'position:',
+          position
+        );
         const result = await ExpoARKitModule.setModelPosition(viewId, modelId, position);
         console.log('Model position set:', result);
         return result;
@@ -501,7 +565,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return { success: false, error: String(error) };
       }
     },
-    
+
     // Collision Detection (Phase 3.3)
     setCollisionDetection: async (enabled: boolean): Promise<void> => {
       try {
@@ -515,7 +579,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error setting collision detection:', error);
       }
     },
-    
+
     getCollisionDetectionState: async (): Promise<boolean> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -529,7 +593,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return false;
       }
     },
-    
+
     setCollisionDebugMode: async (enabled: boolean): Promise<void> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -542,33 +606,33 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error setting collision debug mode:', error);
       }
     },
-    
+
     getCollisionStats: async (): Promise<CollisionStatsResponse> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId == null) {
           console.error('viewId is null');
-          return { 
-            enabled: false, 
-            debugMode: false, 
-            totalCollisions: 0, 
-            modelsWithPhysics: 0, 
-            meshesWithPhysics: 0 
+          return {
+            enabled: false,
+            debugMode: false,
+            totalCollisions: 0,
+            modelsWithPhysics: 0,
+            meshesWithPhysics: 0
           };
         }
         return await ExpoARKitModule.getCollisionStats(viewId);
       } catch (error) {
         console.error('Error getting collision stats:', error);
-        return { 
-          enabled: false, 
-          debugMode: false, 
-          totalCollisions: 0, 
-          modelsWithPhysics: 0, 
-          meshesWithPhysics: 0 
+        return {
+          enabled: false,
+          debugMode: false,
+          totalCollisions: 0,
+          modelsWithPhysics: 0,
+          meshesWithPhysics: 0
         };
       }
     },
-    
+
     resetCollisionCount: async (): Promise<void> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -581,7 +645,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error resetting collision count:', error);
       }
     },
-    
+
     // Quality Settings (Phase 3.4)
     setOcclusionQuality: async (quality: 'low' | 'medium' | 'high'): Promise<void> => {
       try {
@@ -595,7 +659,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error setting occlusion quality:', error);
       }
     },
-    
+
     getOcclusionQuality: async (): Promise<string> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -609,7 +673,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return 'medium';
       }
     },
-    
+
     setOcclusionEnabled: async (enabled: boolean): Promise<void> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -622,7 +686,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error setting occlusion enabled:', error);
       }
     },
-    
+
     getOcclusionEnabled: async (): Promise<boolean> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -636,7 +700,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return true;
       }
     },
-    
+
     setShowFPS: async (show: boolean): Promise<void> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -649,7 +713,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         console.error('Error setting show FPS:', error);
       }
     },
-    
+
     getShowFPS: async (): Promise<boolean> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -663,7 +727,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return false;
       }
     },
-    
+
     getCurrentFPS: async (): Promise<number> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -677,7 +741,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
         return 0;
       }
     },
-    
+
     getQualityStats: async (): Promise<QualityStatsResponse> => {
       try {
         const viewId = findNodeHandle(nativeRef.current);
@@ -693,7 +757,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
             isMeshReconstructionEnabled: false
           };
         }
-        return await ExpoARKitModule.getQualityStats(viewId) as QualityStatsResponse;
+        return (await ExpoARKitModule.getQualityStats(viewId)) as QualityStatsResponse;
       } catch (error) {
         console.error('Error getting quality stats:', error);
         return {
@@ -706,7 +770,7 @@ export const ARKitView = forwardRef<ARKitViewRef, ARKitViewProps>((props, ref) =
           isMeshReconstructionEnabled: false
         };
       }
-    },
+    }
   }));
 
   return (
@@ -733,6 +797,6 @@ ARKitView.displayName = 'ARKitView';
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1
+  }
 });

@@ -9,6 +9,7 @@ import AutoAlignmentTestScreen from '@/ui/screens/AutoAlignmentTestScreen';
 import { GuidedModelSelectScreen } from '@/ui/screens/GuidedModelSelectScreen';
 import { GuidedWalkthroughScreen } from '@/ui/screens/GuidedWalkthroughScreen';
 import { GuidedWallWalkthroughScreen } from '@/ui/screens/GuidedWallWalkthroughScreen';
+import { ImmersiveViewScreen } from '@/ui/screens/ImmersiveViewScreen';
 import ManualAlignmentScreen from '@/ui/screens/ManualAlignmentScreen';
 import { ModelPreviewScreen } from '@/ui/screens/ModelPreviewScreen';
 import { RoomPlanTestScreen } from '@/ui/screens/RoomPlanTestScreen';
@@ -66,6 +67,14 @@ export function AppNavigator() {
           name='AlignmentView'
           component={AlignmentViewScreen}
           options={{ title: 'Alineación AR' }}
+        />
+        <Stack.Screen
+          name='ImmersiveView'
+          component={ImmersiveViewScreen}
+          options={{
+            title: 'Vista Inmersiva',
+            headerShown: false,
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>
