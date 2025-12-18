@@ -525,6 +525,17 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Module-level async function to mark a wall as scanned in SIMPLE preview (turn green)
+    AsyncFunction("markSimplePreviewWallScanned") { (viewTag: Int, wallId: String) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SimpleModelPreviewView.self) else {
+          print("Error: Could not find SimpleModelPreviewView with tag \(viewTag)")
+          return
+        }
+        view.markWallScanned(wallId: wallId)
+      }
+    }
+
     // Module-level async function to deselect wall in preview
     AsyncFunction("deselectWall") { (viewTag: Int) -> Void in
       DispatchQueue.main.async { [weak self] in
@@ -843,7 +854,10 @@ public class ExpoARKitModule: Module {
     View(SimpleModelPreviewView.self) {
       Events(
         "onSimpleModelLoaded",
-        "onSimpleLoadError"
+        "onSimpleLoadError",
+        "onSimpleWallSelected",
+        "onSimpleWallDeselected",
+        "onSimpleTapFeedback"
       )
     }
 

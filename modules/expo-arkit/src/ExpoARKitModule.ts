@@ -120,6 +120,7 @@ interface ExpoARKitModuleType {
   loadModelForPreview(viewTag: number, path: string): Promise<void>;
   // Simple Model Preview (minimal, no controls)
   loadModelForSimplePreview(viewTag: number, path: string): Promise<void>;
+  markSimplePreviewWallScanned(viewTag: number, wallId: string): Promise<void>;
   deselectWall(viewTag: number): Promise<void>;
   getSelectedWallData(viewTag: number): Promise<any>;
 
