@@ -144,12 +144,17 @@ class SimpleModelPreviewView: ExpoView {
   }
 
   func markWallScanned(wallId: String) {
-    guard let modelRoot = modelNode else { return }
+    guard let modelRoot = modelNode else {
+      print("[SimpleModelPreview] ERROR: modelNode is nil")
+      return
+    }
     let targetId = wallId
+    print("[SimpleModelPreview] markWallScanned called for wallId: \(targetId)")
 
     if selectedWallData?.id == targetId {
       selectionOverlay?.removeFromParentNode()
       selectionOverlay = nil
+      print("[SimpleModelPreview] Removed selection overlay for \(targetId)")
     }
 
     // Mark in state
@@ -159,6 +164,7 @@ class SimpleModelPreviewView: ExpoView {
     if let existing = scannedWallOverlays[targetId] {
       existing.removeFromParentNode()
       scannedWallOverlays[targetId] = nil
+      print("[SimpleModelPreview] Removed existing overlay for \(targetId)")
     }
 
     // Find node by name and apply persistent green overlay
@@ -166,7 +172,77 @@ class SimpleModelPreviewView: ExpoView {
       let overlay = makeOverlayNode(for: node, color: UIColor.systemGreen)
       node.parent?.addChildNode(overlay)
       scannedWallOverlays[targetId] = overlay
+      print("[SimpleModelPreview] ✅ Added GREEN overlay for wall \(targetId)")
+    } else {
+      print("[SimpleModelPreview] ❌ Could not find wall node with name: \(targetId)")
     }
+  }
+
+  func markWallCritical(wallId: String) {
+    guard let modelRoot = modelNode else {
+      print("[SimpleModelPreview] ERROR: modelNode is nil")
+      return
+    }
+    let targetId = wallId
+    print("[SimpleModelPreview] markWallCritical called for wallId: \(targetId)")
+
+    // Don't apply red overlay if already scanned (green takes priority)
+    if scannedWallIds.contains(targetId) {
+      print("[SimpleModelPreview] Wall \(targetId) already scanned, skipping critical overlay")
+      return
+    }
+
+    // Remove any existing overlay for this wall
+    if let existing = scannedWallOverlays[targetId] {
+      existing.removeFromParentNode()
+      scannedWallOverlays[targetId] = nil
+      print("[SimpleModelPreview] Removed existing overlay for \(targetId)")
+    }
+
+    // Find node by name and apply persistent red overlay
+    if let node = modelRoot.childNode(withName: targetId, recursively: true) {
+      let overlay = makeOverlayNode(for: node, color: UIColor.systemRed)
+      node.parent?.addChildNode(overlay)
+      scannedWallOverlays[targetId] = overlay
+      print("[SimpleModelPreview] ✅ Added RED overlay for wall \(targetId)")
+    } else {
+      print("[SimpleModelPreview] ❌ Could not find wall node with name: \(targetId)")
+    }
+  }
+
+  func getAllWallIds() -> [String] {
+    guard let modelRoot = modelNode else {
+      print("[SimpleModelPreview] ERROR: modelNode is nil in getAllWallIds")
+      return []
+    }
+    
+    var wallIds: [String] = []
+    
+    func traverseNode(_ node: SCNNode) {
+      // Check if this node represents a valid wall
+      if let geometry = node.geometry, let nodeName = node.name, !nodeName.isEmpty {
+        // Check if it's a wall-like geometry (has reasonable dimensions)
+        let bounds = node.boundingBox
+        let width = abs(bounds.max.x - bounds.min.x)
+        let height = abs(bounds.max.y - bounds.min.y)
+        let depth = abs(bounds.max.z - bounds.min.z)
+        
+        // Wall detection: one dimension should be small (depth) and others large
+        let dimensions = [width, height, depth].sorted()
+        if dimensions[0] < 0.5 && dimensions[1] > 0.5 && dimensions[2] > 0.5 {
+          wallIds.append(nodeName)
+          print("[SimpleModelPreview] Found wall node: \(nodeName) (w:\(width), h:\(height), d:\(depth))")
+        }
+      }
+      
+      for child in node.childNodes {
+        traverseNode(child)
+      }
+    }
+    
+    traverseNode(modelRoot)
+    print("[SimpleModelPreview] Total walls found: \(wallIds.count)")
+    return wallIds
   }
 
   private func clearScannedWalls() {
@@ -324,6 +400,7 @@ class SimpleModelPreviewView: ExpoView {
 
     selectedWallNode = hit.node
     selectedWallData = wallData
+    print("[SimpleModelPreview] Wall selected: \(wallData.id)")
 
     highlightWallSelected(hit: hit, wallId: wallData.id)
     onSimpleTapFeedback(["success": true, "message": "Pared seleccionada"]) 
@@ -331,16 +408,21 @@ class SimpleModelPreviewView: ExpoView {
   }
 
   private func highlightWallSelected(hit: SCNHitTestResult, wallId: String) {
-    guard selectedWallNode != nil else { return }
+    guard selectedWallNode != nil else {
+      print("[SimpleModelPreview] Cannot highlight: selectedWallNode is nil")
+      return
+    }
 
     // If it's already marked as scanned, keep it green and don't override.
     if scannedWallIds.contains(wallId) {
+      print("[SimpleModelPreview] Wall \(wallId) already scanned, skipping yellow highlight")
       return
     }
 
     let overlayNode = makeOverlayNode(for: hit.node, color: UIColor.systemYellow)
     selectionOverlay = overlayNode
     hit.node.parent?.addChildNode(overlayNode)
+    print("[SimpleModelPreview] ✅ Added YELLOW overlay for wall \(wallId)")
   }
 
   private func makeOverlayNode(for node: SCNNode, color: UIColor) -> SCNNode {
@@ -350,9 +432,12 @@ class SimpleModelPreviewView: ExpoView {
 
     let overlayGeometry = geometry.copy() as! SCNGeometry
     let material = SCNMaterial()
-    material.diffuse.contents = color.withAlphaComponent(0.20)
-    material.emission.contents = color.withAlphaComponent(0.60)
+    material.diffuse.contents = color.withAlphaComponent(0.7)
+    material.emission.contents = color.withAlphaComponent(1.0)
     material.isDoubleSided = true
+    material.writesToDepthBuffer = false
+    material.readsFromDepthBuffer = true
+    material.lightingModel = .constant
     overlayGeometry.materials = [material]
 
     let overlayNode = SCNNode(geometry: overlayGeometry)
@@ -362,6 +447,15 @@ class SimpleModelPreviewView: ExpoView {
     overlayNode.scale = node.scale
     overlayNode.renderingOrder = 999
     return overlayNode
+  }
+
+  func resetCamera() {
+    guard let modelRoot = modelNode else {
+      print("[SimpleModelPreview] Cannot reset camera: no model loaded")
+      return
+    }
+    print("[SimpleModelPreview] Resetting camera to initial isometric view")
+    setIsometricCamera(for: modelRoot)
   }
 
   private func setIsometricCamera(for node: SCNNode) {

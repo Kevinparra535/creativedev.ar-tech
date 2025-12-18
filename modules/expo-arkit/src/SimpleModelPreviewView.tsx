@@ -30,6 +30,9 @@ export interface SimpleModelPreviewViewProps extends ViewProps {
 export interface SimpleModelPreviewViewRef {
   loadModel: (path: string) => Promise<void>;
   markWallScanned: (wallId: string) => Promise<void>;
+  markWallAsCritical: (wallId: string) => Promise<void>;
+  getAllWallIds: () => Promise<string[]>;
+  resetCamera: () => Promise<void>;
 }
 
 export const SimpleModelPreviewView = forwardRef<SimpleModelPreviewViewRef, SimpleModelPreviewViewProps>(
@@ -47,6 +50,24 @@ export const SimpleModelPreviewView = forwardRef<SimpleModelPreviewViewRef, Simp
         const viewId = findNodeHandle(nativeRef.current);
         if (viewId == null) return;
         await ExpoARKitModule.markSimplePreviewWallScanned(viewId, wallId);
+      },
+
+      markWallAsCritical: async (wallId: string) => {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) return;
+        await ExpoARKitModule.markSimplePreviewWallCritical(viewId, wallId);
+      },
+
+      getAllWallIds: async () => {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) return [];
+        return await ExpoARKitModule.getAllSimplePreviewWallIds(viewId);
+      },
+
+      resetCamera: async () => {
+        const viewId = findNodeHandle(nativeRef.current);
+        if (viewId == null) return;
+        await ExpoARKitModule.resetSimplePreviewCamera(viewId);
       }
     }));
 

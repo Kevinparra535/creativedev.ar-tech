@@ -536,6 +536,39 @@ public class ExpoARKitModule: Module {
       }
     }
 
+    // Module-level async function to mark a wall as critical in SIMPLE preview (turn red)
+    AsyncFunction("markSimplePreviewWallCritical") { (viewTag: Int, wallId: String) -> Void in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SimpleModelPreviewView.self) else {
+          print("Error: Could not find SimpleModelPreviewView with tag \(viewTag)")
+          return
+        }
+        view.markWallCritical(wallId: wallId)
+      }
+    }
+
+    // Module-level async function to get all wall IDs from SIMPLE preview
+    AsyncFunction("getAllSimplePreviewWallIds") { (viewTag: Int) -> [String] in
+      return DispatchQueue.main.sync { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SimpleModelPreviewView.self) else {
+          print("Error: Could not find SimpleModelPreviewView with tag \(viewTag)")
+          return []
+        }
+        return view.getAllWallIds()
+      }
+    }
+
+    // Module-level async function to reset camera in SIMPLE preview
+    AsyncFunction("resetSimplePreviewCamera") { (viewTag: Int) in
+      DispatchQueue.main.async { [weak self] in
+        guard let view = self?.appContext?.findView(withTag: viewTag, ofType: SimpleModelPreviewView.self) else {
+          print("Error: Could not find SimpleModelPreviewView with tag \(viewTag)")
+          return
+        }
+        view.resetCamera()
+      }
+    }
+
     // Module-level async function to deselect wall in preview
     AsyncFunction("deselectWall") { (viewTag: Int) -> Void in
       DispatchQueue.main.async { [weak self] in
